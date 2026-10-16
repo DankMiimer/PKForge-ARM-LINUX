@@ -63,9 +63,11 @@ Not affiliated with Nintendo, Game Freak, or The Pokémon Company.
   hatch Pokémon, including one egg of every species.
 - **Complete the Pokédex.** Mark everything seen, generate a living dex, and track
   what is missing.
-- **Play with your Pokémon.** The Poképark is a living habitat where your Pokémon
-  wander while you're away. The Nuzlocke report tracks first encounters and dupes per
-  route, and the encounter browser shows every way to catch a species in each game.
+- **Play with your Pokémon.** The Poképark is a living world where up to 24 of your
+  Pokémon live by their tempers, friendships and rivalries, act out scenes together and
+  have rare events. Feed them, play with them, take photos. The Nuzlocke report tracks
+  first encounters and dupes per route, and the encounter browser shows every way to
+  catch a species in each game.
 - **Share your teams.** Import and export Showdown sets, and generate QR codes to move
   a set between devices.
 - **Game-specific editors.** Grand Underground, Poké Beans, Fashion, and more for each
@@ -107,7 +109,6 @@ Not affiliated with Nintendo, Game Freak, or The Pokémon Company.
 
 <p align="center">
   <img src="docs/screenshots/rng.png" alt="RNG tools" width="49%" />
-  <img src="docs/screenshots/pokepark.png" alt="Poképark" width="49%" />
 </p>
 
 <p align="center">
@@ -208,7 +209,8 @@ docs/                       architecture, bank model, development, art direction
 - [PKHeX](https://github.com/kwsch/PKHeX) by Kaphotics and every contributor over the
   years, the engine everything runs on
 - [spritedmistery](https://www.instagram.com/spritedmistery/), the PKForge logo, the app's
-  look, its color schemes and logos, and its buttons
+  look, its color schemes and logos, its buttons, and the Poképark's map
+- AlchemyBats, the tileset the Poképark's map is built on (tiles by AlchemyBats)
 - [PKHeX-Plugins / Auto Legality Mod](https://github.com/santacrab2/PKHeX-Plugins), the
   offline legalizer built into the app
 - [PKSM](https://github.com/FlagBrew/PKSM), the pixel chrome this UI builds on (GPL-3,
@@ -218,7 +220,11 @@ docs/                       architecture, bank model, development, art direction
   [game art attribution](src/PKForge.App/Resources/GameArt/ATTRIBUTION.md))
 - [Pokémon Showdown](https://pokemonshowdown.com) by [Smogon](https://www.smogon.com) and
   the artists of its sprite projects, front sprites and box icons
-- [PokeAPI](https://pokeapi.co), item art fetched at runtime and cached on device
+- [PMDCollab SpriteCollab](https://sprites.pmdcollab.org) and its artists, the Poképark's
+  animated sprites and portraits (CC BY-NC 4.0), fetched at runtime and credited by name in
+  the park
+- [PokeAPI](https://pokeapi.co), item art fetched at runtime and cached on device, and the
+  evolution data of the Poképark (BSD-3)
 - [game-icons.net](https://game-icons.net) (CC-BY 3.0, © Lorc, Delapouite, Guard13007,
   Carl Olsen and other contributing artists), UI symbols
 - [Bulbagarden Archives](https://archives.bulbagarden.net), Pokérus status sprites

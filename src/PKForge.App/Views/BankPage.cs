@@ -213,6 +213,13 @@ public sealed class BankPage : ContentPage, IPadPagingHandler
         }
     }
 
+    /// <summary>Opens on this box with the cursor on this slot (the Poképark's "Find in its box").</summary>
+    public void Reveal(int box, int slot)
+    {
+        _boxIndex = Math.Clamp(box, 0, Math.Max(0, _bank.BoxCount - 1));
+        _selectedSlot = slot;
+    }
+
     /// <summary>A search hit lands the vault on the mon's box and slot, cursor on it.</summary>
     private void JumpTo(BankEntry entry)
     {
@@ -722,6 +729,7 @@ public sealed class BankPage : ContentPage, IPadPagingHandler
         options.Add(new PadOption("Move (carry)", IconPath: "move", Detail: "Pick it up and drop it in another slot."));
         options.Add(new PadOption("Export .pk file", IconPath: "export", Detail: "Saves this Pokémon as a single .pk file."));
         options.Add(new PadOption("Release from bank", IconPath: "release", Detail: "Removes it from the bank for good; there is no undo."));
+        options.Add(new PadOption("Release to the Wilds", IconPath: "release", Detail: "It leaves the bank and lives on in the wild lands around the Poképark. It may come back to visit."));
         var choice = await PadMenu.ShowAsync(_hostGrid, entry.Info.Nickname,
             Note($"From {entry.Info.SourceName} · Gen {entry.Info.Generation} · deposited {entry.AddedUtc:yyyy-MM-dd}"),
             options.ToArray());
@@ -775,7 +783,32 @@ public sealed class BankPage : ContentPage, IPadPagingHandler
                 UpdatePreview();
                 _canvas.InvalidateSurface();
                 return;
+            case "Release to the Wilds":
+                await ReleaseToWildsAsync(entry);
+                return;
         }
+    }
+
+    private async Task ReleaseToWildsAsync(BankEntry entry)
+    {
+        var services = IPlatformApplication.Current?.Services;
+        if (services?.GetService<PokeparkWildsStore>() is not { } wilds) return;
+        var data = _bank.GetData(entry.Id);
+        var trainer = PKForge.Engine.EntityBytes.Parse(entry, data)?.OriginalTrainerName ?? "";
+        var residentId = $"bank:{entry.Id:N}";
+        var park = services.GetService<PokeparkService>();
+        var lived = park?.LoadRoster().Any(p => p.Id == residentId) == true;
+        var friend = wilds.Describe(entry.Info.Species, entry.Info.Form, entry.Info.Shiny, entry.Info.Nickname, trainer, entry.Info.SourceName,
+            lived ? residentId : null, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(data)));
+        await WildsFarewell.RunAsync(_hostGrid, friend, () =>
+        {
+            _bank.Remove(entry.Id);
+            if (lived) park?.RemoveVisitor(residentId);
+            RefreshBoxEntries();
+            UpdatePreview();
+            _canvas.InvalidateSurface();
+            return Task.FromResult(true);
+        });
     }
 
     // ── The organizer's actions: bulk moves, keepsakes, releases, sorting ─────

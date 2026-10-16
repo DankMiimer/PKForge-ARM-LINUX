@@ -14,6 +14,8 @@ public sealed record PokeparkSettings
     public bool Random { get; init; } = true;
     public int Count { get; init; } = 6;
     public string[] SelectedIds { get; init; } = [];
+    /// <summary>The daycare writes EXP and eggs back to saves and the Bank, where the game allows it.</summary>
+    public bool DaycareWritesBack { get; init; } = true;
 }
 
 public sealed class PokeparkService(IBankService bank, ISaveSessionService saves, IGameDataService data)
@@ -51,12 +53,12 @@ public sealed class PokeparkService(IBankService bank, ISaveSessionService saves
     }
 
     /// <summary>The species name, the same table every picker shows.</summary>
-    private string SpeciesName(int species) =>
+    public string SpeciesName(int species) =>
         (uint)species < (uint)data.SpeciesNames.Count ? data.SpeciesNames[species] : $"#{species}";
 
     private const string InitializedKey = "pkforge.pokepark.initialized.v2";
     private const string AutoFillSuppressedKey = "pkforge.pokepark.autofill-suppressed.v1";
-    public const int MaximumResidents = 12;
+    public const int MaximumResidents = ParkLife.MostResidents;
 
     /// <summary>Called once at app startup. Opening the park never chooses new residents.</summary>
     public void EnsureInitialized()
@@ -188,6 +190,93 @@ public sealed class PokeparkService(IBankService bank, ISaveSessionService saves
             GameName: $"Gen {session.Generation}", TrainerName: session.GetTrainer().Name, Origin: document.DisplayName));
     }
 
+    private readonly Dictionary<string, int> _natures = new();
+
+    private readonly Dictionary<string, DateOnly> _metDates = new();
+
+    /// <summary>The day the player met the resident (Gen 4 and later), from the Bank or the open save.</summary>
+    public DateOnly? MetDateOf(ParkPokemon mon)
+    {
+        lock (_metDates) if (_metDates.TryGetValue(mon.Id, out var known)) return known;
+        DateOnly? met = null;
+        try
+        {
+            var parts = mon.Id.Split(':');
+            if (parts is ["bank", var guid, ..] && Guid.TryParse(guid, out var id) && bank.GetAll().FirstOrDefault(e => e.Id == id) is { } entry)
+                met = PKForge.Engine.EntityBytes.Parse(entry, bank.GetData(id))?.MetDate;
+            else if (parts is ["save", var document, var boxText, var slotText, ..] && saves.CurrentSession is { } session &&
+                     saves.Current?.Document is { } open &&
+                     Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(open.DocumentId)))[..16] == document &&
+                     int.TryParse(boxText, out var box) && int.TryParse(slotText, out var slot) &&
+                     session.GetMetInfo(box, slot) is { SupportsMetDate: true } info &&
+                     DateOnly.TryParse(info.MetDate, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+                met = parsed;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or IndexOutOfRangeException or IOException or FormatException)
+        {
+            // No date to celebrate.
+        }
+        if (met is { } found) lock (_metDates) _metDates[mon.Id] = found;
+        return met;
+    }
+
+    /// <summary>A nature's name, in the game data's language.</summary>
+    public string NatureName(int nature) => (uint)nature < (uint)data.NatureNames.Count ? data.NatureNames[nature] : $"#{nature}";
+
+    /// <summary>The resident's nature, read from the Bank or from the open save (for its berry
+    /// tastes); null when its save is not open.</summary>
+    public int? NatureOf(ParkPokemon mon)
+    {
+        lock (_natures) if (_natures.TryGetValue(mon.Id, out var known)) return known;
+        int? nature = null;
+        try
+        {
+            var parts = mon.Id.Split(':');
+            if (parts is ["bank", var guid, ..] && Guid.TryParse(guid, out var id) && bank.GetAll().FirstOrDefault(e => e.Id == id) is { } entry)
+                nature = PKForge.Engine.EntityBytes.Parse(entry, bank.GetData(id)) is { } pk ? (int)pk.Nature : null;
+            else if (parts is ["save", var document, var boxText, var slotText, ..] && saves.CurrentSession is { } session &&
+                     saves.Current?.Document is { } open &&
+                     Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(open.DocumentId)))[..16] == document &&
+                     int.TryParse(boxText, out var box) && int.TryParse(slotText, out var slot) &&
+                     session.ReadEntity(box, slot) is { } detail && detail.Species == mon.Species)
+                nature = detail.Nature;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or IndexOutOfRangeException or IOException or FormatException)
+        {
+            // An unreadable entry keeps the taste the park gives it from its id.
+        }
+        if (nature is { } found) lock (_natures) _natures[mon.Id] = found;
+        return nature;
+    }
+
+    /// <summary>Where a resident's real data lives: a Bank entry, or a slot of the open save.</summary>
+    public sealed record ParkSource(byte[] Data, string? Format, Guid? BankId, int Box, int Slot, string SourceName);
+
+    /// <summary>The resident's real data, from the Bank or from the open save (null when its save is not open).</summary>
+    public ParkSource? SourceOf(ParkPokemon mon)
+    {
+        try
+        {
+            var parts = mon.Id.Split(':');
+            if (parts is ["bank", var guid, ..] && Guid.TryParse(guid, out var id) && bank.GetAll().FirstOrDefault(e => e.Id == id) is { } entry)
+                return new(bank.GetData(id), entry.Info.Format, id, entry.Box, entry.Slot, entry.Info.SourceName);
+            if (parts is ["save", var document, var boxText, var slotText, ..] && saves.CurrentSession is { } session &&
+                saves.Current?.Document is { } open &&
+                Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(open.DocumentId)))[..16] == document &&
+                int.TryParse(boxText, out var box) && int.TryParse(slotText, out var slot) &&
+                session.ReadEntity(box, slot) is { } detail && detail.Species == mon.Species)
+            {
+                var export = session.ExportSlot(box, slot);
+                return new(export.Data, export.Format, null, box, slot, open.DisplayName);
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or IndexOutOfRangeException or IOException or FormatException)
+        {
+            // Unreadable: the park keeps it as it is.
+        }
+        return null;
+    }
+
     public bool RemoveVisitor(string id)
     {
         var roster = LoadRoster();
@@ -226,8 +315,8 @@ public sealed class PokeparkService(IBankService bank, ISaveSessionService saves
     private static PokeparkSettings Normalize(PokeparkSettings settings) => settings with
     {
         Source = Enum.IsDefined(settings.Source) ? settings.Source : PokeparkSource.Both,
-        Count = Math.Clamp(settings.Count, 1, 12),
-        SelectedIds = (settings.SelectedIds ?? []).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().Take(12).ToArray()
+        Count = Math.Clamp(settings.Count, 1, MaximumResidents),
+        SelectedIds = (settings.SelectedIds ?? []).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().Take(MaximumResidents).ToArray()
     };
     private static T? Read<T>(string key)
     {

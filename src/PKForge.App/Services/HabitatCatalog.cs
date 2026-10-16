@@ -14,6 +14,16 @@ public static class HabitatCatalog
     private static readonly IPersonalTable[] Tables =
         [PersonalTable.SV, PersonalTable.ZA, PersonalTable.SWSH, PersonalTable.LA, PersonalTable.USUM];
 
+    /// <summary>The species' base Speed stat (60 when no game has it), for park races.</summary>
+    public static int SpeedFor(int species, int form = 0)
+    {
+        if (species <= 0 || species > ushort.MaxValue || form < 0 || form > byte.MaxValue) return 60;
+        foreach (var table in Tables)
+            if (table.IsPresentInGame((ushort)species, (byte)form))
+                return table.GetFormEntry((ushort)species, (byte)form).SPE;
+        return form != 0 ? SpeedFor(species) : 60;
+    }
+
     /// <summary>Canonical 1–18 park type IDs for a species/form. Never returns raw PKHeX values.</summary>
     public static IReadOnlyList<int> TypesFor(int species, int form = 0)
     {

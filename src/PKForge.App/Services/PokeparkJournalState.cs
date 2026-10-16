@@ -12,6 +12,12 @@ public partial class PokeparkJournalState : ObservableObject
     [ObservableProperty] private string _trait = "";
     [ObservableProperty] private string _likes = "";
     [ObservableProperty] private string _story = "";
+    [ObservableProperty] private string _personality = "";
+    [ObservableProperty] private string _taste = "";
+    [ObservableProperty] private float[] _needs = [];
+    [ObservableProperty] private int _hearts;
+    [ObservableProperty] private string[] _recent = [];
+    [ObservableProperty] private string _bonds = "";
     public void Open() => IsOpen = true;
     public void Clear()
     {

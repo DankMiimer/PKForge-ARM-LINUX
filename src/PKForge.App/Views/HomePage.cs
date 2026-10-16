@@ -819,61 +819,7 @@ public sealed class HomePage : ContentPage, IPadHandler
             await Launcher.OpenAsync(update.ReleaseUrl);
     }
 
-    /// <summary>Background music: library, play/pause, skip, order, autostart.</summary>
-    private async Task ShowMusicAsync()
-    {
-        var music = IPlatformApplication.Current?.Services.GetService<Domain.IMusicPlayer>();
-        if (music is null) return;
-
-        while (true)
-        {
-            var order = music.Order == Domain.MusicOrder.Shuffle ? "Shuffle" : "In order";
-            var auto = music.Autostart ? "ON" : "OFF";
-            var androidMusic = music as Platforms.Android.MusicPlayer;
-            var playing = music.IsPlaying
-                ? $"Playing: {music.Library[music.CurrentIndex ?? 0].Title}"
-                : $"Library: {music.Library.Count} track(s)";
-            if (androidMusic?.LastError is { } err)
-                playing += $"\nLast error: {err}";
-            var choice = await PadMenu.ShowAsync(_hostGrid, "Background music", playing,
-                new PadOption(music.IsPlaying ? "Pause" : "Play", IconPath: music.IsPlaying ? "pause" : "play"),
-                new PadOption("Skip to next track", IconPath: "skip"),
-                new PadOption($"Add music files ({music.Library.Count})", IconPath: "folder", Detail: "Pick audio files on your device to add to the library."),
-                new PadOption(music.Library.Count > 0 ? "Clear library" : "-", IconPath: "delete",
-                    Detail: music.Library.Count > 0 ? "Empties the list. Your audio files stay on the device." : null),
-                new PadOption($"Order: {order}", IconPath: "shuffle", Detail: "Play the library in order or shuffled."),
-                new PadOption($"Autostart: {auto}", IconPath: "settings", Detail: "ON starts the music when PKForge opens."));
-            switch (choice)
-            {
-                case "Play": music.Play(); break;
-                case "Pause": music.Pause(); break;
-                case "Skip to next track": music.Skip(); break;
-                case var add when add?.StartsWith("Add music files", StringComparison.Ordinal) == true:
-                {
-                    var picker = IPlatformApplication.Current?.Services.GetService<Domain.IDocumentPicker>();
-                    if (picker is null) break;
-                    var documents = await picker.PickManyAsync();
-                    if (documents.Count == 0) break;
-                    var added = music.Add(documents);
-                    _viewModel.Status = added > 0 ? $"Added {added} track(s) to the music library." : "Those files are already in the library.";
-                    break;
-                }
-                case "Clear library":
-                    var confirmed = await PadMenu.ConfirmAsync(_hostGrid, "Clear music library?",
-                        "Removes every track. Your audio files on storage are untouched.", "Clear");
-                    if (confirmed) music.Clear();
-                    break;
-                case var o when o?.StartsWith("Order: ", StringComparison.Ordinal) == true:
-                    music.SetOrder(music.Order == Domain.MusicOrder.InOrder ? Domain.MusicOrder.Shuffle : Domain.MusicOrder.InOrder);
-                    break;
-                case var a when a?.StartsWith("Autostart: ", StringComparison.Ordinal) == true:
-                    music.SetAutostart(!music.Autostart);
-                    break;
-                default:
-                    return;
-            }
-        }
-    }
+    private Task ShowMusicAsync() => MusicMenu.ShowAsync(_hostGrid, text => _viewModel.Status = text);
 
     /// <summary>How each PC box shows its game wallpaper.</summary>
     private async Task ShowBoxBackgroundAsync()

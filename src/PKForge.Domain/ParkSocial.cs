@@ -74,6 +74,82 @@ public static class ParkSocialSimulation
         return (new ParkSocialState(relationships.Values.ToArray(), journal, now), generated);
     }
 
+    /// <summary>A moment seen live in the park: it changes how the two get on, and goes in the
+    /// journal unless it would only repeat a line already there (two friends greeting each other
+    /// for the fifth time today is not news).</summary>
+    public static (ParkSocialState State, ParkSocialEvent Event) Witness(ParkSocialState state, ParkMoment moment,
+        string first, string second, DateTimeOffset at)
+    {
+        if (moment.Text is { } special && moment.SecondId.Length == 0)
+        {
+            // A moment of one resident alone: it only goes in the journal.
+            var solo = Event(moment.Kind, at, special, [moment.FirstId], 0, 0, 0);
+            return (state with { Journal = Record(state.Journal, solo, at) }, solo);
+        }
+        // Everyday moments are told a few ways, so the journal does not read the same line over and over.
+        var turn = (int)((uint)HashOf(moment.FirstId + moment.SecondId + at.Ticks) % 4);
+        var socialEvent = moment.Kind switch
+        {
+            ParkSocialEventKind.Conflict => Event(moment.Kind, at, turn switch
+            {
+                0 => $"{first} and {second} had a spat in the middle of the park, then turned their backs on each other.",
+                1 => $"{first} and {second} argued about something nobody else understood.",
+                2 => $"{first} glared at {second}. {second} glared back. That went on for a while.",
+                _ => $"{first} and {second} got on each other's nerves today."
+            }, [moment.FirstId, moment.SecondId], -2, 0, 6),
+            ParkSocialEventKind.Play => Event(moment.Kind, at, turn switch
+            {
+                0 => $"{first} challenged {second} to a play fight. Nobody won, and both looked very pleased about it.",
+                1 => $"{first} and {second} tussled in the grass until they were both out of breath.",
+                2 => $"{second} let {first} win a play fight. Probably.",
+                _ => $"{first} and {second} play-fought, then lay in the grass, laughing."
+            }, [moment.FirstId, moment.SecondId], 3, 0, -2),
+            ParkSocialEventKind.Deescalation => Event(moment.Kind, at,
+                $"{first} and {second} made up.",
+                [moment.FirstId, moment.SecondId], 5, 1, -12),
+            ParkSocialEventKind.Bond => Event(moment.Kind, at, turn switch
+            {
+                0 => $"{first} and {second} greeted each other like old friends.",
+                1 => $"{first} ran over the moment it saw {second}.",
+                2 => $"{first} and {second} spent a while side by side, saying nothing, perfectly happy.",
+                _ => $"{second} always seems to cheer up when {first} comes by."
+            }, [moment.FirstId, moment.SecondId], 3, 2, -1),
+            _ => Event(ParkSocialEventKind.Rest, at, turn switch
+            {
+                0 => $"{first} walked over to say hello to {second}.",
+                1 => $"{first} stopped by to see how {second} was doing.",
+                2 => $"{first} and {second} said hello in passing.",
+                _ => $"{first} nodded at {second} on its way past."
+            }, [moment.FirstId, moment.SecondId], 2, 0, -1)
+        };
+        if (moment.Text is { } text) socialEvent = socialEvent with { Text = text };
+        var key = ParkRelationship.KeyFor(moment.FirstId, moment.SecondId);
+        var relationships = state.Relationships.Where(r => r.Key != key).ToList();
+        var relation = state.Relationships.FirstOrDefault(r => r.Key == key) ?? new ParkRelationship(moment.FirstId, moment.SecondId);
+        relationships.Add(Apply(relation, socialEvent, at));
+        // An everyday moment (no story of its own) between a pair already in the journal for the
+        // same kind of thing in the last few hours is left out.
+        var routine = moment.Text is null && state.Journal.Any(e => e.Kind == socialEvent.Kind && at - e.OccurredAt < RoutineGap &&
+            e.PokemonIds.Length >= 2 && ParkRelationship.KeyFor(e.PokemonIds[0], e.PokemonIds[1]) == key);
+        var journal = routine ? state.Journal : Record(state.Journal, socialEvent, at);
+        return (state with { Relationships = relationships.ToArray(), Journal = journal }, socialEvent);
+    }
+
+    private static readonly TimeSpan RoutineGap = TimeSpan.FromHours(6);
+
+    // Adds a line, unless the very same line is already among the recent ones.
+    private static ParkSocialEvent[] Record(ParkSocialEvent[] journal, ParkSocialEvent line, DateTimeOffset at) =>
+        journal.Any(e => e.Text == line.Text && at - e.OccurredAt < TimeSpan.FromDays(1))
+            ? journal
+            : journal.Append(line).OrderBy(e => e.OccurredAt).TakeLast(100).ToArray();
+
+    private static int HashOf(string text)
+    {
+        uint hash = 2166136261;
+        foreach (var letter in text) hash = (hash ^ letter) * 16777619;
+        return unchecked((int)hash);
+    }
+
     public static int Compatibility(ParkSocialPokemon a, ParkSocialPokemon b)
     {
         var score = 0;

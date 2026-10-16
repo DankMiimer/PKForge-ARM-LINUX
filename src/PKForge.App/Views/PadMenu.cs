@@ -33,6 +33,11 @@ public sealed class PadMenu : IPadHandler
     public static Task<string?> ShowAsync(Grid host, string title, string? message, params PadOption[] options) =>
         new PadMenu(host, title, message, options)._result.Task;
 
+    /// <summary>The rich menu with the cursor already on option <paramref name="start"/>: a menu shown
+    /// again after a toggle keeps the player's place.</summary>
+    public static Task<string?> ShowAtAsync(Grid host, string title, string? message, int start, params PadOption[] options) =>
+        new PadMenu(host, title, message, options, start)._result.Task;
+
     /// <summary>Two-option confirm box; true when the user picks <paramref name="confirmLabel"/>.</summary>
     public static async Task<bool> ConfirmAsync(Grid host, string title, string message, string confirmLabel = "OK")
     {
@@ -40,7 +45,7 @@ public sealed class PadMenu : IPadHandler
         return choice == confirmLabel;
     }
 
-    private PadMenu(Grid host, string title, string? message, PadOption[] options)
+    private PadMenu(Grid host, string title, string? message, PadOption[] options, int start = 0)
     {
         var watch = System.Diagnostics.Stopwatch.StartNew();
         _host = host;
@@ -99,7 +104,7 @@ public sealed class PadMenu : IPadHandler
         // Fit-to-host: the window is capped to the Thor's actual screen (host.Height - 16),
         var window = Kit.OverlayWindow(host, list, preferredMaxWidth: 640, scroll: false);
         _overlay = Kit.AttachOverlay(host, window, () => Close(null));
-        Highlight(0);
+        Highlight(start);
         _router?.Push(this);
         PerfTrace.Log($"menu.open[{options.Length}]", watch);
         PerfTrace.UntilIdle($"menu.open[{options.Length}]", host.Dispatcher);

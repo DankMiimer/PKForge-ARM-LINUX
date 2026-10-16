@@ -14,6 +14,13 @@ public interface IPadReleaseHandler
     void OnPadReleased(PadButton button);
 }
 
+/// <summary>A screen that reads the analog sticks itself (the Poképark's camera). Values are -1 to 1,
+/// past the dead zone, held until the next call; a screen that stops being on top gets zeros.</summary>
+public interface IPadStickHandler
+{
+    void OnStick(float leftX, float leftY, float rightX, float rightY);
+}
+
 /// <summary>
 /// A screen where L/R step through boxes or pages: holding a shoulder keeps stepping.
 /// Screens where L/R open something stay one press, one action.
@@ -35,11 +42,25 @@ public sealed class GamepadRouter
 
     public void Push(IPadHandler handler)
     {
+        // A menu opening over a screen with a stick held: that screen lets go.
+        if (_stack.Count > 0 && _stack[^1] != handler && _stack[^1] is IPadStickHandler covered) covered.OnStick(0, 0, 0, 0);
         _stack.Remove(handler);
         _stack.Add(handler);
     }
 
-    public void Remove(IPadHandler handler) => _stack.Remove(handler);
+    public void Remove(IPadHandler handler)
+    {
+        if (handler is IPadStickHandler leaving) leaving.OnStick(0, 0, 0, 0);
+        _stack.Remove(handler);
+    }
+
+    /// <summary>The sticks, to the top-most screen when it reads them; false lets Android turn them into d-pad steps.</summary>
+    public bool DispatchStick(float leftX, float leftY, float rightX, float rightY)
+    {
+        if (_stack.Count == 0 || _stack[^1] is not IPadStickHandler handler) return false;
+        handler.OnStick(leftX, leftY, rightX, rightY);
+        return true;
+    }
 
     public bool Dispatch(PadButton button) => _stack.Count > 0 && _stack[^1].OnPadButton(button);
 

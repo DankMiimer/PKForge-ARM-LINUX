@@ -41,6 +41,15 @@ public static class NatureFacts
             ? $"+{StatNames[up]} −{StatNames[down]}"
             : IsValid(nature) ? "neutral" : "";
 
+    /// <summary>The flavors, in the order <see cref="LikedFlavor"/> and <see cref="DislikedFlavor"/> index.</summary>
+    public static IReadOnlyList<string> FlavorNames => Flavors;
+
+    /// <summary>The flavor a nature likes (0 Spicy, 1 Sour, 2 Sweet, 3 Dry, 4 Bitter); null when neutral.</summary>
+    public static int? LikedFlavor(int nature) => IsValid(nature) && !IsNeutral(nature) ? nature / 5 : null;
+
+    /// <summary>The flavor a nature dislikes; null when neutral.</summary>
+    public static int? DislikedFlavor(int nature) => IsValid(nature) && !IsNeutral(nature) ? nature % 5 : null;
+
     /// <summary>"likes Spicy · dislikes Dry"; neutral natures have no preference.</summary>
     public static string FlavorLabel(int nature) =>
         !IsValid(nature) ? ""

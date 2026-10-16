@@ -10,8 +10,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <ApplicationId>org.pkforge.app</ApplicationId>
     <ApplicationTitle>PKForge</ApplicationTitle>
-    <ApplicationVersion>310</ApplicationVersion>
-    <ApplicationDisplayVersion>3.1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>311</ApplicationVersion>
+    <ApplicationDisplayVersion>3.1.1</ApplicationDisplayVersion>
     <RuntimeIdentifiers>android-arm64</RuntimeIdentifiers>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DiagnosticBuild)' == 'true'">
@@ -82,8 +82,8 @@
     <MauiAsset Include="Resources/UI/pksm/*.png" LogicalName="ui/pksm/%(Filename)%(Extension)" />
     <!-- The designer's icons for the new art direction (summary tabs, footer buttons). -->
     <MauiAsset Include="Resources/UI/design/*.png" LogicalName="ui/design/%(Filename)%(Extension)" />
-    <!-- MPWSP01 environment art by Scarloxy; attribution in docs/POKEPARK_MPWSP01.md. -->
-    <MauiAsset Include="Resources/Pokepark/Maps/*.png" LogicalName="pokepark/maps/%(Filename)%(Extension)" />
+    <!-- The Poképark: the artist's map at native size, its ground, objects and their depth. -->
+    <MauiAsset Include="Resources/Pokepark/park/*.png" LogicalName="pokepark/park/%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../PKForge.Domain/PKForge.Domain.csproj" />

@@ -16,6 +16,9 @@ public static class ThemeLogo
         return png is null ? null : ImageSource.FromStream(() => new MemoryStream(png));
     }
 
+    /// <summary>The logo's PNG in the current color scheme.</summary>
+    public static byte[]? Png() => Png(ColorTheme.Current.Id);
+
     private static byte[]? Png(string id)
     {
         if (Pngs.TryGetValue(id, out var cached)) return cached;

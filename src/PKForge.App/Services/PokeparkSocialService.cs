@@ -33,6 +33,17 @@ public sealed class PokeparkSocialService
         return events;
     }
 
+    /// <summary>Records a moment seen live: the journal gains a line and the pair's relationship moves.</summary>
+    public void Witness(ParkMoment moment, string first, string second, DateTimeOffset? now = null)
+    {
+        var current = now ?? DateTimeOffset.Now;
+        Save(ParkSocialSimulation.Witness(Load(current), moment, first, second, current).State);
+    }
+
+    /// <summary>How every pair gets on, for the park's life to pick friends and rivals.</summary>
+    public IReadOnlyDictionary<string, (int Friendship, int Rivalry)> Relations(DateTimeOffset? now = null) =>
+        Load(now).Relationships.ToDictionary(r => r.Key, r => (r.Friendship, r.Rivalry));
+
     public ParkRelationship Relationship(string firstId, string secondId, DateTimeOffset? now = null)
     {
         var key = ParkRelationship.KeyFor(firstId, secondId);
@@ -41,7 +52,8 @@ public sealed class PokeparkSocialService
     }
 
     public IReadOnlyList<ParkSocialEvent> Journal(int count = 30, DateTimeOffset? now = null) =>
-        Load(now).Journal.OrderByDescending(e => e.OccurredAt).Take(Math.Clamp(count, 0, 100)).ToArray();
+        // Lines saved before the journal stopped repeating itself show once.
+        Load(now).Journal.OrderByDescending(e => e.OccurredAt).DistinctBy(e => e.Text).Take(Math.Clamp(count, 0, 100)).ToArray();
 
     public void RemoveResident(string id, DateTimeOffset? now = null)
     {

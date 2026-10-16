@@ -74,6 +74,10 @@ public static class MauiProgram
         builder.Services.AddSingleton<PokeparkSpriteService>();
         builder.Services.AddSingleton<PokeparkNarrativeMemory>();
         builder.Services.AddSingleton<PokeparkSocialService>();
+        builder.Services.AddSingleton<PokeparkCareStore>();
+        builder.Services.AddSingleton<PokeparkTreasureStore>();
+        builder.Services.AddSingleton<PokeparkDaycareService>();
+        builder.Services.AddSingleton<PokeparkWildsStore>();
         builder.Services.AddSingleton<IParkOfflineStateStore, PokeparkOfflinePreferencesStore>();
         builder.Services.AddSingleton<ParkOfflineJournalService>();
         builder.Services.AddTransient<PokeparkPage>();

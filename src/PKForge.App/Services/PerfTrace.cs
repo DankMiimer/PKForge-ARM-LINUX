@@ -17,6 +17,10 @@ public static class PerfTrace
     public static void Log(string name, double ms) =>
         Console.WriteLine($"PKF-PERF {name} {ms:0.0}ms");
 
+    /// <summary>A line about the Poképark: "PKF-PARK …" in logcat.</summary>
+    [Conditional("DEBUG"), Conditional("DIAGNOSTIC")]
+    public static void Park(string line) => Console.WriteLine("PKF-PARK " + line);
+
     /// <summary>Logs the time from now until the dispatcher next runs (≈ the layout/draw pass that follows).</summary>
     [Conditional("DEBUG"), Conditional("DIAGNOSTIC")]
     public static void UntilIdle(string name, IDispatcher dispatcher)

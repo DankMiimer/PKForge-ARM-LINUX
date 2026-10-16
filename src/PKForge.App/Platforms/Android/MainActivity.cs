@@ -117,9 +117,17 @@ public sealed class MainActivity : MauiAppCompatActivity
             if (secondary is not null)
                 await secondary.DismissAsync();
             var navigation = Microsoft.Maui.Controls.Application.Current?.Windows.FirstOrDefault()?.Page?.Navigation;
-            if (navigation is null || navigation.NavigationStack.LastOrDefault() is Views.PokeparkPage) return;
-            var page = IPlatformApplication.Current?.Services.GetRequiredService<Views.PokeparkPage>();
-            if (page is not null) await navigation.PushAsync(page);
+            if (navigation is null) return;
+            if (navigation.NavigationStack.LastOrDefault() is not Views.PokeparkPage &&
+                IPlatformApplication.Current?.Services.GetRequiredService<Views.PokeparkPage>() is { } page)
+                await navigation.PushAsync(page);
+            // The lower screen was let go above; bring it back once the park is showing, so
+            // its journal follows the park (built after the push, never during it).
+            if (secondary is not null)
+            {
+                await Task.Delay(600);
+                await secondary.ShowAsync();
+            }
         });
     }
 
@@ -216,6 +224,11 @@ public sealed class MainActivity : MauiAppCompatActivity
         // stepping after a hold delay at a fixed cadence until release.
         if (e is { Action: MotionEventActions.Move })
         {
+            // The analog sticks, for a screen that reads them (the Poképark's camera). The hat
+            // below still sees every event: its release is what stops a held direction repeating.
+            var stickRead = e.IsFromSource(InputSourceType.Joystick)
+                && IPlatformApplication.Current?.Services.GetService<Services.GamepadRouter>() is { } sticks
+                && sticks.DispatchStick(StickAxis(e, Axis.X), StickAxis(e, Axis.Y), StickAxis(e, Axis.Z), StickAxis(e, Axis.Rz));
             var direction = HatDirection(e);
             if (direction != _hatDirection)
             {
@@ -227,7 +240,7 @@ public sealed class MainActivity : MauiAppCompatActivity
                     StartHatRepeat(button, HatHoldDelayMs);
                 }
             }
-            if (direction is not null)
+            if (direction is not null || stickRead)
                 return true;
         }
         return base.OnGenericMotionEvent(e);
@@ -263,6 +276,15 @@ public sealed class MainActivity : MauiAppCompatActivity
 
     private static bool IsRepeatable(Services.PadButton button) =>
         IsDirectional(button) || button is Services.PadButton.L or Services.PadButton.R;
+
+    // A stick's axis past its dead zone (the device's own flat, at least 0.25: worn sticks drift), rescaled to start at 0.
+    private static float StickAxis(MotionEvent e, Axis axis)
+    {
+        var value = e.GetAxisValue(axis);
+        var flat = Math.Max(.25f, e.Device?.GetMotionRange(axis, e.Source)?.Flat ?? 0);
+        var size = Math.Abs(value);
+        return size <= flat ? 0 : Math.Sign(value) * Math.Min(1, (size - flat) / (1 - flat));
+    }
 
     private static Services.PadButton? HatDirection(MotionEvent e)
     {

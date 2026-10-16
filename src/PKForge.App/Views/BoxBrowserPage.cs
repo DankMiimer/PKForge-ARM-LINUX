@@ -3822,7 +3822,8 @@ public sealed partial class BoxBrowserPage : ContentPage, IPadPagingHandler, IPa
             new PadOption("Show as .pk QR", IconPath: "qr", Detail: "The whole Pokémon as a QR code that PKForge can scan into the Bank."),
             new PadOption("RNG / IVs", IconPath: "dice", Detail: "See its PID and IVs, and change its nature without losing shininess."),
             new PadOption("Lock / Unlock release", IconPath: "padlock", Detail: "A locked Pokémon cannot be released."),
-            new PadOption("Release", IconPath: "release")));
+            new PadOption("Release", IconPath: "release"),
+            new PadOption("Release to the Wilds", IconPath: "release", Detail: "It leaves the save and lives on in the wild lands around the Poképark. It may come back to visit.")));
         var choice = await PadMenu.ShowAsync(_hostGrid, nickname,
             Note(verdict is { Valid: false } ? verdict.Problem : null), options.ToArray());
         switch (choice)
@@ -3939,6 +3940,9 @@ public sealed partial class BoxBrowserPage : ContentPage, IPadPagingHandler, IPa
             }
             case "Release":
                 await ReleaseSlotAsync(slot, nickname);
+                return;
+            case "Release to the Wilds":
+                await ReleaseSlotAsync(slot, nickname, toWilds: true);
                 return;
             default:
                 return; // Edit: the editor is already open on the right
@@ -4290,7 +4294,7 @@ public sealed partial class BoxBrowserPage : ContentPage, IPadPagingHandler, IPa
     }
 
     /// <summary>Release with confirmation; the pre-release state stays recoverable as a restore point.</summary>
-    private async Task ReleaseSlotAsync(int slot, string nickname)
+    private async Task ReleaseSlotAsync(int slot, string nickname, bool toWilds = false)
     {
         var docId = DocumentId;
         var session = _sessionsFor();
@@ -4303,16 +4307,44 @@ public sealed partial class BoxBrowserPage : ContentPage, IPadPagingHandler, IPa
                 return;
             }
         }
+        var box = _viewModel.BoxIndex;
+        Task<bool> Release() => _viewModel.RunMutationAsync(session =>
+        {
+            session.ReleaseSlot(box, slot);
+            return new GenerationOutcome(true, toWilds ? $"{nickname} went to live in the Wilds." : $"{nickname} was released. Bye-bye!");
+        }, slot, action: SaveAction.Release);
+        if (toWilds && session is not null && WildFriendOf(session, box, slot) is { } friend)
+        {
+            await WildsFarewell.RunAsync(_hostGrid, friend.Friend, async () =>
+            {
+                if (!await Release()) return false;
+                // It no longer lives in the park either: it went further.
+                if (friend.ResidentId is { } id) IPlatformApplication.Current?.Services.GetService<PokeparkService>()?.RemoveVisitor(id);
+                return true;
+            });
+            _canvas.InvalidateSurface();
+            return;
+        }
         var confirmed = await PadMenu.ConfirmAsync(_hostGrid, "Release?",
             $"Release {nickname} back into the wild? The current save state is kept as a restore point.",
             "Release");
         if (!confirmed) return;
-        await _viewModel.RunMutationAsync(session =>
-        {
-            session.ReleaseSlot(_viewModel.BoxIndex, slot);
-            return new GenerationOutcome(true, $"{nickname} was released. Bye-bye!");
-        }, slot, action: SaveAction.Release);
+        await Release();
         _canvas.InvalidateSurface();
+    }
+
+    // The Pokémon in this slot as the Wilds will remember it, and its park id if it lived there.
+    private (ParkWildFriend Friend, string? ResidentId)? WildFriendOf(ISaveEngineSession session, int box, int slot)
+    {
+        var services = IPlatformApplication.Current?.Services;
+        if (services?.GetService<PokeparkWildsStore>() is not { } wilds || session.ReadEntity(box, slot) is not { IsEmpty: false } mon) return null;
+        var document = services.GetService<ISaveSessionService>()?.Current?.Document;
+        var documentKey = document is null ? "" : Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(document.DocumentId)))[..16];
+        var resident = services.GetService<PokeparkService>()?.LoadRoster()
+            .FirstOrDefault(p => p.Id.StartsWith($"save:{documentKey}:{box}:{slot}", StringComparison.Ordinal) && p.Species == mon.Species);
+        var name = string.IsNullOrWhiteSpace(mon.Nickname) ? mon.SpeciesName : mon.Nickname;
+        var fingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(session.ExportSlot(box, slot).Data));
+        return (wilds.Describe(mon.Species, mon.Form, mon.IsShiny, name, mon.OriginalTrainer, document?.DisplayName ?? "", resident?.Id, fingerprint), resident?.Id);
     }
 
     /// <summary>The Thor's second screen mirrors the box automatically while this page is open.</summary>

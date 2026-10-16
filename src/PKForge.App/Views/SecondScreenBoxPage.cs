@@ -243,24 +243,15 @@ public sealed class SecondScreenBoxPage : ContentPage
 
     private View BuildPokeparkJournal(PokeparkJournalState? state, out PropertyChangedEventHandler? handler)
     {
-        var title = new Label { Text = "POKÉPARK  /  FIELD JOURNAL", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = UiTokens.Ink0 };
-        var name = new Label { FontSize = 28, FontAttributes = FontAttributes.Bold, TextColor = UiTokens.IndigoInk };
-        var mood = new Label { FontSize = 15, TextColor = UiTokens.Ink1 };
-        var activity = new Label { FontSize = 18, TextColor = UiTokens.Ink0 };
-        var journal = new Label { FontSize = 16, TextColor = UiTokens.Ink0, LineBreakMode = LineBreakMode.WordWrap };
-        var likes = new Label { FontSize = 16, TextColor = UiTokens.Ink0, LineBreakMode = LineBreakMode.WordWrap };
-        var card = new Border { BackgroundColor = UiTokens.Paper, Stroke = UiTokens.ShellEdge, StrokeThickness = 2, StrokeShape = new RoundRectangle { CornerRadius = 12 }, Padding = 18, Margin = 14,
-            Content = new VerticalStackLayout { Spacing = 10, Children = { title, name, mood, new BoxView { HeightRequest = 2, Color = UiTokens.SelectBorder }, activity, journal, likes, new Label { Text = "This journal is a playful Poképark story. Game data stays unchanged.", FontSize = 12, TextColor = UiTokens.InkSoft } } } };
-        void Update() { var m = state?.Resident; name.Text = m is null ? "Poképark" : (m.Name + (m.Shiny ? " ★" : "")); mood.Text = m is null ? "" : $"Mood: {state!.Mood}"; activity.Text = m is null ? "" : $"Right now: {state!.Activity}"; journal.Text = m is null ? "" : $"PERSONALITY  {state!.Trait}\n\nMEADOW MEMORY  {state!.Story}"; likes.Text = m is null ? "" : $"FAVORITE LITTLE THINGS  {state!.Likes}"; }
-        handler = state is null ? null : (_, _) => MainThread.BeginInvokeOnMainThread(() =>
-        {
-            Update();
-            _swapAsync?.Invoke();
-        });
+        var view = new PokeparkJournalView();
+        _journalView = view;
+        // The view repaints itself; the presentation only needs to know the content changed.
+        handler = state is null ? null : (_, _) => MainThread.BeginInvokeOnMainThread(() => _swapAsync?.Invoke());
         if (handler is not null) state!.PropertyChanged += handler;
-        Update();
-        return card;
+        return view;
     }
+
+    private PokeparkJournalView? _journalView;
 
     /// <summary>Detach from the shared view model before the presentation is discarded.</summary>
     public void Cleanup()
@@ -272,6 +263,7 @@ public sealed class SecondScreenBoxPage : ContentPage
             _secondScreenState.PropertyChanged -= _secondScreenHandler;
         if (_journalState is not null && _journalHandler is not null)
             _journalState.PropertyChanged -= _journalHandler;
+        _journalView?.Detach();
         _swapAsync = null;
     }
 
