@@ -74,11 +74,19 @@ public sealed class PokeparkAlbumOverlay : IPadHandler
             var y = dest.Bottom + 70 * unit;
             c.DrawText(Fit(photo.Caption, font, w * .9f), w / 2f, y, SKTextAlign.Center, font, paint);
             paint.Color = EditorPaint.Label;
+#if LINUX
+            c.DrawText($"{photo.TakenAt:d MMM yyyy, HH:mm}   ·   {_index + 1} / {_photos.Count}   ·   L R  photos   X  export   B  close", w / 2f, y + 50 * unit, SKTextAlign.Center, small, paint);
+#else
             c.DrawText($"{photo.TakenAt:d MMM yyyy, HH:mm}   ·   {_index + 1} / {_photos.Count}   ·   L R  photos   X  share   B  close", w / 2f, y + 50 * unit, SKTextAlign.Center, small, paint);
+#endif
             // The Share button, bottom right, for a finger.
             _shareButton = SKRect.Create(w - 280 * unit, h - 110 * unit, 240 * unit, 76 * unit);
             ParkCardPaint.Plate(c, _shareButton, true, unit);
+#if LINUX
+            ParkCardPaint.Centered(c, _sharing ? "Exporting…" : "Export", _shareButton.MidX, _shareButton.MidY, font, EditorPaint.ChipInk);
+#else
             ParkCardPaint.Centered(c, _sharing ? "Sharing…" : "Share", _shareButton.MidX, _shareButton.MidY, font, EditorPaint.ChipInk);
+#endif
         }
     }
 

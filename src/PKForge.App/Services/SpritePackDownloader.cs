@@ -96,10 +96,14 @@ public sealed class SpritePackDownloader(ISpriteService sprites, IGameDataServic
             return;
         try
         {
+#if PKFORGE_LINUX
+            if (!System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable()) return;
+#else
             var network = Connectivity.Current;
             if (network.NetworkAccess != NetworkAccess.Internet
                 || !network.ConnectionProfiles.Any(p => p is ConnectionProfile.WiFi or ConnectionProfile.Ethernet))
                 return;
+#endif
             if (!await Task.Run(() => FetchAddOnsAsync(root, static (_, _) => { }, CancellationToken.None)).ConfigureAwait(false))
             {
                 _quietRetryAfter = DateTime.UtcNow.AddMinutes(15);

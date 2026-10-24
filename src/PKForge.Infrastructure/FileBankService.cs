@@ -19,7 +19,7 @@ public sealed class FileBankService : IBankService
     private int _migrationVersion;
     // Set when an index exists on disk but neither it nor its backup could be read: the bank
     // then stays read-only rather than overwrite the real index with an empty fallback.
-    private readonly bool _indexUnreadable;
+    private bool _indexUnreadable;
 
     public FileBankService(string rootDirectory)
     {
@@ -31,6 +31,11 @@ public sealed class FileBankService : IBankService
     public IReadOnlyList<BankEntry> GetAll()
     {
         lock (_gate) return _entries.ToList();
+    }
+    /// <summary>Refresh after an externally coordinated, fingerprint-checked transaction.</summary>
+    public void Reload()
+    {
+        lock (_gate) (_entries, _boxCount, _migrationVersion, _indexUnreadable) = LoadIndex();
     }
 
     public int BoxCount
@@ -160,14 +165,26 @@ public sealed class FileBankService : IBankService
             var index = _entries.FindIndex(e => e.Id == id);
             if (index < 0) throw new InvalidOperationException("Unknown bank entry.");
             EnsureWritable();
-            File.WriteAllBytes(DataPath(id), data);
-            Commit(() =>
+            var previous = File.ReadAllBytes(DataPath(id));
+            ReplaceBytes(DataPath(id), data);
+            try { Commit(() =>
             {
                 _entries[index] = _entries[index] with { Info = info };
                 SaveIndex();
                 return 0;
-            });
+            }); }
+            catch { ReplaceBytes(DataPath(id), previous); throw; }
         }
+    }
+    private static void ReplaceBytes(string path, byte[] data)
+    {
+        var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { stream.Write(data); stream.Flush(true); }
+            File.Move(temporary, path, true);
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
     public void Remove(Guid id)

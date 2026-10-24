@@ -4,6 +4,7 @@ using PKForge.App.Theme;
 using PKForge.App.ViewModels;
 using PKForge.App.Views;
 using PKForge.Domain;
+using PKForge.Application;
 using PKForge.Engine;
 using PKForge.Infrastructure;
 using SkiaSharp.Views.Maui.Controls.Hosting;
@@ -62,6 +63,9 @@ public static class MauiProgram
             sp.GetRequiredService<ISaveIdentityStore>()));
         builder.Services.AddSingleton<Services.ProtectionStore>();
         builder.Services.AddSingleton<ISafeSaveWriter, SafeSaveWriter>();
+        builder.Services.AddSingleton<MutationPolicy>(_ => new(action => HardcoreMode.Blocks(action, out var reason) ? reason : null));
+        builder.Services.AddSingleton<SaveOperations>();
+        builder.Services.AddSingleton<PokemonWorkflow>();
         builder.Services.AddSingleton<ILegalityService, LegalityService>();
         builder.Services.AddSingleton<ILegalityAssistService>(LegalityAssistService.Shared);
         builder.Services.AddSingleton<IStatPreviewService, StatPreviewService>();
@@ -99,6 +103,7 @@ public static class MauiProgram
 #endif
         builder.Services.AddSingleton<IWatchedRootStore, PreferencesWatchedRootStore>();
         builder.Services.AddSingleton<BoxBrowserViewModel>();
+        builder.Services.AddSingleton<ISaveMutationService>(sp => sp.GetRequiredService<BoxBrowserViewModel>());
         builder.Services.AddSingleton<IBoxPager>(sp => sp.GetRequiredService<BoxBrowserViewModel>());
         builder.Services.AddTransient<BoxBrowserPage>();
         builder.Services.AddTransient<BackupHistoryViewModel>();

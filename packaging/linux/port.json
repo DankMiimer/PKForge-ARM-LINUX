@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "name": "pkforge.zip",
+  "items": ["PKForge.sh", "PKForge Pokepark.sh", "pkforge"],
+  "items_opt": [],
+  "attr": {
+    "title": "PKForge",
+    "desc": "PKForge 3.1.1 for ARM64 Linux handhelds: native save library, Pokémon and save editors, Bank organization and transfers, creation and reference tools, and Poképark. Development checkpoint; see the included coverage and validation ledger.",
+    "desc_md": null,
+    "inst": "Extract into your firmware's Ports directory, keeping both launchers beside pkforge. PKForge opens Home; PKForge Pokepark opens the park directly. Preserve pkforge/userdata when updating. The .NET 10 runtime is bundled. Coverage and hardware acceptance are recorded separately in FEATURE_COVERAGE.md and VALIDATION.md.",
+    "inst_md": null,
+    "genres": ["simulation"],
+    "porter": [],
+    "image": null,
+    "rtr": true,
+    "exp": true,
+    "runtime": [],
+    "reqs": [],
+    "arch": ["aarch64"]
+  }
+}

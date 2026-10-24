@@ -8,6 +8,9 @@ on:
 
 jobs:
   test-and-build:
+    # Android signing belongs to the original project. This fork has separate
+    # unsigned Android compatibility checks and Linux release packaging.
+    if: github.repository == 'sofianeelhor/PKForge'
     permissions:
       contents: write
     runs-on: ubuntu-latest

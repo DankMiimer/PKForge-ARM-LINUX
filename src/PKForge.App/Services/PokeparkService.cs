@@ -18,12 +18,18 @@ public sealed record PokeparkSettings
     public bool DaycareWritesBack { get; init; } = true;
 }
 
-public sealed class PokeparkService(IBankService bank, ISaveSessionService saves, IGameDataService data)
+public sealed class PokeparkService(IBankService bank, ISaveSessionService saves, IGameDataService data, IDocumentAliases? aliases = null)
 {
     private readonly object _initializationGate = new();
     private const string SettingsKey = "pkforge.pokepark.settings.v1";
     private const string ResidentsKey = "pkforge.pokepark.residents.v1";
     private const string RosterKey = "pkforge.pokepark.roster.v1";
+    private IEnumerable<string> DocumentHashes(string documentId) => (aliases?.For(documentId) ?? [documentId]).Select(id => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(id)))[..16]);
+    private string DocumentHash(string documentId)
+    {
+        var hashes = DocumentHashes(documentId).ToArray(); var roster = Read<ParkPokemon[]>(RosterKey) ?? [];
+        return hashes.FirstOrDefault(hash => roster.Any(mon => mon.Id.StartsWith("save:" + hash + ":", StringComparison.Ordinal))) ?? hashes[0];
+    }
     public PokeparkSettings Settings => Normalize(Read<PokeparkSettings>(SettingsKey) ?? new());
 
     public IReadOnlyList<ParkPokemon> GetCandidates()
@@ -35,7 +41,7 @@ public sealed class PokeparkService(IBankService bank, ISaveSessionService saves
         var session = saves.CurrentSession;
         var document = saves.Current?.Document;
         if (session is null || document is null) return result;
-        var documentId = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(document.DocumentId)))[..16];
+        var documentId = DocumentHash(document.DocumentId);
         var trainer = session.GetTrainer().Name;
         var gameName = $"Gen {session.Generation}";
         // Include the party as well as PC boxes. Party entries use Box == -1
@@ -182,7 +188,7 @@ public sealed class PokeparkService(IBankService bank, ISaveSessionService saves
             return "Select a Pokémon first.";
         if (session.GetMetInfo(box, slot).IsEgg) return "Eggs can visit Poképark after they hatch.";
         var detail = session.ReadEntity(box, slot);
-        var documentId = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(document.DocumentId)))[..16];
+        var documentId = DocumentHash(document.DocumentId);
         var fingerprint = Convert.ToHexString(SHA256.HashData(session.ExportSlot(box, slot).Data));
         return AddVisitor(new ParkPokemon($"save:{documentId}:{box}:{slot}:{fingerprint}", detail.Species,
             detail.Form, detail.IsShiny, string.IsNullOrWhiteSpace(detail.Nickname) ? detail.SpeciesName : detail.Nickname,
@@ -206,7 +212,7 @@ public sealed class PokeparkService(IBankService bank, ISaveSessionService saves
                 met = PKForge.Engine.EntityBytes.Parse(entry, bank.GetData(id))?.MetDate;
             else if (parts is ["save", var document, var boxText, var slotText, ..] && saves.CurrentSession is { } session &&
                      saves.Current?.Document is { } open &&
-                     Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(open.DocumentId)))[..16] == document &&
+                     DocumentHashes(open.DocumentId).Contains(document) &&
                      int.TryParse(boxText, out var box) && int.TryParse(slotText, out var slot) &&
                      session.GetMetInfo(box, slot) is { SupportsMetDate: true } info &&
                      DateOnly.TryParse(info.MetDate, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
@@ -236,7 +242,7 @@ public sealed class PokeparkService(IBankService bank, ISaveSessionService saves
                 nature = PKForge.Engine.EntityBytes.Parse(entry, bank.GetData(id)) is { } pk ? (int)pk.Nature : null;
             else if (parts is ["save", var document, var boxText, var slotText, ..] && saves.CurrentSession is { } session &&
                      saves.Current?.Document is { } open &&
-                     Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(open.DocumentId)))[..16] == document &&
+                     DocumentHashes(open.DocumentId).Contains(document) &&
                      int.TryParse(boxText, out var box) && int.TryParse(slotText, out var slot) &&
                      session.ReadEntity(box, slot) is { } detail && detail.Species == mon.Species)
                 nature = detail.Nature;
@@ -262,7 +268,7 @@ public sealed class PokeparkService(IBankService bank, ISaveSessionService saves
                 return new(bank.GetData(id), entry.Info.Format, id, entry.Box, entry.Slot, entry.Info.SourceName);
             if (parts is ["save", var document, var boxText, var slotText, ..] && saves.CurrentSession is { } session &&
                 saves.Current?.Document is { } open &&
-                Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(open.DocumentId)))[..16] == document &&
+                DocumentHashes(open.DocumentId).Contains(document) &&
                 int.TryParse(boxText, out var box) && int.TryParse(slotText, out var slot) &&
                 session.ReadEntity(box, slot) is { } detail && detail.Species == mon.Species)
             {

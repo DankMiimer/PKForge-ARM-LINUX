@@ -436,45 +436,7 @@ public partial class SavePickerViewModel : ObservableObject
     /// GameCube side games and romhacks slotted next to the era they belong to.
     /// Unknown labels fall back to generation order.
     /// </summary>
-    private static int ReleaseRank(SaveCard group)
-    {
-        var label = group.GameLabel;
-        return label switch
-        {
-            // Substring traps first: FireRed contains "Red", HeartGold contains "Gold",
-            // Omega Ruby contains "Ruby", Brilliant Diamond contains "Diamond"...
-            _ when label.Contains("FireRed", StringComparison.Ordinal) || label.Contains("LeafGreen", StringComparison.Ordinal) ||
-                    label.Contains("Unbound", StringComparison.Ordinal) || label.Contains("Radical Red", StringComparison.Ordinal) ||
-                    label.Contains("GS Chronicles", StringComparison.Ordinal) => 2004,
-            _ when label.Contains("HeartGold", StringComparison.Ordinal) || label.Contains("SoulSilver", StringComparison.Ordinal) => 2009,
-            _ when label.Contains("Black 2", StringComparison.Ordinal) || label.Contains("White 2", StringComparison.Ordinal) => 2012,
-            _ when label.Contains("Omega", StringComparison.Ordinal) || label.Contains("Alpha", StringComparison.Ordinal) => 2014,
-            _ when label.Contains("Ultra", StringComparison.Ordinal) => 2017,
-            _ when label.Contains("Let's Go", StringComparison.Ordinal) => 2018,
-            _ when label.Contains("Brilliant", StringComparison.Ordinal) || label.Contains("Shining", StringComparison.Ordinal) ||
-                    label.Contains("Luminescent", StringComparison.Ordinal) => 2021,
-            _ when label.Contains("Legends: Arceus", StringComparison.Ordinal) => 2022,
-            _ when label.Contains("Legends: Z-A", StringComparison.Ordinal) => 2025,
-            _ when label.Contains("Colosseum", StringComparison.Ordinal) => 2003,
-            _ when label.Contains("XD", StringComparison.Ordinal) => 2005,
-            _ when label.Contains("Box", StringComparison.Ordinal) => 2002,
-            _ when label.Contains("Red", StringComparison.Ordinal) || label.Contains("Blue", StringComparison.Ordinal) ||
-                    label.Contains("Green", StringComparison.Ordinal) => 1996,
-            _ when label.Contains("Yellow", StringComparison.Ordinal) => 1998,
-            _ when label.Contains("Gold", StringComparison.Ordinal) || label.Contains("Silver", StringComparison.Ordinal) => 1999,
-            _ when label.Contains("Crystal", StringComparison.Ordinal) => 2000,
-            _ when label.Contains("Ruby", StringComparison.Ordinal) || label.Contains("Sapphire", StringComparison.Ordinal) => 2002,
-            _ when label.Contains("Emerald", StringComparison.Ordinal) => 2004,
-            _ when label.Contains("Diamond", StringComparison.Ordinal) || label.Contains("Pearl", StringComparison.Ordinal) => 2006,
-            _ when label.Contains("Platinum", StringComparison.Ordinal) => 2008,
-            _ when label.Contains("Black", StringComparison.Ordinal) || label.Contains("White", StringComparison.Ordinal) => 2010,
-            _ when label.Contains("X", StringComparison.Ordinal) || label.Contains("Y", StringComparison.Ordinal) => 2013,
-            _ when label.Contains("Sun", StringComparison.Ordinal) || label.Contains("Moon", StringComparison.Ordinal) => 2016,
-            _ when label.Contains("Scarlet", StringComparison.Ordinal) || label.Contains("Violet", StringComparison.Ordinal) ||
-                    label.Contains("Compass", StringComparison.Ordinal) => 2022,
-            _ => group.Generation * 1000,
-        };
-    }
+    private static int ReleaseRank(SaveCard group) => PKForge.Application.SaveLibraryWorkflow.ReleaseRank(group.GameLabel, group.Generation);
 
 
     /// <summary>Direct link to a single save file (the escape hatch when detection can't find it).</summary>

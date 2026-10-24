@@ -18,20 +18,10 @@ public static class PksmTransferFlow
 
     /// <summary>Engine decode, mapped from PKSM tags to chronological generations.</summary>
     public static PksmDecoded Decode(PksmGeneration? generation, byte[] bytes, string source)
-    {
-        var number = generation is { } g ? PksmBankFile.GenerationNumber(g) : (int?)null;
-        if (number == 0) return PksmDecoded.Skip($"unknown generation tag 0x{(uint)generation!.Value:X}");
-        var result = PksmEntityConversion.Decode(number, generation == PksmGeneration.LetsGo, bytes, source);
-        return new PksmDecoded(result.Bytes, result.Info, result.Reason);
-    }
+        => PKForge.Application.PksmWorkflow.Decode(generation, bytes, source);
 
     public static PksmEncoded Encode(byte[] bankBytes, string? format)
-    {
-        var result = PksmEntityConversion.Encode(bankBytes, format);
-        return result.Data is not null && PksmBankFile.FromGenerationNumber(result.Generation, result.LetsGo) is { } tag
-            ? new PksmEncoded(tag, result.Data, null)
-            : PksmEncoded.Skip(result.Reason ?? "PKSM has no slot for this format");
-    }
+        => PKForge.Application.PksmWorkflow.Encode(bankBytes, format);
 
     /// <summary>
     /// Pick → preview → write. Importing your own PKSM bank is a transfer from your 3DS, so

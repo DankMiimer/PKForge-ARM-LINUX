@@ -2,10 +2,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PKForge.App.Services;
 using PKForge.Domain;
+using PKForge.Application;
 
 namespace PKForge.App.ViewModels;
 
-public partial class BoxBrowserViewModel : ObservableObject, IBoxPager
+public partial class BoxBrowserViewModel : ObservableObject, IBoxPager, ISaveMutationService
 {
     private readonly IDocumentPicker _picker;
     private readonly ISaveSessionService _sessions;
@@ -13,6 +14,7 @@ public partial class BoxBrowserViewModel : ObservableObject, IBoxPager
     private readonly ISafeSaveWriter _writer;
     private readonly Theme.ThemeService _theme;
     private readonly ILegalizerService? _legalizer;
+    private readonly SaveOperations? _operations;
 
     private SlotSummary[] _slots = [];
     /// <summary>One legality sweep's verdicts; reused until the save is written again.</summary>
@@ -30,7 +32,7 @@ public partial class BoxBrowserViewModel : ObservableObject, IBoxPager
         OnPropertyChanged(nameof(CurrentBoxLegality));
     }
 
-    public BoxBrowserViewModel(IDocumentPicker picker, ISaveSessionService sessions, ILegalityService legality, ISafeSaveWriter writer, Theme.ThemeService theme, ILegalizerService? legalizer = null)
+    public BoxBrowserViewModel(IDocumentPicker picker, ISaveSessionService sessions, ILegalityService legality, ISafeSaveWriter writer, Theme.ThemeService theme, ILegalizerService? legalizer = null, SaveOperations? operations = null)
     {
         _picker = picker;
         _sessions = sessions;
@@ -38,6 +40,7 @@ public partial class BoxBrowserViewModel : ObservableObject, IBoxPager
         _writer = writer;
         _theme = theme;
         _legalizer = legalizer;
+        _operations = operations;
     }
 
     [ObservableProperty] private SaveSnapshot? _save;
@@ -245,6 +248,13 @@ public partial class BoxBrowserViewModel : ObservableObject, IBoxPager
                 Gender: ParseInt(EditGender));
 
             Status = "Applying edit…";
+            if (_operations is not null)
+            {
+                _operations.ConfirmHackRisk = ConfirmHackRisk;
+                var success = await _operations.ExecuteAsync(s => { s.ApplyEdit(detail.Box, detail.Slot, edit); return new(true, "Pokémon edited."); }, WriteScope.Only(new SlotRef(detail.Box, detail.Slot)), SaveAction.EditMon);
+                if (success) BumpMutationGeneration();
+                RefreshFromCurrentSession(); Status = _operations.Status; return;
+            }
             engineSession.ApplyEdit(detail.Box, detail.Slot, edit);
             var candidate = engineSession.Serialize();
 
@@ -431,6 +441,18 @@ public partial class BoxBrowserViewModel : ObservableObject, IBoxPager
     public async Task<bool> RunMutationAsync(Func<ISaveEngineSession, GenerationOutcome> operation, int slot,
         bool refreshSlot = true, string? changeDescription = null, SaveAction action = SaveAction.EditMon)
     {
+        if (_operations is not null)
+        {
+            IsBusy = true;
+            try
+            {
+                _operations.ConfirmHackRisk = ConfirmHackRisk;
+                var success = await _operations.ExecuteChangedAsync(operation, action, changeDescription);
+                if (success) BumpMutationGeneration();
+                RefreshFromCurrentSession(); Status = _operations.Status; return success;
+            }
+            finally { IsBusy = false; }
+        }
         if (HardcoreMode.Blocks(action, out var hardcoreStatus))
         {
             Status = hardcoreStatus;

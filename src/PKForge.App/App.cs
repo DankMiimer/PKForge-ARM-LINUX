@@ -1,6 +1,6 @@
 namespace PKForge.App;
 
-public sealed class App : Application
+public sealed class App : Microsoft.Maui.Controls.Application
 {
     /// <summary>Raised when Android resumes the app (including after the install-permission screen).</summary>
     public static event Action? Resumed;

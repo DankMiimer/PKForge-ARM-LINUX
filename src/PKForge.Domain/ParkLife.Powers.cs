@@ -161,8 +161,8 @@ public sealed partial class ParkLife
             {
                 var points = Enumerable.Range(0, 3).Select(_ => FreePoint(actor.Navigator, random, actor, land: true)).OfType<ParkPoint>().ToArray();
                 if (points.Length < 2) return false;
-                Add(actor, new Label("Rolling about", "Joyful"), new Act(ParkPose.Spin, 600));
-                foreach (var p in points) Add(actor, new GoTo(p, 2.4f, ParkPose.Spin), new Spark(ParkEffectKind.Dirt));
+                Add(actor, new Label("Rolling about", "Joyful"), new Act(ParkPose.Roll, 600));
+                foreach (var p in points) Add(actor, new GoTo(p, 2.4f, ParkPose.Roll), new Spark(ParkEffectKind.Dirt));
                 Add(actor, new Act(ParkPose.Idle, 1200, Emote: ParkEmote.Sweat), new Gain(ParkNeed.Fun, 10));
                 return true;
             }

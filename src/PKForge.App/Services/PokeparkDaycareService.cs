@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text.Json;
-using PKForge.App.ViewModels;
 using PKForge.Domain;
 using PKForge.Engine;
 
@@ -16,7 +15,7 @@ public sealed record ParkStay(string ResidentId, DateTimeOffset Since, string? F
 /// to its save slot or Bank entry when the player allows it and the Pokémon has not changed since.
 /// Eggs from two guests go to the Bank. With write-back off, everything stays in the park.
 /// </summary>
-public sealed class PokeparkDaycareService(PokeparkService park, IBankService bank, ISaveEngine engine, BoxBrowserViewModel boxes)
+public sealed class PokeparkDaycareService(PokeparkService park, IBankService bank, ISaveEngine engine, ISaveMutationService boxes)
 {
     private const string Key = "pkforge.pokepark.daycare.v1";
     public const int Capacity = 4;
@@ -114,11 +113,11 @@ public sealed class PokeparkDaycareService(PokeparkService park, IBankService ba
             bank.Replace(id, grown.Data, engine.TryDescribeEntity(grown.Data, entry.Info.SourceName, source.Format) ?? entry.Info);
             return $"{hello} It grew {grew}, and its Bank entry is updated.";
         }
-        var written = await boxes.RunMutationAsync(session =>
+        var written = await boxes.RunSlotMutationAsync(session =>
         {
             var growth = ParkDaycareService.GrowSlot(session, source.Box, source.Slot, exp);
             return new GenerationOutcome(true, $"{mon.Name} grew to level {growth.LevelAfter} at the Poképark daycare.");
-        }, source.Slot, refreshSlot: false, changeDescription: $"Poképark daycare: {mon.Name} grew {grew}", action: SaveAction.EditMon);
+        }, new SlotRef(source.Box, source.Slot), changeDescription: $"Poképark daycare: {mon.Name} grew {grew}", action: SaveAction.EditMon);
         return written
             ? $"{hello} It grew {grew}, and its save is updated. A restore point was made first."
             : $"{hello} It grew {grew} here, but the save could not be written: {boxes.Status}";

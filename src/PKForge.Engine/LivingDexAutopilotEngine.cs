@@ -170,6 +170,8 @@ public sealed record LivingDexRunResult(
 /// <summary>A plan the executor refuses to start or continue (nothing, or everything, was undone).</summary>
 public sealed class LivingDexAbortException(string message) : InvalidOperationException(message);
 
+public sealed record LivingDexPreparedSave(DetectedSave Save, byte[] Original, byte[] Candidate, WriteScope Scope);
+
 /// <summary>
 /// A plan staged in memory: every touched save open as a session with the moves applied,
 /// nothing written. The dry run is exactly this (then disposed); Apply commits it.
@@ -204,6 +206,19 @@ public sealed class LivingDexStaging : IDisposable
     public int Failed => Outcomes.Count(o => o.Status == LivingDexStepStatus.Failed);
     public int IllegalResults => Outcomes.Count(o => o.Legal == false);
     public bool Committed { get; internal set; }
+
+    /// <summary>Exports staged bytes for hosts with a durable cross-file transaction journal.</summary>
+    public IReadOnlyList<LivingDexPreparedSave> ExportPreparedSaves() => Saves.Values.Where(s => s.Scope.Count > 0)
+        .Select(s => new LivingDexPreparedSave(s.Save, s.Original.ToArray(), s.Session.Serialize().ToArray(), new WriteScope([.. s.Scope]))).ToArray();
+
+    /// <summary>Applies the complete Bank delta to a private Bank copy, never the live Bank.</summary>
+    public void ApplyToStagedBank(IBankService stagedBank)
+    {
+        if (Committed) throw new InvalidOperationException("This plan was already committed.");
+        if (BankArranges.Count > 0) stagedBank.Place([.. BankArranges.Select(a => (a.Id, a.To.Box, a.To.Slot))]);
+        if (BankAdds.Count > 0) stagedBank.AddMany([.. BankAdds.Select(a => new BankDeposit(a.Data, a.Info, a.Slot.Box, a.Slot.Slot))]);
+        if (BankRemovals.Count > 0) stagedBank.RemoveMany(BankRemovals);
+    }
 
     public void Dispose()
     {

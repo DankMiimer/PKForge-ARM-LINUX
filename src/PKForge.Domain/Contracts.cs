@@ -96,6 +96,12 @@ public interface ISaveFileAccess
     ValueTask WriteAtomicallyAsync(string documentId, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken = default);
 }
 
+/// <summary>Hosts that can compare the caller's exact source bytes at the final atomic replacement boundary.</summary>
+public interface IFingerprintedSaveFileAccess : ISaveFileAccess
+{
+    ValueTask WriteAtomicallyAsync(string documentId, ReadOnlyMemory<byte> expectedSource, ReadOnlyMemory<byte> candidate, CancellationToken cancellationToken = default);
+}
+
 /// <summary>Selects a document through the host platform without exposing platform types.</summary>
 public interface IDocumentPicker
 {

@@ -1,0 +1,10 @@
+* text=auto
+*.sh text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.ps1 text eol=lf
+*.png binary
+*.bin binary
+*.gz binary
+*.ttf binary
+packaging/linux/notices/* whitespace=-blank-at-eol

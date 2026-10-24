@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../PKForge.Domain/PKForge.Domain.csproj" />
+    <ProjectReference Include="../PKForge.Engine/PKForge.Engine.csproj" />
+    <ProjectReference Include="../PKForge.Infrastructure/PKForge.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

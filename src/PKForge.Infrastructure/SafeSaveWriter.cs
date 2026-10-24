@@ -141,7 +141,9 @@ public sealed class SafeSaveWriter(
 
         var backup = await backups.CreateAsync(original, changeDescription, documentId, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        await access.WriteAtomicallyAsync(documentId, candidate, cancellationToken).ConfigureAwait(false);
+        if (access is IFingerprintedSaveFileAccess fingerprinted)
+            await fingerprinted.WriteAtomicallyAsync(documentId, original.OriginalBytes, candidate, cancellationToken).ConfigureAwait(false);
+        else await access.WriteAtomicallyAsync(documentId, candidate, cancellationToken).ConfigureAwait(false);
         // A write that passed the checks keeps the file's layout, so the candidate inherits
         // the verdict and the next write skips the whole-file layout analysis.
         lock (_gate)

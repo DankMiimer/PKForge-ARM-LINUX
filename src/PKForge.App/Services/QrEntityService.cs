@@ -67,15 +67,20 @@ public static class QrEntityService
             return null;
         }
 
-        // The PKF1 envelope carries the generation, not the format: it settles PK6 vs PK7
-        // (same size), while Gen 8/9 siblings still fall back to PKHeX's heuristics.
-        var format = parsed.Generation == 6 ? "PK6" : null;
-        var info = engine.TryDescribeEntity(parsed.EntityBytes, "QR transfer", format);
-        if (info is null)
+        var candidates = PKForge.Application.QrImportWorkflow.DescribeCandidates(engine, parsed);
+        if (candidates.Count == 0)
         {
             await PadMenu.ShowAsync(host, "QR", "The QR code's Pokémon data could not be read.", "OK");
             return null;
         }
+        var selected = 0;
+        if (candidates.Count > 1)
+        {
+            var source = await PickerMenu.ShowAsync(host, "QR source format · choose the original game", candidates.Select((candidate, index) => new PickItem(index, $"{candidate.Format} · {candidate.Nickname}")).ToArray());
+            if (source is null) return null;
+            selected = source.Id;
+        }
+        var info = candidates[selected];
 
         var name = info.Nickname.Length > 0 ? info.Nickname : parsed.SpeciesName;
         var message =

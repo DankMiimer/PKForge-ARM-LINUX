@@ -422,7 +422,7 @@ public sealed class BankBoxOverview : IPadPagingHandler
 
     private void StartLongPress()
     {
-        _longPress ??= Application.Current?.Dispatcher.CreateTimer();
+        _longPress ??= Microsoft.Maui.Controls.Application.Current?.Dispatcher.CreateTimer();
         if (_longPress is null) return;
         _longPress.Stop();
         _longPress.Interval = TimeSpan.FromMilliseconds(380);

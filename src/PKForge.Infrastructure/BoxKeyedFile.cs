@@ -24,6 +24,7 @@ internal sealed class BoxKeyedFile
     {
         lock (_gate) return _values.TryGetValue(box, out var value) ? value : null;
     }
+    public void Reload() { lock (_gate) _values = Load(_path); }
 
     /// <summary>Sets several values in one write; a blank value clears that box.</summary>
     public void SetMany(IEnumerable<(int Box, string? Value)> values)

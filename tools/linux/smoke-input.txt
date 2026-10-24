@@ -1,0 +1,12 @@
+# Seconds since launch, followed by a semantic controller action.
+# Uses the real router and upstream park handlers, without modifying physical input devices.
+5 X
+8 A
+12 B
+14 Start
+18 B
+20 Select
+22 R
+24 L
+26 Up
+28 Down

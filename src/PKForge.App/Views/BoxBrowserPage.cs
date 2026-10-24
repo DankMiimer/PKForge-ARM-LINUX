@@ -1925,7 +1925,7 @@ public sealed partial class BoxBrowserPage : ContentPage, IPadPagingHandler, IPa
                 },
                 (done, total) => overlay?.Report(done, total),
                 cancellation.Token);
-            fingerprints = await Task.Run(() => CollectFingerprints(session), cancellation.Token);
+            fingerprints = await Task.Run(() => PKForge.Application.AuditWorkflow.CollectFingerprints(session, cancellation.Token), cancellation.Token);
         }
         catch (OperationCanceledException)
         {
@@ -1944,7 +1944,7 @@ public sealed partial class BoxBrowserPage : ContentPage, IPadPagingHandler, IPa
             ? "Audit: no clones, no impossible values"
             : $"Audit: {clones.Count} clone groups, {illegal.Count} flagged";
 
-        var report = BuildAuditReport(clones, illegal, fingerprints.Count);
+        var report = PKForge.Application.AuditWorkflow.BuildReport(clones, illegal, fingerprints.Count);
         var rows = new VerticalStackLayout { Spacing = 4 };
         foreach (var line in report)
         {
@@ -1984,65 +1984,6 @@ public sealed partial class BoxBrowserPage : ContentPage, IPadPagingHandler, IPa
         await done.Task;
 
         static string Strip(string line) => line.StartsWith("## ", StringComparison.Ordinal) ? line[3..] : line;
-    }
-
-    /// <summary>The identity facts the clone grouping runs on, for every occupied slot.</summary>
-    private static IReadOnlyList<MonFingerprint> CollectFingerprints(Domain.ISaveEngineSession session)
-    {
-        var fingerprints = new List<MonFingerprint>();
-        foreach (var summary in session.Snapshot.Slots)
-        {
-            if (summary.Species is null) continue;
-            var rng = session.GetRngInfo(summary.Box, summary.Slot);
-            var detail = session.ReadEntity(summary.Box, summary.Slot);
-            var tid = session.GetMetInfo(summary.Box, summary.Slot).TID;
-            fingerprints.Add(new MonFingerprint(
-                rng.Pid, rng.EncryptionConstant, detail.OriginalTrainer, tid,
-                summary.Box == -1 ? $"Party {summary.Slot + 1}" : $"B{summary.Box + 1}-{summary.Slot + 1}",
-                detail.Nickname is { Length: > 0 } ? detail.Nickname : detail.SpeciesName));
-        }
-        return fingerprints;
-    }
-
-    /// <summary>Plain-text audit body: clone sections then impossible values.</summary>
-    private static IReadOnlyList<string> BuildAuditReport(
-        IReadOnlyList<CloneGroup> clones, IReadOnlyList<SlotLegality> illegal, int total)
-    {
-        var lines = new List<string>
-        {
-            $"{total} Pokémon audited in this save.",
-            string.Empty,
-        };
-        if (clones.Count == 0)
-        {
-            lines.Add("No clones: every Pokémon has a unique identity fingerprint.");
-        }
-        else
-        {
-            lines.Add($"## Clones ({clones.Count} groups)");
-            foreach (var group in clones)
-            {
-                lines.Add($"{group.KeyKind} match ×{group.Members.Count}:");
-                lines.AddRange(group.Members.Select(m => $"   {m.SlotLabel} - {m.DisplayName}"));
-            }
-        }
-        lines.Add(string.Empty);
-        if (illegal.Count == 0)
-        {
-            lines.Add("No impossible values: every Pokémon passed PKHeX's checks.");
-        }
-        else
-        {
-            lines.Add($"## Impossible values ({illegal.Count})");
-            foreach (var verdict in illegal)
-            {
-                var label = verdict.Box == -1 ? $"Party {verdict.Slot + 1}" : $"B{verdict.Box + 1}-{verdict.Slot + 1}";
-                lines.Add($"{label} - {verdict.Problem}");
-            }
-        }
-        lines.Add(string.Empty);
-        lines.Add("Bank audit is future work: bank entries keep no EC/PID fingerprint.");
-        return lines;
     }
 
     /// <summary>Hands the audit text to Android's share sheet as a file (the .pk export path).</summary>

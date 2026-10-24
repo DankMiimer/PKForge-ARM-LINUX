@@ -7,7 +7,7 @@ namespace PKForge.App.Services;
 /// Preferences keyed by document id. Locks are advisory inside the app: destructive
 /// flows consult this store before touching storage.
 /// </summary>
-public sealed class ProtectionStore
+public sealed class ProtectionStore(PKForge.Domain.IDocumentAliases? aliases = null)
 {
     private sealed record LockedMon(int Box, int Slot, uint Pid);
     private sealed record DocumentProtection(HashSet<int> LockedBoxes, List<LockedMon> LockedMons);
@@ -51,10 +51,15 @@ public sealed class ProtectionStore
         DocumentProtection doc;
         try
         {
-            var raw = Preferences.Default.Get(Key(documentId), "");
-            doc = raw.Length == 0
-                ? new DocumentProtection([], [])
-                : JsonSerializer.Deserialize<DocumentProtection>(raw) ?? new DocumentProtection([], []);
+            doc = new DocumentProtection([], []);
+            foreach (var alias in aliases?.For(documentId) ?? [documentId])
+            {
+                var raw = Preferences.Default.Get(Key(alias), "");
+                if (raw.Length == 0) continue;
+                var found = JsonSerializer.Deserialize<DocumentProtection>(raw);
+                if (found is null) continue;
+                doc.LockedBoxes.UnionWith(found.LockedBoxes); doc.LockedMons.AddRange(found.LockedMons.Where(mon => !doc.LockedMons.Contains(mon)));
+            }
         }
         catch
         {
@@ -64,8 +69,11 @@ public sealed class ProtectionStore
         return doc;
     }
 
-    private static void Save(string documentId, DocumentProtection doc) =>
-        Preferences.Default.Set(Key(documentId), JsonSerializer.Serialize(doc));
+    private void Save(string documentId, DocumentProtection doc)
+    {
+        foreach (var alias in aliases?.For(documentId) ?? [documentId])
+        { _cache[alias] = doc; Preferences.Default.Set(Key(alias), JsonSerializer.Serialize(doc)); }
+    }
 
     private static string Key(string documentId) => $"pkforge.protection.{documentId}";
 }

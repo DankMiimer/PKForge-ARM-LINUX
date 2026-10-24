@@ -846,7 +846,7 @@ public sealed class HomePage : ContentPage, IPadHandler
         if (theme is null || theme.Id == PKForge.Chrome.ColorTheme.Current.Id) return;
         ColorThemeSetting.Set(theme);
         AppLog.Info("theme", $"Player picked the {theme.Id} color scheme");
-        if (Application.Current is App app) await app.ReloadForThemeAsync();
+        if (Microsoft.Maui.Controls.Application.Current is App app) await app.ReloadForThemeAsync();
     }
 
     /// <summary>Maintenance actions: the sprite pack, the rescan, and the scan report.</summary>

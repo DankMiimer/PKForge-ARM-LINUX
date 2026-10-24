@@ -13,6 +13,7 @@ public sealed class BankBoxNames(string bankRootDirectory)
 
     /// <summary>The name given to <paramref name="box"/>, or null when it has none.</summary>
     public string? Get(int box) => _file.Get(box);
+    public void Reload() => _file.Reload();
 
     /// <summary>Sets several names in one write; a blank name clears that box's name.</summary>
     public void SetMany(IEnumerable<(int Box, string? Name)> names) => _file.SetMany(names);

@@ -66,7 +66,22 @@ public sealed class ParkPowerTests
 
     [Fact]
     public void Geodude_rolls_about() =>
-        Assert.True(Until([Mon("Geodude", 74, ParkType.Rock, ParkType.Ground)], life => life["geodude"]!.Activity == "Rolling about" && life["geodude"]!.Pose == ParkPose.Spin));
+        Assert.True(Until([Mon("Geodude", 74, ParkType.Rock, ParkType.Ground)], life => life["geodude"]!.Activity == "Rolling about" && life["geodude"]!.Pose == ParkPose.Roll));
+
+    [Fact]
+    public void Donphan_rolls_while_travelling_without_using_the_upright_spin_pose()
+    {
+        ParkPoint? previous = null;
+        Assert.True(Until([Mon("Donphan", 232, ParkType.Ground)], life =>
+        {
+            var actor = life["donphan"]!;
+            var moved = previous is { } before && MathF.Abs(actor.X - before.X) + MathF.Abs(actor.Y - before.Y) > .1f;
+            previous = new(actor.X, actor.Y);
+            if (actor.Activity != "Rolling about" || !moved) return false;
+            Assert.Equal(ParkPose.Roll, actor.Pose);
+            return true;
+        }));
+    }
 
     [Fact]
     public void Magikarp_leaps_out_of_the_water() =>

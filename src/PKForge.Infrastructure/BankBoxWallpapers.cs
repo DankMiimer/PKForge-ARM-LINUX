@@ -13,6 +13,7 @@ public sealed class BankBoxWallpapers(string bankRootDirectory)
 
     /// <summary>The wallpaper chosen for <paramref name="box"/>, or null for its default.</summary>
     public BankWallpaper? Get(int box) => BankWallpaper.Parse(_file.Get(box));
+    public void Reload() => _file.Reload();
 
     public void Set(int box, BankWallpaper? wallpaper) => _file.SetMany([(box, wallpaper?.Id)]);
 

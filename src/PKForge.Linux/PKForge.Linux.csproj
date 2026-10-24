@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>pkforge</AssemblyName>
+    <DefineConstants>$(DefineConstants);LINUX</DefineConstants>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishAot>false</PublishAot>
+    <RuntimeFrameworkVersion>10.0.3</RuntimeFrameworkVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="../PKForge.App/Resources/UI/dex/*.bin.gz" Link="assets/dex/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/Events/*.bin.gz" Link="assets/events/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/UI/lumi/*.png" Link="assets/sprites/lumi/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/Showdown/icons.png" Link="assets/showdown/icons.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/GameArt/*.png" Link="assets/gameart/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/GameHero/*.png" Link="assets/gamehero/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/GameLogo/*.png" Link="assets/gamelogo/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/UI/pksm/*.png" Link="assets/ui/pksm/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/UI/design/*.png" Link="assets/ui/design/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/UI/ATTRIBUTION.md" Link="assets/notices/upstream-ui-attribution.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../external/PKHeX/PKHeX.Drawing.Misc/Resources/img/ribbons/*.png" Link="assets/ribbons/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../external/PKHeX/PKHeX.Drawing.Misc/Resources/img/box/**/*.png" Link="assets/wallpapers/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="../PKForge.Park/PKForge.Park.csproj" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.116.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.116.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="ZXing.Net" Version="0.16.10" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../PKForge.App/Views/PokeparkPage.cs;../PKForge.App/Views/PokeparkCardOverlay.cs;../PKForge.App/Views/PokeparkEventOverlay.cs;../PKForge.App/Views/PokeparkCreditsOverlay.cs;../PKForge.App/Views/PokeparkAlbumOverlay.cs;../PKForge.App/Views/PokeparkJournalView.cs;../PKForge.App/Views/MusicMenu.cs" Link="Upstream/%(Filename)%(Extension)" />
+    <Content Include="../PKForge.App/Resources/Pokepark/park/*.png" Link="assets/pokepark/park/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/Fonts/*.ttf" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/Fonts/*.txt" Link="assets/notices/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/Showdown/front/*.png" Link="assets/showdown/front/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/Showdown/front-shiny/*.png" Link="assets/showdown/front-shiny/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/UI/logo/*.png" Link="assets/ui/logo/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/AppIcon/pkforge.png" Link="assets/ui/logo.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../external/PKHeX/PKHeX.Drawing.PokeSprite/Resources/img/Big Pokemon Sprites/*.png;../../external/PKHeX/PKHeX.Drawing.PokeSprite/Resources/img/Big Shiny Sprites/*.png" Link="assets/sprites/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../external/PKHeX/PKHeX.Drawing.PokeSprite/Resources/img/Artwork Pokemon Sprites/a_9*.png;../../external/PKHeX/PKHeX.Drawing.PokeSprite/Resources/img/Artwork Pokemon Sprites/a_10*.png;../../external/PKHeX/PKHeX.Drawing.PokeSprite/Resources/img/Artwork Pokemon Sprites/a_*-*.png" Link="assets/artwork/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../external/PKHeX/PKHeX.Drawing.PokeSprite/Resources/img/ball/*.png" Link="assets/balls/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../packaging/linux/notices/*.txt" Link="assets/notices/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

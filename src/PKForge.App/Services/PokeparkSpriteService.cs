@@ -12,7 +12,7 @@ public sealed record ParkSpriteFrame(SKBitmap Bitmap, SKRect Source, SKRect Boun
 /// <summary>PMDCollab sprites and portraits, downloaded on first use and kept on disk. Walk and
 /// Idle load with the species; every other animation loads the first time a pose asks for it,
 /// and the pose falls back to a loaded one meanwhile. Never substitutes a different form or shiny state.</summary>
-public sealed class PokeparkSpriteService
+public sealed partial class PokeparkSpriteService
 {
     private const string Root = "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/";
     private const int Capacity = 64;
@@ -70,7 +70,7 @@ public sealed class PokeparkSpriteService
         lock (_gate)
         {
             if (key is null || !_sheets.TryGetValue(key, out var sheet) || sheet is null) return null;
-            foreach (var candidate in ParkPoses.Animations(pose))
+            foreach (var candidate in ParkPoses.Animations(pose, species))
             {
                 if (!sheet.Definitions.ContainsKey(candidate)) continue;
                 if (sheet.Animations.TryGetValue(candidate, out var loaded))
@@ -367,8 +367,13 @@ public sealed class PokeparkSpriteService
             output.Write(buffer, 0, read);
         }
         var bytes = output.ToArray();
-        await File.WriteAllBytesAsync(path + ".tmp", bytes).ConfigureAwait(false);
-        File.Move(path + ".tmp", path, true);
+        var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            await File.WriteAllBytesAsync(temporary, bytes).ConfigureAwait(false);
+            File.Move(temporary, path, true);
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
         return bytes;
     }
 }

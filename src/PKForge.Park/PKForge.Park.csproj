@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);PKFORGE_LINUX</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../PKForge.App/Services/ItemArt.cs" Link="Upstream/Services/ItemArt.cs" />
+    <Compile Include="../PKForge.App/Services/SecondScreenMode.cs" Link="Upstream/Services/SecondScreenMode.cs" />
+    <ProjectReference Include="../PKForge.Application/PKForge.Application.csproj" />
+    <ProjectReference Include="../PKForge.Engine/PKForge.Engine.csproj" />
+    <ProjectReference Include="../PKForge.Infrastructure/PKForge.Infrastructure.csproj" />
+    <ProjectReference Include="../PKForge.Chrome/PKForge.Chrome.csproj" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../PKForge.App/Services/Pokepark*.cs" Link="Upstream/Services/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Services/SpriteService.cs;../PKForge.App/Services/HabitatCatalog.cs;../PKForge.App/Services/HardcoreMode.cs;../PKForge.App/Services/ProtectionStore.cs;../PKForge.App/Services/GamepadRouting.cs" Link="Upstream/Services/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Services/HaXMode.cs;../PKForge.App/Services/TrainerProfileStore.cs;../PKForge.App/Services/CommunityBoxService.cs;../PKForge.App/Services/EventArchive.cs;../PKForge.App/Services/SpritePackDownloader.cs;../PKForge.App/Services/BankBoxDecor.cs;../PKForge.App/Services/BankFacts.cs;../PKForge.App/Services/ColorThemeSetting.cs;../PKForge.App/Services/BoxBackground.cs" Link="Upstream/Services/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Views/PokeparkScene.cs;../PKForge.App/Views/PokeparkMapArt.cs;../PKForge.App/Views/PixelFont.cs" Link="Upstream/Views/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

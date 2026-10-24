@@ -30,8 +30,13 @@ public static class MusicMenu
                 ? $"Playing: {music.Library[index].Title}"
                 : music.IsOn && music.Library.Count > 0 ? $"Silence here ({PlaceName(music.Place)})."
                 : $"Library: {music.Library.Count} track(s)";
+#if ANDROID
             if (music is Platforms.Android.MusicPlayer { LastError: { } error })
                 message += $"\nLast error: {error}";
+#elif LINUX
+            if (music is PKForge.Linux.Native.SdlMusicPlayer { LastError: { } error })
+                message += $"\nLast error: {error}";
+#endif
             PadOption[] options =
             [
                 new(music.IsOn ? "Pause" : "Play", IconPath: music.IsOn ? "pause" : "play"),
@@ -58,9 +63,15 @@ public static class MusicMenu
                 case "Skip to next track": music.Skip(); break;
                 case var add when add?.StartsWith("Add music files", StringComparison.Ordinal) == true:
                 {
+#if LINUX
+                    var dialogs = IPlatformApplication.Current?.Services.GetService<PKForge.Application.IFileDialogService>();
+                    if (dialogs is null) break;
+                    var documents = await dialogs.PickAsync(new(PKForge.Application.FilePurpose.Music, "Add music files", true));
+#else
                     var picker = IPlatformApplication.Current?.Services.GetService<IDocumentPicker>();
                     if (picker is null) break;
                     var documents = await picker.PickManyAsync();
+#endif
                     if (documents.Count == 0) break;
                     var added = music.Add(documents);
                     status(added > 0 ? $"Added {added} track(s) to the music library." : "Those files are already in the library.");

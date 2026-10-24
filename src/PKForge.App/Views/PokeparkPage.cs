@@ -9,7 +9,7 @@ using SkiaSharp.Views.Maui;
 
 namespace PKForge.App.Views;
 
-public sealed class PokeparkPage : ContentPage, IPadHandler, IPadStickHandler
+public sealed partial class PokeparkPage : ContentPage, IPadHandler, IPadStickHandler
 {
     private readonly PokeparkService _park;
     private readonly ISpriteService _sprites;
@@ -583,11 +583,20 @@ public sealed class PokeparkPage : ContentPage, IPadHandler, IPadStickHandler
             var options = new List<string> { "Today's goals", "Photo album", "Daycare", "How to play", "Park journal", "Time and weather", "Music", "Treasures",
                 "Auto-fill mode", "Invite Pokémon", "Empty park", "Widget help", "Credits", _scene.ShowCaptions ? "Captions: On" : "Captions: Off",
                 ParkCanvas.UsesGpu ? "Drawing: GPU" : "Drawing: CPU" };
+#if LINUX
+            options.Remove("Widget help");
+            options.Add("Open save / Bank");
+            options.Add("Download this park's assets");
+            options.Add("Quit PKForge");
+#endif
 #if DIAGNOSTIC
             // Frame times over the park, for measuring on a device.
             options.Add(_scene.ShowPerformance ? "Hide performance" : "Show performance");
 #endif
             var choice = await PadMenu.ShowAsync(_host, "Poképark options", $"Auto-fill: {current}. Existing residents are never moved or replaced.", [.. options]);
+#if LINUX
+            if (await HandleLinuxOptionAsync(choice)) return;
+#endif
             if (choice is "Drawing: GPU" or "Drawing: CPU")
             {
                 var gpu = choice == "Drawing: CPU";
@@ -918,6 +927,9 @@ public sealed class PokeparkPage : ContentPage, IPadHandler, IPadStickHandler
     // from when that save is the one open (the park only ever holds a copy).
     private async Task FindInBoxAsync(ParkPokemon mon)
     {
+#if LINUX
+        await FindLinuxSourceAsync(mon);
+#else
         var services = IPlatformApplication.Current?.Services;
         if (services is null) return;
         var parts = mon.Id.Split(':');
@@ -952,6 +964,7 @@ public sealed class PokeparkPage : ContentPage, IPadHandler, IPadStickHandler
             return;
         }
         await PokeparkCardOverlay.ShowDialogueAsync(_host, mon.Name, $"{mon.Name} lives in {mon.Source}.");
+#endif
     }
 
     private SKBitmap? PortraitFor(ParkPokemon mon) =>

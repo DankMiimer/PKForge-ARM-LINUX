@@ -63,6 +63,7 @@ public sealed class GamepadRouter
     }
 
     public bool Dispatch(PadButton button) => _stack.Count > 0 && _stack[^1].OnPadButton(button);
+    public bool IsTop(IPadHandler handler) => _stack.Count > 0 && ReferenceEquals(_stack[^1], handler);
 
     /// <summary>True when the top-most screen pages with L/R (see <see cref="IPadPagingHandler"/>).</summary>
     public bool TopPagesWithShoulders => _stack.Count > 0 && _stack[^1] is IPadPagingHandler { ShouldersRepeat: true };

@@ -66,7 +66,13 @@ public sealed class CommunityBoxService
     public async Task<byte[]> DownloadAsync(CommunityNode file, CancellationToken cancellationToken = default)
     {
         if (file.DownloadUrl is null) throw new InvalidOperationException("Not a downloadable file.");
-        return await _http.GetByteArrayAsync(file.DownloadUrl, cancellationToken);
+        var cache = Path.Combine(_cacheRoot, CacheKey(file.Path) + ".entity");
+        if (File.Exists(cache)) return await File.ReadAllBytesAsync(cache, cancellationToken);
+        var bytes = await _http.GetByteArrayAsync(file.DownloadUrl, cancellationToken);
+        var temporary = cache + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try { await File.WriteAllBytesAsync(temporary, bytes, cancellationToken); File.Move(temporary, cache, true); }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        return bytes;
     }
 
     private async Task<string> GetListingJsonAsync(string path, CancellationToken cancellationToken)
@@ -76,7 +82,11 @@ public sealed class CommunityBoxService
             return await File.ReadAllTextAsync(cacheFile, cancellationToken);
 
         var url = $"https://api.github.com/repos/{Repo}/contents/{Uri.EscapeDataString(path).Replace("%2F", "/")}";
-        using var response = await _http.GetAsync(url, cancellationToken);
+        HttpResponseMessage response;
+        try { response = await _http.GetAsync(url, cancellationToken); }
+        catch (HttpRequestException) when (File.Exists(cacheFile)) { return await File.ReadAllTextAsync(cacheFile, cancellationToken); }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested && File.Exists(cacheFile)) { return await File.ReadAllTextAsync(cacheFile, cancellationToken); }
+        using var responseLifetime = response;
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden && File.Exists(cacheFile))
             return await File.ReadAllTextAsync(cacheFile, cancellationToken); // rate-limited: stale beats nothing
         if (!response.IsSuccessStatusCode)
