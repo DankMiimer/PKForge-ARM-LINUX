@@ -1,8 +1,8 @@
-# PKForge for ROCKNIX and KNULLI
+# PKForge-ARM-LINUX for ROCKNIX and KNULLI
 
 A native ARM64 Linux port of [PKForge](https://github.com/sofianeelhor/PKForge) by **sofianeelhor**, maintained here by **DankMiimer**. Based on upstream **v3.1.1**, with the rebuilt Poképark, a native save library, Pokémon editors and Bank tools.
 
-**[Download the Linux preview](https://github.com/DankMiimer/PKForge/releases)** · [Installation and controls](LINUX.md) · [Feature coverage](FEATURE_COVERAGE.md) · [Validation](VALIDATION.md) · [Original project](https://github.com/sofianeelhor/PKForge)
+**[Download the Linux preview](https://github.com/DankMiimer/PKForge-ARM-LINUX/releases)** · [Installation and controls](LINUX.md) · [Feature coverage](FEATURE_COVERAGE.md) · [Validation](VALIDATION.md) · [Original project](https://github.com/sofianeelhor/PKForge)
 
 This is a **development preview**, Linux revision **0.2.2-dev**. Broad editor functionality is implemented, but full v3.1.1 parity and every game/format path have not completed acceptance. The feature matrix distinguishes implementation from verified behavior.
 
@@ -48,8 +48,8 @@ See [VALIDATION.md](VALIDATION.md) and [FEATURE_COVERAGE.md](FEATURE_COVERAGE.md
 The pinned .NET **10.0.103 SDK** is required. The ARM64 runtime is pinned to **10.0.3**. From a clean recursive clone:
 
 ```powershell
-git clone --recurse-submodules https://github.com/DankMiimer/PKForge.git
-cd PKForge
+git clone --recurse-submodules https://github.com/DankMiimer/PKForge-ARM-LINUX.git
+cd PKForge-ARM-LINUX
 dotnet test PKForge.Linux.slnx -c Release
 pwsh -File tools/linux/build.ps1
 pwsh -File tools/linux/verify-package.ps1

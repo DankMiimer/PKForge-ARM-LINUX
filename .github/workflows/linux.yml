@@ -65,7 +65,7 @@ jobs:
         run: dotnet build src/PKForge.App/PKForge.App.csproj -c Debug -p:AndroidKeyStore=false
 
   draft-release:
-    if: github.repository == 'DankMiimer/PKForge' && github.event_name == 'workflow_dispatch' && inputs.create_draft && startsWith(github.ref, 'refs/tags/linux-v')
+    if: github.repository == 'DankMiimer/PKForge-ARM-LINUX' && github.event_name == 'workflow_dispatch' && inputs.create_draft && startsWith(github.ref, 'refs/tags/linux-v')
     needs: [linux, android-compatibility]
     runs-on: ubuntu-latest
     permissions:
