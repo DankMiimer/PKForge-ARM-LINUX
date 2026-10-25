@@ -34,6 +34,12 @@ The fork is now [DankMiimer/PKForge-ARM-LINUX](https://github.com/DankMiimer/PKF
 
 Comparison references from the original v3.1.1 on a phone (single wide screen), stored under the ignored `artifacts/ui-parity/android-reference/`: `bank-initial.png` and `bank-summary-info.png`. The phone layout adds `BankPage`'s side panel and tool row. On Linux, that inspector lives on the secondary screen.
 
+## Box-screen frame rate and the RGDS launch
+
+- Commit `4cbf23a` cuts a full save box's paint from 24.9 ms to 0.74 ms on desktop, with identical renders. The Showdown icon sheet is immutable after loading, so `SKImage.FromBitmap` no longer copies its 8 MB per icon per frame. The styled wallpaper is drawn once per art, size, style and theme. Box/slot counts, the party, the icon set, the wallpaper path and the box name are read once per save version.
+- Measured on the devices (launch-log `PERFORMANCE` lines): the RGDS box screen went from 3.6 FPS at 275 ms per frame (old build, single screen) to 26.1 FPS for a whole 48 s session at 14.4 ms per frame, dual screen. The RG34XXSP ran 28.9 FPS at 14.5 ms per frame over 1,557 box-screen frames.
+- ROCKNIX's EmulationStation can leave the RGDS bottom panel (DSI-1) disabled, so SDL saw one display. `PKForge.sh` now enables and powers on inactive internal panels on dual-screen ROCKNIX devices and restores them on exit. The first launch after installing logged `Turning on DSI-1` and opened both windows.
+
 ## Verification
 
 - Linux solution: 1,931 tests passed (861 Domain, 966 Engine, 71 Park, 33 Linux UI) after the third slice.
