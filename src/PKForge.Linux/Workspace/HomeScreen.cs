@@ -191,8 +191,8 @@ public sealed partial class WorkspaceHost
             Refresh();
             switch (button)
             {
-                case PadButton.Down: Focus(1, 0); break;
-                case PadButton.Up: Focus(0); break;
+                case PadButton.Down when _zone == 0: Focus(1, 0); break;
+                case PadButton.Up when _zone == 1: Focus(0); break;
                 case PadButton.Left: if (_zone == 0) MoveShelf(-1); else Focus(1, _destination - 1); break;
                 case PadButton.Right: if (_zone == 0) MoveShelf(1); else Focus(1, _destination + 1); break;
                 case PadButton.A: Activate(); break;
@@ -218,14 +218,15 @@ public sealed partial class WorkspaceHost
                 _pressOffset = _scroll.Value; _pressedAt = Stopwatch.GetTimestamp();
                 _pressedCart = _cartridgeHits.Where(h => h.Rect.Contains(touch.Location)).Select(h => h.Index).DefaultIfEmpty(-1).First();
             }
-            else if (touch.ActionType == SKTouchAction.Moved && _pressed && layout.Shelf.Contains(_pressPoint))
+            else if (touch.ActionType == SKTouchAction.Moved && _pressed)
             {
-                if (Math.Abs(touch.Location.X - _pressPoint.X) > 8 * layout.Unit) _dragging = true;
-                if (_dragging) _scroll.Snap(Math.Clamp(_pressOffset + _pressPoint.X - touch.Location.X, 0, layout.MaxScroll(_groups.Count)));
+                if (Math.Abs(touch.Location.X - _pressPoint.X) > 8 * layout.Unit || Math.Abs(touch.Location.Y - _pressPoint.Y) > 8 * layout.Unit) _dragging = true;
+                if (_dragging && layout.Shelf.Contains(_pressPoint)) _scroll.Snap(Math.Clamp(_pressOffset + _pressPoint.X - touch.Location.X, 0, layout.MaxScroll(_groups.Count)));
             }
             else if (touch.ActionType == SKTouchAction.Released && _pressed)
             {
                 _pressed = false; _touchId = null; if (_dragging || _longPressed) return;
+                if (Math.Abs(touch.Location.X - _pressPoint.X) > 8 * layout.Unit || Math.Abs(touch.Location.Y - _pressPoint.Y) > 8 * layout.Unit) return;
                 if (layout.Filter.Contains(touch.Location)) { Button(PadButton.L); return; }
                 var cart = _cartridgeHits.FirstOrDefault(h => h.Rect.Contains(touch.Location));
                 if (_pressedCart >= 0 && cart.Rect.Width > 0 && cart.Index == _pressedCart)
