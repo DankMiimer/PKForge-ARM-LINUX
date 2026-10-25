@@ -30,6 +30,7 @@ public sealed partial class WorkspaceHost
         private SKPoint _pressPoint;
         private float _pressOffset;
         private bool _pressed, _dragging, _longPressed;
+        private long? _touchId;
         private int _pressedCart = -1;
         private string? _selectedId;
         public SecondScreenOwner Owner => SecondScreenOwner.Home;
@@ -40,6 +41,9 @@ public sealed partial class WorkspaceHost
             var groups = host.LibraryGroups;
             var current = host.Sessions.Current;
             if (ReferenceEquals(groups, _catalogueSource) && ReferenceEquals(current, _sessionSource)) return;
+            // A scan/identity change can replace or reorder the shelf under a finger.
+            // Release that gesture rather than opening a different cartridge by index.
+            _pressed = false; _touchId = null;
             _catalogueSource = groups; _sessionSource = current; _groups = groups;
             var catalogue = host.Get<ISaveCatalogue>().Saves;
             if (current is not null && !catalogue.Any(s => s.DocumentId == current.Document.DocumentId))
@@ -63,7 +67,7 @@ public sealed partial class WorkspaceHost
         public void RefreshIdentity() { _catalogueSource = null; Refresh(); }
         public void Leave()
         {
-            _pressed = false;
+            _pressed = false; _touchId = null;
             UiDispatcher.Instance.Animations.Cancel(this);
             for (var i = 0; i < _scales.Length; i++) _scales[i] = _zone == 1 && i == _destination ? 1.05f : 1;
             foreach (var bitmap in _icons.Values) bitmap?.Dispose();
@@ -74,6 +78,7 @@ public sealed partial class WorkspaceHost
             _scroll.Step(seconds, 300, 34.6f);
             if (!_pressed || _dragging || _longPressed || _pressedCart < 0 || Stopwatch.GetElapsedTime(_pressedAt).TotalMilliseconds < 500) return;
             _longPressed = true;
+            _pressed = false; _touchId = null;
             var group = _groups.ElementAtOrDefault(_pressedCart);
             if (group is not null) _ = host.Screens.RunAsync(() => host.HomeIdentityAsync(group));
         }
@@ -205,8 +210,10 @@ public sealed partial class WorkspaceHost
         public void Touch(SKTouchEventArgs touch, bool secondary)
         {
             if (secondary || _layout is not { } layout) return;
+            if (touch.ActionType == SKTouchAction.Pressed ? _touchId is not null : _touchId != touch.Id) return;
             if (touch.ActionType == SKTouchAction.Pressed)
             {
+                _touchId = touch.Id;
                 _pressed = true; _dragging = _longPressed = false; _pressPoint = touch.Location;
                 _pressOffset = _scroll.Value; _pressedAt = Stopwatch.GetTimestamp();
                 _pressedCart = _cartridgeHits.Where(h => h.Rect.Contains(touch.Location)).Select(h => h.Index).DefaultIfEmpty(-1).First();
@@ -218,7 +225,7 @@ public sealed partial class WorkspaceHost
             }
             else if (touch.ActionType == SKTouchAction.Released && _pressed)
             {
-                _pressed = false; if (_dragging || _longPressed) return;
+                _pressed = false; _touchId = null; if (_dragging || _longPressed) return;
                 if (layout.Filter.Contains(touch.Location)) { Button(PadButton.L); return; }
                 var cart = _cartridgeHits.FirstOrDefault(h => h.Rect.Contains(touch.Location));
                 if (_pressedCart >= 0 && cart.Rect.Width > 0 && cart.Index == _pressedCart)
@@ -228,7 +235,7 @@ public sealed partial class WorkspaceHost
                 var hint = _footerHits.FirstOrDefault(h => h.Rect.Contains(touch.Location));
                 if (hint.Rect.Width > 0) Button(new[] { PadButton.A, PadButton.B, PadButton.L, PadButton.Y, PadButton.X, PadButton.Start }[hint.Index]);
             }
-            else if (touch.ActionType == SKTouchAction.Cancelled) _pressed = false;
+            else if (touch.ActionType == SKTouchAction.Cancelled) { _pressed = false; _touchId = null; }
         }
     }
 
