@@ -34,7 +34,7 @@ public sealed partial class WorkspaceHost : INavigation
         Operations.ConfirmHackRisk = message => Dialogs.ConfirmAsync("Suspected ROM hack", message, "Edit at my own risk");
         var cachedCount = Get<ISaveCatalogue>().Saves.Count;
         if (cachedCount > 0) Status = $"Library restored · {cachedCount} saves. Scan linked folders to refresh.";
-        Screens.Push(new NativeListScreen(Screens, "PKForge · Game library", HomeItems, () => Status, PaintHomePreview, ClearHomeArt));
+        Screens.Push(new HomeScreen(this));
     }
     public void OpenHome() { Screens.Home(); Screens.Activate(); }
     public Task PushAsync(ContentPage page) { OpenHome(); return Task.CompletedTask; }

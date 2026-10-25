@@ -3,40 +3,6 @@ using System.Diagnostics;
 namespace PKForge.App.Services;
 
 /// <summary>
-/// A critically damped spring toward a target: moves fast, eases in, never overshoots unless
-/// asked to. The feel of the games' box cursor and lifted boxes, independent of frame rate.
-/// </summary>
-public sealed class Spring(float value)
-{
-    public float Value { get; private set; } = value;
-    public float Target { get; set; } = value;
-    public float Velocity { get; private set; }
-
-    public bool Settled => MathF.Abs(Target - Value) < 0.001f && MathF.Abs(Velocity) < 0.001f;
-
-    /// <summary>Jumps straight to <paramref name="value"/> with no motion.</summary>
-    public void Snap(float value)
-    {
-        Value = Target = value;
-        Velocity = 0;
-    }
-
-    /// <summary>Advances by <paramref name="dt"/> seconds. Lower <paramref name="damping"/> than 2√stiffness gives a bounce.</summary>
-    public void Step(float dt, float stiffness = 420f, float damping = 41f)
-    {
-        // Small sub-steps keep the integration stable through a dropped frame.
-        var steps = Math.Max(1, (int)MathF.Ceiling(dt / (1f / 240f)));
-        var h = dt / steps;
-        for (var i = 0; i < steps; i++)
-        {
-            Velocity += (stiffness * (Target - Value) - damping * Velocity) * h;
-            Value += Velocity * h;
-        }
-        if (Settled) Snap(Target);
-    }
-}
-
-/// <summary>
 /// Paces a canvas animation on the display's own refresh: each paint advances the motion by
 /// the real time since the last one, and asks for the next frame only while something still
 /// moves. No timer, so frames land on vsync and an idle screen costs nothing.

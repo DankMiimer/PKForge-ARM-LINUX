@@ -8,8 +8,8 @@ namespace PKForge.App
         public static event Action? Suspended;
         public static event Action? Resumed;
         public static bool IsSuspended { get; private set; }
-        public static void Suspend() { if (IsSuspended) return; IsSuspended = true; Suspended?.Invoke(); }
-        public static void Resume() { if (!IsSuspended) return; IsSuspended = false; Resumed?.Invoke(); }
+        public static void Suspend() { if (IsSuspended) return; IsSuspended = true; UiDispatcher.Instance.Animations.SetSuspended(true); Suspended?.Invoke(); }
+        public static void Resume() { if (!IsSuspended) return; IsSuspended = false; UiDispatcher.Instance.Animations.SetSuspended(false); Resumed?.Invoke(); }
     }
     public static class PokeparkWidgetPublisher
     {

@@ -55,13 +55,8 @@ public sealed class PadMenu : IPadHandler
         // Menus columnize by what the labels need: the longest label decides how many
         // columns fit without marqueeing (~16 chars per 200dp column at 15px).
         var longest = options.Length == 0 ? 0 : options.Max(o => o.Label.Length);
-        _columns = options.Length switch
-        {
-            <= 4 => 1,
-            <= 12 => longest > 24 ? 1 : 2,
-            _ => longest > 16 ? 2 : 3,
-        };
-        var buttonHeight = _columns == 1 ? 58.0 : _columns == 2 ? 52.0 : 46.0;
+        _columns = PKForge.Chrome.MenuPaint.Columns(options.Length, longest);
+        var buttonHeight = PKForge.Chrome.MenuPaint.ButtonHeight(_columns);
 
         var grid = new Grid { ColumnSpacing = 8, RowSpacing = 8 };
         for (var c = 0; c < _columns; c++) grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
