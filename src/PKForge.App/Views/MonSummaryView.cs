@@ -6,6 +6,9 @@ using PKForge.Domain;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using SkiaSharp.Views.Maui.Controls;
+#if LINUX
+using PerfTrace = PKForge.Linux.Ui.SummaryDiagnostics;
+#endif
 
 namespace PKForge.App.Views;
 
@@ -893,7 +896,7 @@ public sealed class MonSummaryView : ContentView
         var low = move.MaxPP > 0 && move.PP * 4 <= move.MaxPP;
         var pp = move.PPUps > 0 ? $"PP {move.PP}/{move.MaxPP} +{move.PPUps}" : $"PP {move.PP}/{move.MaxPP}";
         var ppWidth = SummaryInk.Draw(c, pp, right - 12, SummaryInk.Center(y + 100, 32), 32, low ? Orange : ValueInk, align: SKTextAlign.Right);
-        var numbers = $"Power {InfoKit.Power(move.Power)} · Accuracy {InfoKit.Accuracy(move.Accuracy)}";
+        var numbers = $"Power {MoveNumbers.Power(move.Power)} · Accuracy {MoveNumbers.Accuracy(move.Accuracy)}";
         SummaryInk.Draw(c, SummaryInk.Fit(numbers, 28, right - 12 - ppWidth - 24 - LabelX), LabelX, SummaryInk.Center(y + 100, 28), 28, SubInk);
         var ly = y + 136;
         foreach (var line in verdictLines)

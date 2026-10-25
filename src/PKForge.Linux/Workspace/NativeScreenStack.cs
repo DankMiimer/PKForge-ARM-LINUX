@@ -42,10 +42,17 @@ public sealed class NativeScreenStack : IPadPagingHandler
     public INativeScreen? Current => _screens.LastOrDefault();
     public bool ShouldersRepeat => Current?.ShouldersRepeat == true;
     public void Tick(float seconds) { if (Active && !Busy) Current?.Tick(seconds); }
-    public void DrawPrimary(SKCanvas canvas, SKRect bounds) => Current?.Paint(canvas, bounds, false);
+    internal GraphicsDevice? DrawingDevice { get; private set; }
+    public void DrawPrimary(SKCanvas canvas, SKRect bounds, GraphicsDevice device) => DrawScreen(canvas, bounds, false, device);
+    public void DrawScreen(SKCanvas canvas, SKRect bounds, bool secondary, GraphicsDevice device)
+    {
+        var previous = DrawingDevice; DrawingDevice = device;
+        try { Current?.Paint(canvas, bounds, secondary); }
+        finally { DrawingDevice = previous; }
+    }
     public void DrawControls(SKCanvas canvas, SKRect bounds, GraphicsDevice device)
     {
-        Current?.Paint(canvas, bounds, Dual);
+        DrawScreen(canvas, bounds, Dual, device);
         ControlRoot.Draw(canvas, bounds, device, _secondary);
     }
     public void HandleTouch(SKTouchEventArgs touch, bool primary)
@@ -56,8 +63,8 @@ public sealed class NativeScreenStack : IPadPagingHandler
     public NativeScreenStack(GamepadRouter router, bool dual, SecondScreenRoutes? routes = null)
     {
         _router = router; _routes = routes ?? new(); Dual = dual; Dialogs = new(ControlRoot, router); Forms = new(Dialogs);
-        _primary.PaintSurface += (_, e) => Current?.Paint(e.Surface.Canvas, new(0, 0, e.Info.Width, e.Info.Height), false);
-        _secondary.PaintSurface += (_, e) => Current?.Paint(e.Surface.Canvas, new(0, 0, e.Info.Width, e.Info.Height), Dual);
+        _primary.PaintSurface += (_, e) => DrawScreen(e.Surface.Canvas, new(0, 0, e.Info.Width, e.Info.Height), false, e.Device);
+        _secondary.PaintSurface += (_, e) => DrawScreen(e.Surface.Canvas, new(0, 0, e.Info.Width, e.Info.Height), Dual, e.Device);
         _primary.Touch += (_, e) => { if (!Busy && _router.IsTop(this)) Current?.Touch(e, false); e.Handled = true; };
         _secondary.Touch += (_, e) => { if (!Busy && _router.IsTop(this)) Current?.Touch(e, Dual); e.Handled = true; };
         ControlRoot.Add(_secondary);

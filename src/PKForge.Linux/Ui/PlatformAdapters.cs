@@ -35,6 +35,7 @@ namespace PKForge.App.Theme
     public static class UiTokens
     {
         public static Color Housing => new(15, 25, 38);
+        public static Color InkSoft { get { var c = PKForge.Chrome.Pksm.InkSoft; return new(c.Red, c.Green, c.Blue, c.Alpha); } }
         public const double TextBody = 13;
     }
 }

@@ -35,6 +35,7 @@ public class View : INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? Unloaded;
+    public event EventHandler? SizeChanged;
     protected void Changed(string property) => PropertyChanged?.Invoke(this, new(property));
     public IDispatcher Dispatcher => UiDispatcher.Instance;
     public Color BackgroundColor { get; set; } = Colors.Transparent;
@@ -61,7 +62,9 @@ public class View : INotifyPropertyChanged
     public void Draw(SKCanvas canvas, SKRect area, GraphicsDevice device, View? excluded = null)
     {
         if (!IsVisible || this == excluded) return;
+        var previous = Bounds;
         Bounds = Arrange(area);
+        if (previous.Size != Bounds.Size) SizeChanged?.Invoke(this, EventArgs.Empty);
         if (Opacity <= 0 || Scale == 0) return;
         var save = canvas.Save();
         var composited = Opacity < 1 || Scale != 1 || TranslationX != 0 || TranslationY != 0;
@@ -116,6 +119,9 @@ public class View : INotifyPropertyChanged
         Unloaded?.Invoke(this, EventArgs.Empty);
     }
     public void CancelAnimations() => UiDispatcher.Instance.Animations.Cancel(this);
+    public void AbortAnimation(string name) => UiDispatcher.Instance.Animations.Cancel(this, name);
+    internal void CommitAnimation(string name, double from, double to, uint duration, Action<double> update, Easing? easing) =>
+        _ = Animate(name, from, to, duration, update, easing);
     private Task<bool> Animate(string name, double from, double to, uint duration, Action<double> update, Easing? easing) => _released
         ? Task.FromResult(true)
         : UiDispatcher.Instance.Animations.Animate(this, name, from, to, duration, update, (easing ?? Easing.CubicInOut).Ease);
@@ -135,9 +141,11 @@ public sealed class Label : View
     private string _text = "";
     public string Text { get => _text; set { if (_text != value) { _text = value; Changed(nameof(Text)); } } }
     public double FontSize { get; set; } = 15;
+    public string? FontFamily { get; set; }
     public Color TextColor { get; set; } = Colors.White;
     public LineBreakMode LineBreakMode { get; set; }
     public TextAlignment HorizontalTextAlignment { get; set; }
+    public TextAlignment VerticalTextAlignment { get; set; }
     public override float NaturalHeight(float width) => (float)FontSize * 1.5f;
     public override float NaturalWidth(float width)
     {
@@ -151,23 +159,65 @@ public sealed class Label : View
         var text = NativeText.Fit(Text, font, Bounds.Width);
         var align = HorizontalTextAlignment switch { TextAlignment.Center => SKTextAlign.Center, TextAlignment.End => SKTextAlign.Right, _ => SKTextAlign.Left };
         var x = align == SKTextAlign.Center ? Bounds.MidX : align == SKTextAlign.Right ? Bounds.Right : Bounds.Left;
-        canvas.DrawText(text, x, Bounds.Top + (float)FontSize + 2, align, font, paint);
+        var y = VerticalTextAlignment switch { TextAlignment.Center => Bounds.MidY - (font.Metrics.Ascent + font.Metrics.Descent) / 2,
+            TextAlignment.End => Bounds.Bottom - font.Metrics.Descent, _ => Bounds.Top + (float)FontSize + 2 };
+        canvas.DrawText(text, x, y, align, font, paint);
     }
 }
 public class Grid : View
 {
     public List<View> Children { get; } = [];
     public View? ExcludedInput { get; set; }
-    public List<object> RowDefinitions { get; } = [];
-    public List<object> ColumnDefinitions { get; } = [];
+    public List<RowDefinition> RowDefinitions { get; } = [];
+    public List<ColumnDefinition> ColumnDefinitions { get; } = [];
+    public Thickness Padding { get; set; }
+    public double RowSpacing { get; set; }
+    public double ColumnSpacing { get; set; }
     public void Add(View view) { view.AttachSurface(); Children.Add(view); }
     public void Remove(View view) { if (Children.Remove(view)) view.ReleaseSurface(); }
-    public static void SetRowSpan(View view, int count) { }
-    public static void SetColumnSpan(View view, int count) { }
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<View, Cell> Cells = new();
+    private sealed class Cell { public int Row, Column; public int Rows = 1, Columns = 1; }
+    public static void SetRow(View view, int row) => Cells.GetOrCreateValue(view).Row = Math.Max(0, row);
+    public static void SetColumn(View view, int column) => Cells.GetOrCreateValue(view).Column = Math.Max(0, column);
+    public static void SetRowSpan(View view, int count) => Cells.GetOrCreateValue(view).Rows = Math.Max(1, count);
+    public static void SetColumnSpan(View view, int count) => Cells.GetOrCreateValue(view).Columns = Math.Max(1, count);
     public override bool HasActiveAnimations => base.HasActiveAnimations || Children.Any(c => c.IsVisible && c.HasActiveAnimations);
     protected override void DrawContent(SKCanvas canvas, GraphicsDevice device, View? excluded)
     {
-        foreach (var child in Children.ToArray()) child.Draw(canvas, Bounds, device, excluded);
+        var inner = new SKRect(Bounds.Left + (float)Padding.Left, Bounds.Top + (float)Padding.Top,
+            Bounds.Right - (float)Padding.Right, Bounds.Bottom - (float)Padding.Bottom);
+        var rows = Tracks(RowDefinitions.Select(r => r.Height).ToArray(), inner.Height, (float)RowSpacing, false, inner.Width);
+        var columns = Tracks(ColumnDefinitions.Select(c => c.Width).ToArray(), inner.Width, (float)ColumnSpacing, true, inner.Width);
+        foreach (var child in Children.ToArray())
+        {
+            var cell = Cells.GetOrCreateValue(child);
+            var row = Math.Min(cell.Row, rows.Length - 1); var column = Math.Min(cell.Column, columns.Length - 1);
+            var bottom = Math.Min(rows.Length, row + cell.Rows); var right = Math.Min(columns.Length, column + cell.Columns);
+            var x = inner.Left + columns.Take(column).Sum() + column * (float)ColumnSpacing;
+            var y = inner.Top + rows.Take(row).Sum() + row * (float)RowSpacing;
+            child.Draw(canvas, SKRect.Create(x, y, columns[column..right].Sum() + (right - column - 1) * (float)ColumnSpacing,
+                rows[row..bottom].Sum() + (bottom - row - 1) * (float)RowSpacing), device, excluded);
+        }
+    }
+    private float[] Tracks(GridLength[] definitions, float available, float spacing, bool horizontal, float width)
+    {
+        if (definitions.Length == 0) return [Math.Max(0, available)];
+        var sizes = new float[definitions.Length]; var stars = 0d;
+        for (var i = 0; i < definitions.Length; i++)
+        {
+            var track = definitions[i];
+            if (track.GridUnitType == GridUnitType.Star) { stars += track.Value; continue; }
+            if (track.GridUnitType == GridUnitType.Absolute) { sizes[i] = (float)track.Value; continue; }
+            var index = i;
+            sizes[i] = Children.Where(c => c.IsVisible && (horizontal ? Cells.GetOrCreateValue(c).Column : Cells.GetOrCreateValue(c).Row) == index
+                && (horizontal ? Cells.GetOrCreateValue(c).Columns : Cells.GetOrCreateValue(c).Rows) == 1)
+                .Select(c => horizontal ? c.NaturalWidth(width) + (float)(c.Margin.Left + c.Margin.Right)
+                    : c.NaturalHeight(width) + (float)(c.Margin.Top + c.Margin.Bottom)).DefaultIfEmpty(0).Max();
+        }
+        var remaining = Math.Max(0, available - sizes.Sum() - Math.Max(0, sizes.Length - 1) * spacing);
+        for (var i = 0; i < definitions.Length; i++) if (definitions[i].GridUnitType == GridUnitType.Star)
+            sizes[i] = stars > 0 ? (float)(remaining * definitions[i].Value / stars) : 0;
+        return sizes;
     }
     protected override bool OnTouch(SKTouchEventArgs e)
     {
@@ -177,6 +227,28 @@ public class Grid : View
     }
     public override void ReleaseSurface() { foreach (var child in Children.ToArray()) child.ReleaseSurface(); base.ReleaseSurface(); }
 }
+public enum GridUnitType { Absolute, Auto, Star }
+public readonly record struct GridLength(double Value, GridUnitType GridUnitType = GridUnitType.Absolute)
+{
+    public static readonly GridLength Star = new(1, GridUnitType.Star), Auto = new(1, GridUnitType.Auto);
+}
+public sealed class RowDefinition(GridLength height) { public GridLength Height { get; set; } = height; }
+public sealed class ColumnDefinition(GridLength width) { public GridLength Width { get; set; } = width; }
+public class ContentView : View
+{
+    public View? Content { get; set; }
+    public override bool HasActiveAnimations => base.HasActiveAnimations || Content is { IsVisible: true, HasActiveAnimations: true };
+    protected override void DrawContent(SKCanvas canvas, GraphicsDevice device, View? excluded) => Content?.Draw(canvas, Bounds, device, excluded);
+    protected override bool OnTouch(SKTouchEventArgs e) => Content?.HandleTouch(e) == true;
+    public override void ReleaseSurface() { Content?.ReleaseSurface(); base.ReleaseSurface(); }
+}
+public sealed class Animation(Action<double> callback, double start, double end)
+{
+    public void Commit(View owner, string name, uint length = 250, Easing? easing = null) =>
+        owner.CommitAnimation(name, start, end, length, callback, easing ?? Easing.Linear);
+}
+public static class DeviceDisplay { public static DisplayInfo MainDisplayInfo => new(1); }
+public readonly record struct DisplayInfo(double Density);
 public sealed class VerticalStackLayout : Grid
 {
     public double Spacing { get; set; }

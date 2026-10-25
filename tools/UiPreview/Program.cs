@@ -18,6 +18,7 @@ using SkiaSharp.Views.Maui.Controls;
 var output = Path.GetFullPath(args.FirstOrDefault() ?? "artifacts/ui-parity/components");
 Directory.CreateDirectory(output);
 ParkPlatform.Configure(Path.Combine(output, "userdata"), Path.Combine(AppContext.BaseDirectory, "assets"));
+ParkPlatform.Dispatch = UiDispatcher.Instance.Dispatch;
 Task.WhenAll(PixelFont.WarmAsync(), PixelFont.WarmFallbackAsync()).GetAwaiter().GetResult();
 var router = new GamepadRouter();
 using var services = new ServiceCollection().AddSingleton(router).BuildServiceProvider();
@@ -91,4 +92,27 @@ if (args.Length > 1)
     await catalogue.ScanAsync();
     if (catalogue.Saves.Count != 3) throw new InvalidDataException("Home fixture scanner did not find all three copies.");
     Console.WriteLine("HOME FIXTURE READY: " + root);
+
+    using var session = new SaveEngine().OpenSession(source.Write().ToArray(), "UI fixture");
+    var summary = new MonSummaryService().Build(session, 0, 0, true) ?? throw new InvalidDataException("Fixture slot 0 must be occupied.");
+    var sprites = new SpriteService();
+    foreach (var width in new[] { 640, 720 })
+    {
+        using var device = GraphicsDevice.CreateHeadless(width, 480);
+        var view = new MonSummaryView(sprites); view.Show(summary);
+        foreach (var page in Enum.GetValues<SummaryPage>())
+        {
+            view.SetPage(page);
+            for (var pass = 0; pass < 3; pass++)
+            {
+                UiDispatcher.Instance.Pump();
+                PksmPaint.LogoGrid(device.CurrentSurface.Canvas, new(0, 0, width, 480), 14, 1);
+                view.Draw(device.CurrentSurface.Canvas, new(12, 52, width - 12, 436), device);
+                if (pass < 2) await Task.Delay(100);
+            }
+            device.SaveScreenshot(Path.Combine(output, $"summary-{width}x480-{page.ToString().ToLowerInvariant()}.png"));
+        }
+        view.ReleaseSurface();
+    }
+    Console.WriteLine("SUMMARY PREVIEW PASS: original summary component; five pages at two viewports.");
 }

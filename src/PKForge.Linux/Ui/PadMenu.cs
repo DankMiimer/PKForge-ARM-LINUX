@@ -188,6 +188,7 @@ public sealed class PadMenu : IPadHandler
 
 public static class DsChrome
 {
+    public const string PixelFont = "PixelUI";
     public static View Footer((string Button, string Label, Action? OnTap)[] hints) => new FooterView(hints.Select(h => h.Button == "B" ? (h.Button, "Save / Bank", h.OnTap) : h).ToArray());
     private sealed class FooterView((string Button, string Label, Action? OnTap)[] hints) : View
     {
@@ -196,7 +197,7 @@ public static class DsChrome
         protected override void DrawContent(SKCanvas c, PKForge.Linux.Native.GraphicsDevice device, View? excluded)
         {
             var prompts = hints.Select(h => (h.Button, h.Label)).ToArray();
-            using var font = AppChromePaint.HintFont(Bounds, prompts, PixelFont.Face, 14);
+            using var font = AppChromePaint.HintFont(Bounds, prompts, PKForge.App.Views.PixelFont.Face, 14);
             PksmPaint.HintBar(c, Bounds, prompts, font);
             _hits.Clear();
             var rects = PksmPaint.HintBarHitRects(Bounds, prompts, font);

@@ -1,5 +1,6 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
+using PKForge.Chrome;
 using PKForge.Linux.Native;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
@@ -81,5 +82,18 @@ public sealed class ViewRenderingTests
         Assert.Equal(new SKPoint(10, 10), touched);
         Assert.False(parent.HandleTouch(new(2, SKTouchAction.Pressed, new(50, 5))));
         parent.ReleaseSurface();
+    }
+
+    [Fact]
+    public void Summary_header_capsule_and_banner_stay_in_their_cells_and_truncate_long_titles()
+    {
+        using var device = GraphicsDevice.CreateHeadless(200, 40);
+        var canvas = device.CurrentSurface.Canvas; canvas.Clear(SKColors.Transparent);
+        AppChromePaint.MiniCapsule(canvas, SKRect.Create(0, 2, 44, 36), "‹ L", SKTypeface.Default);
+        AppChromePaint.TitleBanner(canvas, new SKRect(52, 2, 200, 38), new string('W', 80), SKTypeface.Default);
+        Assert.Equal(Pksm.StorageMenuBlueDeep, Pixel(device, 5, 20));
+        Assert.Equal(0, Pixel(device, 48, 20).Alpha);
+        // The title stops at the banner's 10 px padding instead of running to its rim.
+        Assert.NotEqual(ColorTheme.Current.Bright, Pixel(device, 194, 20));
     }
 }

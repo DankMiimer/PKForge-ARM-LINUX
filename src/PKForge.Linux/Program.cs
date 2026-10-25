@@ -145,20 +145,25 @@ try
         {
             var workspace = services.GetRequiredService<WorkspaceHost>();
             workspace.OpenHome();
-            if (arguments.HeadlessScreen is "boxes" or "summary" or "summary-overview") workspace.OpenStorage(false);
+            if (arguments.HeadlessScreen is "boxes" or "party" or "summary" or "summary-overview") workspace.OpenStorage(false);
+            if (arguments.HeadlessScreen == "party") workspace.Screens.OnPadButton(PadButton.L);
             if (arguments.HeadlessScreen == "bank") workspace.OpenStorage(true);
             if (arguments.HeadlessScreen is "summary" or "summary-overview") workspace.SummaryAsync(new(0, 0)).GetAwaiter().GetResult();
             if (arguments.HeadlessScreen == "summary-overview") workspace.Screens.OnPadButton(PadButton.Select);
             if (arguments.HeadlessScreen == "collection") workspace.Screens.Push(new CollectionScreen(workspace, services.GetRequiredService<CollectionWorkflow>().ReadAsync().GetAwaiter().GetResult(), services.GetRequiredService<IGameDataService>().SpeciesNames, services.GetRequiredService<ISaveSessionService>().CurrentSession?.MaxSpeciesId ?? 1025, null));
             if (arguments.HeadlessScreen == "home-preview") workspace.Screens.OnPadButton(PadButton.Right);
-            using var home = SKSurface.Create(new SKImageInfo(arguments.CaptureWidth, arguments.CaptureHeight));
+            using var captureDevice = GraphicsDevice.CreateHeadless(arguments.CaptureWidth, arguments.CaptureHeight);
+            var home = captureDevice.CurrentSurface;
             var captureBounds = new SKRect(0, 0, arguments.CaptureWidth, arguments.CaptureHeight);
-            workspace.Screens.Current!.Paint(home.Canvas, captureBounds, arguments.HeadlessScreen == "home-preview");
-            Task.Delay(200).GetAwaiter().GetResult(); // Let bundled sprite decodes complete, then capture the stable frame.
-            workspace.Screens.Current!.Paint(home.Canvas, captureBounds, arguments.HeadlessScreen == "home-preview");
+            for (var pass = 0; pass < 3; pass++)
+            {
+                UiDispatcher.Instance.Pump();
+                workspace.Screens.DrawScreen(home.Canvas, captureBounds, arguments.HeadlessScreen == "home-preview", captureDevice);
+                if (pass < 2) Task.Delay(100).GetAwaiter().GetResult(); // Let sprite decodes dispatch their canvas invalidations.
+            }
             using var screenshot = home.Snapshot(); using var png = screenshot.Encode(SKEncodedImageFormat.Png, 100);
             File.WriteAllBytes(Path.Combine(ParkPlatform.DataDirectory, "headless-home.png"), png.ToArray());
-            Console.WriteLine("HEADLESS HOME PASS: " + workspace.Screens.Current.GetType().Name); return 0;
+            Console.WriteLine("HEADLESS HOME PASS: " + workspace.Screens.Current!.GetType().Name); return 0;
         }
         var scene = new PokeparkScene(services.GetRequiredService<ISpriteService>(), services.GetRequiredService<PokeparkSpriteService>())
         { Residents = services.GetRequiredService<PokeparkService>().LoadRoster(), PhaseOverride = arguments.Phase, WeatherOverride = arguments.Weather };
@@ -294,7 +299,7 @@ try
                 var surface = display.BeginFrame(); surface.Canvas.Clear(SKColors.Black);
                 if (workspace.Screens.Active)
                 {
-                    if (dual) workspace.Screens.DrawPrimary(surface.Canvas, new(0, 0, display.Width, display.Height));
+                    if (dual) workspace.Screens.DrawPrimary(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                     else workspace.Screens.DrawControls(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                 }
                 else if (dual) page.ParkView.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
@@ -329,7 +334,7 @@ try
             var frame = display.BeginFrame(); frame.Canvas.Clear(SKColors.Black);
             if (workspace.Screens.Active)
             {
-                if (dual) workspace.Screens.DrawPrimary(frame.Canvas, new(0, 0, display.Width, display.Height));
+                if (dual) workspace.Screens.DrawPrimary(frame.Canvas, new(0, 0, display.Width, display.Height), display);
                 else workspace.Screens.DrawControls(frame.Canvas, new(0, 0, display.Width, display.Height), display);
             }
             else if (dual) page.ParkView.Draw(frame.Canvas, new(0, 0, display.Width, display.Height), display);
@@ -419,7 +424,7 @@ internal sealed record Arguments
         if (value.DisplayMode is not ("auto" or "single" or "dual")) throw new ArgumentException("Invalid display mode.");
         if (value.StartPage is not ("home" or "park")) throw new ArgumentException("Invalid start page.");
         if (value.CaptureWidth is < 320 or > 3840 || value.CaptureHeight is < 240 or > 2160) throw new ArgumentException("Headless dimensions must be 320–3840 × 240–2160.");
-        if (value.HeadlessScreen is not ("home" or "home-preview" or "boxes" or "summary" or "summary-overview" or "collection" or "bank")) throw new ArgumentException("Invalid headless screen.");
+        if (value.HeadlessScreen is not ("home" or "home-preview" or "boxes" or "party" or "summary" or "summary-overview" or "collection" or "bank")) throw new ArgumentException("Invalid headless screen.");
         if (value.Demo && !args.Contains("--data-dir")) throw new ArgumentException("--demo requires an explicit --data-dir to keep test residents separate.");
         return value;
     }

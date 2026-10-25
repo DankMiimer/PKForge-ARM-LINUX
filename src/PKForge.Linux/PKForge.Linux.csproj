@@ -30,6 +30,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../PKForge.App/Views/PokeparkPage.cs;../PKForge.App/Views/PokeparkCardOverlay.cs;../PKForge.App/Views/PokeparkEventOverlay.cs;../PKForge.App/Views/PokeparkCreditsOverlay.cs;../PKForge.App/Views/PokeparkAlbumOverlay.cs;../PKForge.App/Views/PokeparkJournalView.cs;../PKForge.App/Views/MusicMenu.cs" Link="Upstream/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Views/BoxGridRenderer.cs;../PKForge.App/Views/CarryHand.cs;../PKForge.App/Views/PartyView.cs;../PKForge.App/Views/PksmIcon.cs;../PKForge.App/Views/BankBoxArt.cs" Link="Upstream/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Views/MonSummaryView.cs;../PKForge.App/Views/SummaryPlates.cs;../PKForge.App/Views/TypePlates.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Content Include="../PKForge.App/Resources/Pokepark/park/*.png" Link="assets/pokepark/park/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../PKForge.App/Resources/Fonts/*.ttf" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../PKForge.App/Resources/Fonts/*.txt" Link="assets/notices/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

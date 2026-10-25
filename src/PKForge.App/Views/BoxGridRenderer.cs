@@ -1,6 +1,8 @@
 using PKForge.App.Services;
 using PKForge.App.Theme;
+#if !LINUX
 using PKForge.App.ViewModels;
+#endif
 using PKForge.Chrome;
 using SkiaSharp;
 
@@ -19,7 +21,7 @@ public static class BoxGridRenderer
     // Nearest keeps the pixel-art crisp when scaling up ("a little pixel, not a lot").
     // Shared with the Bank grid; UI-thread only, never mutated.
     internal static readonly SKSamplingOptions SpriteSampling = new(SKFilterMode.Nearest, SKMipmapMode.None);
-    internal static readonly SKPaint SparklePaint = new() { Color = UiTokens.SkShinyGold, IsAntialias = true };
+    internal static readonly SKPaint SparklePaint = new() { Color = Pksm.ShinyGold, IsAntialias = true };
     internal static readonly SKPaint GhostPaint = new() { Color = SKColors.White.WithAlpha(0x60) };
 
     /// <summary>The box's wallpaper flat, cycling through the storage palette.</summary>
@@ -127,6 +129,7 @@ public static class BoxGridRenderer
     /// Showdown icon; PKHeX's shiny art sized to that icon for shinies), and the cursor as a
     /// light pool under the selected Pokémon, lifted, with the pixel pointer above it.
     /// </summary>
+#if !LINUX
     public static void Paint(
         SKCanvas canvas,
         SKImageInfo info,
@@ -158,6 +161,7 @@ public static class BoxGridRenderer
             if (wallpaper is { } art) StoragePaint.Wallpaper(c, well, art.Art, art.Average, BoxBackground.Style, unit);
         });
     }
+#endif
 
     /// <summary>Paints any box in the storage look; <paramref name="backdrop"/> draws its wallpaper inside the well.</summary>
     internal static void PaintScene(SKCanvas canvas, SKImageInfo info, StorageScene scene, ISpriteService sprites,
@@ -174,7 +178,11 @@ public static class BoxGridRenderer
         var lockedSlots = scene.Locked;
 
         using var font = new SKFont { Size = layout.CellHeight * 0.15f, Edging = SKFontEdging.Antialias };
+#if LINUX
+        using var star = new SKFont(PixelFont.Face, 28f * unit);
+#else
         using var star = new SKFont(BoxBrowserPage.PixelTypeface(), 28f * unit);
+#endif
         var ink = new Ink(font, StoragePaint.Well);
 
         var slots = scene.Slots;
@@ -343,7 +351,7 @@ public static class BoxGridRenderer
         var pad = cell * 0.05f;
         var size = cell * 0.26f;
         var dest = new SKRect(rect.Right - pad - size, rect.Bottom - pad - size, rect.Right - pad, rect.Bottom - pad);
-        using var gold = new SKPaint { Color = UiTokens.SkShinyGold, IsAntialias = true };
+        using var gold = new SKPaint { Color = Pksm.ShinyGold, IsAntialias = true };
         canvas.DrawRoundRect(SKRect.Inflate(dest, size * 0.16f, size * 0.16f), size * 0.22f, size * 0.22f, gold);
         using var image = SKImage.FromBitmap(_lockIcon);
         canvas.DrawImage(image, dest, SpriteSampling);

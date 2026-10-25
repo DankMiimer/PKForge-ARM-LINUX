@@ -127,7 +127,7 @@ public sealed class CarryHand
 
         if (_holding && drawPointer is not null)
             drawPointer(canvas, held);
-        else if (_holding && AutopilotArt.Icon("ui:pointer_arrow.png") is { } pointer)
+        else if (_holding && Pointer() is { } pointer)
         {
             // The PKSM move pointer (its tip is the image's top-left corner) holds the Pokémon
             // from below-right, as the storage cursor does.
@@ -149,4 +149,22 @@ public sealed class CarryHand
         }
         return moving;
     }
+
+    private static SKBitmap? Pointer()
+    {
+#if LINUX
+        if (_pointer is not null) return _pointer;
+        try
+        {
+            using var stream = FileSystem.OpenAppPackageFileAsync("ui/pksm/pointer_arrow.png").GetAwaiter().GetResult();
+            return _pointer = SKBitmap.Decode(stream);
+        }
+        catch (IOException) { return null; }
+#else
+        return AutopilotArt.Icon("ui:pointer_arrow.png");
+#endif
+    }
+#if LINUX
+    private static SKBitmap? _pointer;
+#endif
 }

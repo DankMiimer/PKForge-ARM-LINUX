@@ -13,10 +13,11 @@ namespace SkiaSharp.Views.Maui
         public bool Handled { get; set; }
         public SKTouchEventArgs At(SKPoint location) => new(Id, ActionType, location);
     }
-    public sealed class SKPaintSurfaceEventArgs(SKSurface surface, SKImageInfo info) : EventArgs
+    public sealed class SKPaintSurfaceEventArgs(SKSurface surface, SKImageInfo info, GraphicsDevice device) : EventArgs
     {
         public SKSurface Surface => surface;
         public SKImageInfo Info => info;
+        public GraphicsDevice Device => device;
     }
 }
 namespace SkiaSharp.Views.Maui.Controls
@@ -42,7 +43,7 @@ namespace SkiaSharp.Views.Maui.Controls
                 Bounds.Left == 0 && Bounds.Top == 0 && w == device.Width && h == device.Height)
             {
                 CanvasSize = new(w, h);
-                PaintSurface?.Invoke(this, new(device.CurrentSurface, new(w, h)));
+                Paint(device.CurrentSurface, new(w, h), device);
                 return;
             }
             if (_surface is null || CanvasSize.Width != w || CanvasSize.Height != h || _owner != device)
@@ -58,17 +59,23 @@ namespace SkiaSharp.Views.Maui.Controls
             {
                 _dirty = false;
                 _surface.Canvas.Clear(SKColors.Transparent);
-                PaintSurface?.Invoke(this, new(_surface, new(w, h)));
+                Paint(_surface, new(w, h), device);
                 _surface.Canvas.Flush();
             }
             using var image = _surface.Snapshot();
             canvas.DrawImage(image, Bounds.Left, Bounds.Top);
         }
+        private void Paint(SKSurface surface, SKImageInfo info, GraphicsDevice device)
+        {
+            var saved = surface.Canvas.Save();
+            try { PaintSurface?.Invoke(this, new(surface, info, device)); }
+            finally { surface.Canvas.RestoreToCount(saved); }
+        }
         protected override bool OnTouch(SKTouchEventArgs e)
         {
             if (!EnableTouchEvents || InputTransparent || !IsVisible) return false;
             if (e.ActionType == SKTouchAction.Pressed && Bounds.Contains(e.Location)) _touches.Add(e.Id);
-            if (!_touches.Contains(e.Id) && !Bounds.Contains(e.Location)) return false;
+            if (!_touches.Contains(e.Id)) return false;
             if (e.ActionType is SKTouchAction.Released or SKTouchAction.Cancelled) _touches.Remove(e.Id);
             var local = e.At(new(e.Location.X - Bounds.Left, e.Location.Y - Bounds.Top));
             Touch?.Invoke(this, local);

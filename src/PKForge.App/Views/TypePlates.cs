@@ -18,7 +18,7 @@ internal static class TypePlates
     public static void Paint(SKCanvas c, SKRect r, int type)
     {
         if (!TypeFacts.IsValid(type) && type != TypeFacts.Stellar) return;
-        var color = InfoKit.TypeColor(type).ToSKColor();
+        var color = PokemonTypeColors.ForType(type);
         Paint(c, r, SummaryChrome.Lighter(color, 0.12f), SummaryChrome.Darker(color, 0.35f), TypeFacts.Name(type).ToUpperInvariant());
     }
 
