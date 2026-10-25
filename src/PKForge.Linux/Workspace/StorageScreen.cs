@@ -23,6 +23,7 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
     public void Leave()
     {
         _wallpaper?.Dispose(); _wallpaper = null; _wallpaperPath = null; _hand.Reset();
+        _backdrop?.Dispose(); _backdrop = null; _backdropKey = default;
         _inspector?.ReleaseSurface(); _inspector = null; _selectHeld = false; _rectangle = null;
     }
     public bool IsBank => bank;
@@ -35,13 +36,27 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
     private readonly List<(SKRect Rect, int Slot)> _hits = [];
     private readonly List<(SKRect Rect, PadButton Button)> _hintHits = [];
     private WorkspaceHost Host => workspace;
-    private int BoxCount => Host.StorageBoxCount(bank);
-    private int SlotCount => Host.StorageSlotCount(bank, Box);
+    private int BoxCount => Shape.BoxCount;
+    private int SlotCount => Shape.SlotCount(Box);
     private int Columns => Box < 0 ? 2 : 6;
     private int Rows => Box < 0 ? 3 : 5;
-    private int FirstBox => bank || !Host.HasParty ? 0 : -1;
+    private int FirstBox => bank || !Shape.HasParty ? 0 : -1;
+    // Box and slot counts, the party and the icon set, read once per save or Bank version:
+    // each read builds the save's whole slot list, and every frame needed dozens of them.
+    private WorkspaceHost.StorageShape? _shape;
+    private object? _shapeVersion;
+    private WorkspaceHost.StorageShape Shape
+    {
+        get
+        {
+            var version = Host.StorageVersion(bank);
+            if (_shape is null || !Equals(version, _shapeVersion)) { _shapeVersion = version; _shape = Host.ReadStorageShape(bank); }
+            return _shape;
+        }
+    }
     private int _cachedBox = int.MinValue;
     private object? _version;
+    private string _boxName = "";
     private IReadOnlyList<SlotSummary> _slots = [];
     private IReadOnlyList<SlotSummary> _denseSlots = [];
     private IReadOnlyList<EntityDetail?> _party = [];
@@ -61,6 +76,8 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
                 _denseSlots = Enumerable.Range(0, 30).Select(index => _slots.FirstOrDefault(s => s.Slot == index && s.Species is > 0)
                     ?? new SlotSummary(Box, index, null, null, false, false)).ToArray();
                 if (Box < 0) _party = Host.PartySnapshot();
+                _boxName = bank ? "" : Host.StorageBoxName(false, Box);
+                _wallpaperFor = bank ? null : Host.StorageWallpaper(Box, BoxCount);
             }
             return _slots;
         }
@@ -192,7 +209,7 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
         // BankPage pads its body 20 (BoxBrowserPage 34) and stacks its LCD status line over the footer.
         var well = new SKRect(left, bar.Bottom + 28 * unit, bounds.Right - right,
             bank ? bounds.Bottom - 42 - 6 - StatusHeight - 20 * unit : bounds.Bottom - 42 - 34 * unit);
-        var wallpaper = bank ? null : Host.StorageWallpaper(Box);
+        var wallpaper = _wallpaperFor;
         if (wallpaper != _wallpaperPath)
         {
             _wallpaper?.Dispose(); _wallpaper = null; _wallpaperPath = wallpaper;
@@ -219,11 +236,11 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
         {
             var scene = new BoxGridRenderer.StorageScene(_denseSlots, _cursor, _carry is { } from && from.Box == Box ? from.Slot : null,
                 _carry is null ? null : _carried, Marking, index => MarksShown && Marks.Contains(new(Box, index)), RangeMark, Box,
-                BdspStyle: Host.StorageUsesBdspIcons(bank));
+                BdspStyle: Shape.BdspStyle);
             BoxGridRenderer.PaintScene(canvas, info, scene, Host.StorageSprites, Host.Screens.Invalidate, _hand, (c, area, scale) =>
             {
                 if (bank) { BankBackdrop(c, area, scale); return; }
-                if (_wallpaper is not null) StoragePaint.Wallpaper(c, area, _wallpaper, _wallpaperAverage, BoxBackground.Style, scale);
+                if (_wallpaper is { } art) DrawWallpaper(c, area, art, () => art, _wallpaperAverage, scale);
             });
             var layout = BoxGridRenderer.StorageMetrics(new SKSize(info.Width, info.Height));
             for (var index = 0; index < SlotCount; index++) { var cell = layout.Cell(index); cell.Offset(well.Left, well.Top); _hits.Add((cell, index)); }
@@ -261,18 +278,37 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
                 ("X", "Tools", PadButton.X), ("Y", "Save data", PadButton.Y), ("+", "Menu", PadButton.Start),
                 ("B", _carry is null ? "Back" : "Cancel", PadButton.B)];
     private SKRect _partyBounds;
+    private string? _wallpaperFor;
     private SKColor _wallpaperAverage;
     /// <summary>BankPage.Paint's backdrop: a wallpaper picture through the save boxes' painter, else a flat tint.</summary>
     private void BankBackdrop(SKCanvas c, SKRect well, float unit)
     {
         if (BankBoxArt.Art(Box, Host.Screens.Invalidate) is { } art)
         {
-            using var image = SKImage.FromBitmap(art.Art);
-            StoragePaint.Wallpaper(c, well, image, art.Average, BoxBackground.Style, unit);
+            DrawWallpaper(c, well, art.Art, () => SKImage.FromBitmap(art.Art), art.Average, unit);
             return;
         }
         using var tint = new SKPaint { Color = PksmPaint.Mix(BankBoxArt.Tone(Box), StoragePaint.Well, 0.7f), IsAntialias = true };
         c.DrawRoundRect(SKRect.Inflate(well, -3 * unit, -3 * unit), 25 * unit, 25 * unit, tint);
+    }
+    // The styled wallpaper changes only with the art, the well's size, the style or the theme:
+    // drawn once into an image, not through its colour filter on every frame.
+    private SKImage? _backdrop;
+    private (object? Art, SKSizeI Size, StoragePaint.WallpaperStyle Style, int Theme) _backdropKey;
+    private void DrawWallpaper(SKCanvas c, SKRect area, object source, Func<SKImage> image, SKColor average, float unit)
+    {
+        var key = (source, new SKSizeI((int)MathF.Ceiling(area.Width), (int)MathF.Ceiling(area.Height)), BoxBackground.Style, ColorTheme.Version);
+        if (_backdrop is null || key != _backdropKey)
+        {
+            _backdrop?.Dispose(); _backdrop = null;
+            using var surface = SKSurface.Create(new SKImageInfo(key.Item2.Width, key.Item2.Height));
+            if (surface is null) return;
+            var art = image();
+            try { StoragePaint.Wallpaper(surface.Canvas, new SKRect(0, 0, area.Width, area.Height), art, average, key.Style, unit); }
+            finally { if (!ReferenceEquals(art, source)) art.Dispose(); }
+            _backdrop = surface.Snapshot(); _backdropKey = key;
+        }
+        c.DrawImage(_backdrop, area.Left, area.Top);
     }
     /// <summary>Kit.LcdPanel around a 13 dp pixel label, 6 padding.</summary>
     private const float StatusHeight = 26;
@@ -286,8 +322,7 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
         get
         {
             if (bank) return BankBoxDecor.Names.Get(Box) is { } name ? $"{Box + 1:00} / {BoxCount:00} · {name}" : $"Box {Box + 1:00} / {BoxCount:00}";
-            var boxName = Host.StorageBoxName(false, Box);
-            return _selectMode ? $"{boxName} · marked {Marks.Count(m => m.Box == Box)}/{Marks.Count}" : boxName;
+            return _selectMode ? $"{_boxName} · marked {Marks.Count(m => m.Box == Box)}/{Marks.Count}" : _boxName;
         }
     }
     private void PaintInspector(SKCanvas canvas, SKRect bounds)
@@ -467,7 +502,18 @@ public sealed partial class WorkspaceHost
         try { return Sessions.CurrentSession?.ReadEntity(at.Box, at.Slot) is { IsEmpty: false } mon ? mon : null; }
         catch (ArgumentException) { return null; }
     }
-    internal bool StorageUsesBdspIcons(bool bank) => !bank && BdspIcons.AppliesTo(Session.Snapshot.Format);
+    /// <summary>The storage's layout, read in one pass over the save's slot list.</summary>
+    internal sealed record StorageShape(int BoxCount, bool HasParty, bool BdspStyle, IReadOnlyDictionary<int, int>? Counts)
+    {
+        public int SlotCount(int box) => Counts is null ? IBankService.SlotsPerBox : box < 0 ? 6 : Counts.GetValueOrDefault(box);
+    }
+    internal StorageShape ReadStorageShape(bool bank)
+    {
+        if (bank) return new(Bank.BoxCount, false, false, null);
+        var snapshot = Session.Snapshot;
+        var counts = snapshot.Slots.GroupBy(s => s.Box).ToDictionary(g => g.Key, g => g.Count());
+        return new(counts.Keys.Where(box => box >= 0).DefaultIfEmpty(0).Max() + 1, counts.ContainsKey(-1), BdspIcons.AppliesTo(snapshot.Format), counts);
+    }
     internal IReadOnlyList<EntityDetail?> PartySnapshot() => Enumerable.Range(0, 6).Select(index =>
     {
         try { return Sessions.CurrentSession?.ReadEntity(-1, index); } catch (ArgumentException) { return null; }
@@ -478,11 +524,11 @@ public sealed partial class WorkspaceHost
     public int StorageSlotCount(bool bank, int box) => bank ? IBankService.SlotsPerBox : box < 0 ? 6 : Session.Snapshot.Slots.Count(s => s.Box == box);
     public string StorageBoxName(bool bank, int box) => box < 0 ? "Party" : bank ? BankBoxDecor.Label(box) : Session.GetBoxName(box);
     /// <summary>BoxBrowserPage.BoxWallpaper: the game's stored wallpaper, else the Emerald set in turn.</summary>
-    public string? StorageWallpaper(int box)
+    public string? StorageWallpaper(int box, int boxCount)
     {
         if (box < 0) return null;
         string? stored = null;
-        try { if (BoxLayoutService.SupportsWallpapers(Session) && box < StorageBoxCount(false)) stored = BoxLayoutService.GetBox(Session, box).WallpaperAsset; }
+        try { if (BoxLayoutService.SupportsWallpapers(Session) && box < boxCount) stored = BoxLayoutService.GetBox(Session, box).WallpaperAsset; }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException) { }
         return Path.Combine(ParkPlatform.AssetDirectory, "wallpapers", (stored ?? $"box_wp{box % 16 + 1:00}e") + ".png");
     }

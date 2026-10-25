@@ -82,6 +82,9 @@ Touch supports the upstream drag, pinch, tap, pat and care gestures. On the RGDS
 the park is on the top panel and its journal, menus and touch buttons are below.
 The current RGDS ROCKNIX build maps physical top to DSI-2 and bottom to DSI-1.
 Use `--swap-screens` only if another firmware assigns those connectors differently.
+ROCKNIX's EmulationStation can leave the bottom panel disabled in sway, so SDL would
+see one display. On dual-screen ROCKNIX devices, `PKForge.sh` turns on any disabled or
+powered-off internal panel before starting and restores each panel's state on exit.
 Single-screen handhelds use overlay menus. Where SDL has no controller mapping,
 the port imports that device's existing EmulationStation input configuration.
 

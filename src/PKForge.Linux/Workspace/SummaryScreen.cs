@@ -23,8 +23,20 @@ internal sealed class SummaryScreen(WorkspaceHost host, PokemonTarget target) : 
     private IReadOnlyList<SlotSummary> _slots = [];
     private IReadOnlyList<SlotSummary> Slots
     {
-        get { var version = host.StorageVersion(_target.InBank); if (!Equals(version, _version)) { _version = version; _slots = host.StorageSlots(_target.InBank, _target.Box); } return _slots; }
+        get
+        {
+            var version = host.StorageVersion(_target.InBank);
+            if (!Equals(version, _version))
+            {
+                _version = version; _slots = host.StorageSlots(_target.InBank, _target.Box);
+                _slotCount = host.StorageSlotCount(_target.InBank, _target.Box);
+            }
+            return _slots;
+        }
     }
+    // Read with the slots: counting them rebuilds the save's slot list, too slow for every frame.
+    private int _slotCount;
+    private int SlotCount { get { _ = Slots; return _slotCount; } }
     private int _sequence;
     private SKRect _previous, _next;
     public void Enter()
@@ -61,7 +73,7 @@ internal sealed class SummaryScreen(WorkspaceHost host, PokemonTarget target) : 
         _next = SKRect.Create(top.Right - 44, top.Top, 44, top.Height);
         AppChromePaint.MiniCapsule(canvas, _previous, "‹ L", PixelFont.FallbackFace);
         AppChromePaint.MiniCapsule(canvas, _next, "R ›", PixelFont.FallbackFace);
-        var position = SummaryNavigation.Position(_target.Slot, host.StorageSlotCount(_target.InBank, _target.Box),
+        var position = SummaryNavigation.Position(_target.Slot, SlotCount,
             i => Slots.Any(s => s.Slot == i && s.Species > 0));
         var context = WorkspaceHost.SummaryContext(_target);
         AppChromePaint.TitleBanner(canvas, new(_previous.Right + 8, top.Top, _next.Left - 8, top.Bottom),
@@ -80,7 +92,7 @@ internal sealed class SummaryScreen(WorkspaceHost host, PokemonTarget target) : 
     }
     private void Overview(SKCanvas canvas, SKRect bounds)
     {
-        var count = host.StorageSlotCount(_target.InBank, _target.Box);
+        var count = SlotCount;
         var columns = _target.Box < 0 ? 2 : 6; var rows = (count + columns - 1) / columns;
         var width = (bounds.Width - 24) / columns; var height = Math.Min(70, (bounds.Height - 120) / rows);
         _overviewHits.Clear();
@@ -114,7 +126,7 @@ internal sealed class SummaryScreen(WorkspaceHost host, PokemonTarget target) : 
             if (button is PadButton.B or PadButton.Select) { _overview = false; return true; }
             if (button is PadButton.Left or PadButton.Right or PadButton.Up or PadButton.Down)
             {
-                var count = host.StorageSlotCount(_target.InBank, _target.Box);
+                var count = SlotCount;
                 var columns = _target.Box < 0 ? 2 : 6;
                 var direction = button is PadButton.Left or PadButton.Up ? -1 : 1;
                 var stride = button is PadButton.Up or PadButton.Down ? columns : 1;
@@ -131,7 +143,7 @@ internal sealed class SummaryScreen(WorkspaceHost host, PokemonTarget target) : 
             case PadButton.Up: _view?.ScrollBy(-1); break;
             case PadButton.Down: _view?.ScrollBy(1); break;
             case PadButton.L: case PadButton.R:
-                var next = SummaryNavigation.Step(_target.Slot, button == PadButton.L ? -1 : 1, host.StorageSlotCount(_target.InBank, _target.Box), i => Slots.Any(s => s.Slot == i && s.Species is > 0));
+                var next = SummaryNavigation.Step(_target.Slot, button == PadButton.L ? -1 : 1, SlotCount, i => Slots.Any(s => s.Slot == i && s.Species is > 0));
                 if (next is { } index) SelectSlot(index); break;
             case PadButton.A: case PadButton.X: _ = host.Screens.RunAsync(async () => { await host.PokemonMenuAsync(_target); Enter(); }); break;
             case PadButton.Start: host.Screens.Pop(); break;

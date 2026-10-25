@@ -518,6 +518,9 @@ public sealed class SpriteService : ISpriteService
             {
                 await using var stream = await FileSystem.OpenAppPackageFileAsync(ShowdownCatalog.IconSheetPath).ConfigureAwait(false);
                 bitmap = SKBitmap.Decode(stream);
+                // Read-only from here on: SKImage.FromBitmap then shares the sheet's 8 MB of
+                // pixels instead of copying them for every icon drawn on every frame.
+                bitmap?.SetImmutable();
             }
             catch (Exception error) when (error is IOException or FileNotFoundException) { }
             Action[] waiting;
