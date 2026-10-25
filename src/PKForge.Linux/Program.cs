@@ -155,6 +155,32 @@ try
             using var captureDevice = GraphicsDevice.CreateHeadless(arguments.CaptureWidth, arguments.CaptureHeight);
             var home = captureDevice.CurrentSurface;
             var captureBounds = new SKRect(0, 0, arguments.CaptureWidth, arguments.CaptureHeight);
+            if (arguments.HeadlessInput.Count > 0)
+            {
+                // Scripted presses on the real screen, at 30 FPS, as the main loop delivers them;
+                // each step waits for the save writes it started before the next press.
+                SynchronizationContext.SetSynchronizationContext(UiDispatcher.Instance);
+                var router = services.GetRequiredService<GamepadRouter>();
+                void Frames(int count)
+                {
+                    for (var frame = 0; frame < count; frame++)
+                    {
+                        UiDispatcher.Instance.Pump();
+                        workspace.Screens.DrawScreen(home.Canvas, captureBounds, arguments.HeadlessScreen == "home-preview", captureDevice);
+                        Thread.Sleep(33);
+                    }
+                }
+                Frames(6);
+                foreach (var (button, press, release) in arguments.HeadlessInput)
+                {
+                    if (press) router.Dispatch(button);
+                    if (release) router.DispatchRelease(button);
+                    Frames(6);
+                    for (var wait = 0; wait < 300 && workspace.Screens.Current is StorageScreen { PendingWrite.IsCompleted: false }; wait++) Frames(1);
+                }
+                Frames(24);
+                Console.WriteLine("HEADLESS INPUT: " + services.GetRequiredService<SaveOperations>().Status);
+            }
             for (var pass = 0; pass < 3; pass++)
             {
                 UiDispatcher.Instance.Pump();
@@ -378,7 +404,7 @@ internal sealed record Arguments
 {
     public const string UpstreamVersion = "3.1.1";
     public const string PortRevision = "0.2.2-dev";
-    public const string HelpText = "PKForge 3.1.1\n--data-dir PATH --start-page home|park --display-mode auto|single|dual --swap-screens --software --windowed\n--save PATH --demo --headless --seconds N --screenshot\n--headless-width N --headless-height N (Home/workspace capture size)\n--phase Morning|Day|Evening|Night --weather Sunny|Cloudy|Rain|Storm\n--input-script PATH (timed controller actions for integration testing)";
+    public const string HelpText = "PKForge 3.1.1\n--data-dir PATH --start-page home|park --display-mode auto|single|dual --swap-screens --software --windowed\n--save PATH --demo --headless --seconds N --screenshot\n--headless-width N --headless-height N (Home/workspace capture size)\n--headless-input \"A Right A\" (pad presses before the capture; hold:A / release:A split one)\n--phase Morning|Day|Evening|Night --weather Sunny|Cloudy|Rain|Storm\n--input-script PATH (timed controller actions for integration testing)";
     public string StartPage { get; init; } = "home";
     public string HeadlessScreen { get; init; } = "home";
     public int CaptureWidth { get; init; } = 640;
@@ -395,6 +421,8 @@ internal sealed record Arguments
     public int Seconds { get; init; }
     public string? SavePath { get; init; }
     public string? InputScript { get; init; }
+    /// <summary>--headless-input "A Right A": pad buttons pressed and released in order; "hold:A" and "release:A" split one.</summary>
+    public IReadOnlyList<(PadButton Button, bool Press, bool Release)> HeadlessInput { get; init; } = [];
     public ParkDayPhase? Phase { get; init; }
     public ParkWeather? Weather { get; init; }
     public static Arguments Parse(string[] args)
@@ -416,6 +444,7 @@ internal sealed record Arguments
                 "--headless-width" => value with { CaptureWidth = int.Parse(Next(), CultureInfo.InvariantCulture) },
                 "--headless-height" => value with { CaptureHeight = int.Parse(Next(), CultureInfo.InvariantCulture) },
                 "--input-script" => value with { InputScript = Next() },
+                "--headless-input" => value with { HeadlessInput = Next().Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(ParsePress).ToArray() },
                 "--phase" => value with { Phase = Enum.Parse<ParkDayPhase>(Next(), true) },
                 "--weather" => value with { Weather = Enum.Parse<ParkWeather>(Next(), true) },
                 _ => throw new ArgumentException("Unknown option: " + args[i])
@@ -426,7 +455,14 @@ internal sealed record Arguments
         if (value.CaptureWidth is < 320 or > 3840 || value.CaptureHeight is < 240 or > 2160) throw new ArgumentException("Headless dimensions must be 320–3840 × 240–2160.");
         if (value.HeadlessScreen is not ("home" or "home-preview" or "boxes" or "party" or "summary" or "summary-overview" or "collection" or "bank")) throw new ArgumentException("Invalid headless screen.");
         if (value.Demo && !args.Contains("--data-dir")) throw new ArgumentException("--demo requires an explicit --data-dir to keep test residents separate.");
+        if (value.HeadlessInput.Count > 0 && !value.Headless) throw new ArgumentException("--headless-input needs --headless.");
         return value;
+    }
+    private static (PadButton, bool, bool) ParsePress(string token)
+    {
+        var (press, release, name) = token.StartsWith("hold:", StringComparison.OrdinalIgnoreCase) ? (true, false, token[5..])
+            : token.StartsWith("release:", StringComparison.OrdinalIgnoreCase) ? (false, true, token[8..]) : (true, true, token);
+        return Enum.TryParse<PadButton>(name, true, out var button) ? (button, press, release) : throw new ArgumentException("Unknown pad button: " + name);
     }
 }
 

@@ -146,7 +146,7 @@ public sealed partial class WorkspaceHost
             await CommitAsync(s => new(true, $"Sorted {s.SortBoxes((SortCriteria)order.Value, boxes, reverse)} Pokémon."), "Sort boxes", SaveAction.Move, scope);
         }
     }
-    private async Task BoxManagementAsync(StorageScreen screen)
+    internal async Task BoxManagementAsync(StorageScreen screen)
     {
         var labels = new List<string> { "Rename", "Wallpaper", "Lock / unlock", "Move selected within storage", "Swap boxes", "Copy box", "Delete box (rescue Pokémon)", "Empty box", "Move box in order" };
         if (screen.IsBank) labels.Add("Insert empty Bank box");

@@ -19,10 +19,12 @@ public interface INativeScreen
     void Tick(float seconds) { }
     void Paint(SKCanvas canvas, SKRect bounds, bool secondary);
     bool Button(PadButton button);
+    /// <summary>A button let go (the storage's hold-A area marking).</summary>
+    void Released(PadButton button) { }
     void Touch(SKTouchEventArgs touch, bool secondary) { }
 }
 
-public sealed class NativeScreenStack : IPadPagingHandler
+public sealed class NativeScreenStack : IPadPagingHandler, IPadReleaseHandler
 {
     private readonly List<INativeScreen> _screens = [];
     private readonly GamepadRouter _router;
@@ -76,6 +78,7 @@ public sealed class NativeScreenStack : IPadPagingHandler
     public void Pop() { if (_screens.Count < 2) return; Current?.Leave(); _screens.RemoveAt(_screens.Count - 1); if (Active) Current?.Enter(); Route(); Invalidate(); }
     public void Home() { var changed = _screens.Count > 1; while (_screens.Count > 1) { Current?.Leave(); _screens.RemoveAt(_screens.Count - 1); } if (changed && Active) Current?.Enter(); Route(); Invalidate(); }
     public bool OnPadButton(PadButton button) { if (Busy) return true; if (Current?.Button(button) != true && button == PadButton.B) Pop(); Invalidate(); return true; }
+    public void OnPadReleased(PadButton button) { if (!Busy) Current?.Released(button); Invalidate(); }
     public void Invalidate() { _primary.InvalidateSurface(); _secondary.InvalidateSurface(); }
     public async Task RunAsync(Func<Task> action)
     {
