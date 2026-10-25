@@ -13,8 +13,10 @@ namespace PKForge.Linux.Workspace;
 public interface INativeScreen
 {
     SecondScreenOwner Owner => SecondScreenOwner.Idle;
+    bool ShouldersRepeat => true;
     void Enter() { }
     void Leave() { }
+    void Tick(float seconds) { }
     void Paint(SKCanvas canvas, SKRect bounds, bool secondary);
     bool Button(PadButton button);
     void Touch(SKTouchEventArgs touch, bool secondary) { }
@@ -38,6 +40,8 @@ public sealed class NativeScreenStack : IPadPagingHandler
     public void SetDual(bool dual) { Dual = dual; Invalidate(); }
     public Action? Changed { get; set; }
     public INativeScreen? Current => _screens.LastOrDefault();
+    public bool ShouldersRepeat => Current?.ShouldersRepeat == true;
+    public void Tick(float seconds) { if (Active && !Busy) Current?.Tick(seconds); }
     public void DrawPrimary(SKCanvas canvas, SKRect bounds) => Current?.Paint(canvas, bounds, false);
     public void DrawControls(SKCanvas canvas, SKRect bounds, GraphicsDevice device)
     {
@@ -126,24 +130,24 @@ internal static class NativePaint
     public static void Background(SKCanvas c, SKRect bounds, string title)
     {
         c.Clear(ColorTheme.Current.Deck);
-        PksmPaint.LogoGrid(c, bounds, 32, 1);
-        using var back = new SKPaint { Color = ColorTheme.Current.Grid }; c.DrawRect(0, 0, bounds.Width, 48, back);
-        Text(c, title, 16, 32, 22, SKColors.White);
+        PksmPaint.LogoGrid(c, bounds, 14, 1);
+        AppChromePaint.Header(c, bounds, title, PixelFont.Face);
     }
     public static void Text(SKCanvas c, string text, float x, float y, float size, SKColor color, float maxWidth = float.PositiveInfinity)
     {
-        using var font = new SKFont(PixelFont.FallbackFace, size); using var ink = new SKPaint { Color = color, IsAntialias = true };
+        using var font = Font(text, size); using var ink = new SKPaint { Color = color, IsAntialias = true };
         c.DrawText(NativeText.Fit(text, font, maxWidth), x, y, font, ink);
     }
     public static void Row(SKCanvas c, SKRect rect, string text, bool selected)
     {
-        using var paint = new SKPaint { Color = selected ? ColorTheme.Current.Blue : ColorTheme.Current.Deep };
-        c.DrawRoundRect(rect, 5, 5, paint); Text(c, text, rect.Left + 12, rect.MidY + 6, 17, SKColors.White, rect.Width - 24);
+        if (selected) PksmPaint.SelectedButton(c, rect); else PksmPaint.BlackButton(c, rect);
+        Text(c, text, rect.Left + 12, rect.MidY + 6, 17, Pksm.Ink, rect.Width - 24);
     }
+    public static SKFont Font(string text, float size) => new(text.All(c => PixelFont.Face.GetGlyph(c) != 0) ? PixelFont.Face : PixelFont.FallbackFace, size);
     public static void Footer(SKCanvas c, SKRect bounds, string text) => Text(c, text, 12, bounds.Bottom - 15, 13, new SKColor(168, 200, 220), bounds.Width - 24);
     public static void Paragraph(SKCanvas c, SKRect bounds, string text)
     {
-        using var font = new SKFont(PixelFont.FallbackFace, 17);
+        using var font = Font(text, 17);
         var y = bounds.Top + 80f; foreach (var line in NativeText.Wrap(text, font, bounds.Width - 32)) { if (y > bounds.Bottom - 45) break; Text(c, line, bounds.Left + 16, y, 17, SKColors.White); y += 25; }
     }
 }

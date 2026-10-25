@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using PKForge.Chrome;
 
 namespace Microsoft.Maui.Controls;
 
@@ -22,6 +23,13 @@ public interface IDispatcher
 public sealed class UiDispatcher : SynchronizationContext, IDispatcher
 {
     public static UiDispatcher Instance { get; } = new();
+    public AnimationScheduler Animations { get; private set; } = new();
+    /// <summary>Install a deterministic diagnostic clock before any animations start.</summary>
+    public void UseAnimationClock(Func<TimeSpan> clock)
+    {
+        if (Animations.Active) throw new InvalidOperationException("Finish or cancel active animations before replacing the clock.");
+        Animations = new(clock);
+    }
     private readonly ConcurrentQueue<Action> _queue = new();
     private readonly List<UiTimer> _timers = [];
     public override void Post(SendOrPostCallback d, object? state) => Dispatch(() => d(state));
@@ -47,6 +55,8 @@ public sealed class UiDispatcher : SynchronizationContext, IDispatcher
         while (work++ < 256 && _queue.TryDequeue(out var action)) action();
         foreach (var timer in _timers.ToArray()) timer.Pump();
         _timers.RemoveAll(t => !t.Running);
+        Animations.SetSuspended(PKForge.App.App.IsSuspended);
+        Animations.Tick();
     }
     private sealed class UiTimer(UiDispatcher owner) : IDispatcherTimer
     {

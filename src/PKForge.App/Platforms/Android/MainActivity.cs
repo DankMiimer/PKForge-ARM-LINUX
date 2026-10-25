@@ -209,11 +209,11 @@ public sealed class MainActivity : MauiAppCompatActivity
     private Services.PadButton? _hatDirection;
     private readonly Android.OS.Handler _hatRepeatHandler = new(Android.OS.Looper.MainLooper!);
     private Java.Lang.Runnable? _hatRepeatRunnable;
-    private const long HatHoldDelayMs = 320;
-    private const long HatRepeatMs = 80;
+    private const long HatHoldDelayMs = PKForge.Domain.PadRepeatTiming.DirectionDelayMs;
+    private const long HatRepeatMs = PKForge.Domain.PadRepeatTiming.DirectionIntervalMs;
     // A whole box or page changes per step: a slower cadence keeps each one readable.
-    private const long ShoulderHoldDelayMs = 380;
-    private const long ShoulderRepeatMs = 140;
+    private const long ShoulderHoldDelayMs = PKForge.Domain.PadRepeatTiming.ShoulderDelayMs;
+    private const long ShoulderRepeatMs = PKForge.Domain.PadRepeatTiming.ShoulderIntervalMs;
 
     public override bool OnGenericMotionEvent(MotionEvent? e)
     {

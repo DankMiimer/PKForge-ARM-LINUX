@@ -19,7 +19,17 @@ public sealed class GraphicsDevice : IDisposable
     private SKSurface? _screen;
     private GRBackendRenderTarget? _target;
     public SKSurface CurrentSurface => _screen ?? throw new InvalidOperationException("Begin a frame before drawing.");
+    internal int CompositionDepth { get; set; }
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void GlGetInteger(uint name, out int value);
+
+    /// <summary>A raster render target for deterministic off-device UI captures; no SDL window.</summary>
+    public static GraphicsDevice CreateHeadless(int width, int height) => new(width, height);
+    private GraphicsDevice(int width, int height)
+    {
+        if (width <= 0 || height <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        Width = width; Height = height;
+        _screen = SKSurface.Create(new SKImageInfo(width, height)) ?? throw new InvalidOperationException("Raster surface unavailable.");
+    }
 
     public GraphicsDevice(string title, int display, bool software, bool fullscreen = true)
     {
@@ -72,6 +82,7 @@ public sealed class GraphicsDevice : IDisposable
     }
     public SKSurface BeginFrame()
     {
+        if (Window == IntPtr.Zero) return CurrentSurface;
         MakeCurrent();
         if (Gpu) Sdl.SDL_GL_GetDrawableSize(Window, out var w, out var h);
         Sdl.SDL_GetWindowSize(Window, out var width, out var height);
@@ -109,6 +120,7 @@ public sealed class GraphicsDevice : IDisposable
     public void Present()
     {
         Flush();
+        if (Window == IntPtr.Zero) return;
         if (_context is not null) { Sdl.SDL_GL_SwapWindow(Window); }
         else
         {
@@ -134,6 +146,6 @@ public sealed class GraphicsDevice : IDisposable
         if (_texture != IntPtr.Zero) Sdl.SDL_DestroyTexture(_texture);
         if (_renderer != IntPtr.Zero) Sdl.SDL_DestroyRenderer(_renderer);
         if (_gl != IntPtr.Zero) Sdl.SDL_GL_DeleteContext(_gl);
-        Sdl.SDL_DestroyWindow(Window);
+        if (Window != IntPtr.Zero) Sdl.SDL_DestroyWindow(Window);
     }
 }

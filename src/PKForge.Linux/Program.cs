@@ -150,11 +150,12 @@ try
             if (arguments.HeadlessScreen is "summary" or "summary-overview") workspace.SummaryAsync(new(0, 0)).GetAwaiter().GetResult();
             if (arguments.HeadlessScreen == "summary-overview") workspace.Screens.OnPadButton(PadButton.Select);
             if (arguments.HeadlessScreen == "collection") workspace.Screens.Push(new CollectionScreen(workspace, services.GetRequiredService<CollectionWorkflow>().ReadAsync().GetAwaiter().GetResult(), services.GetRequiredService<IGameDataService>().SpeciesNames, services.GetRequiredService<ISaveSessionService>().CurrentSession?.MaxSpeciesId ?? 1025, null));
-            if (arguments.HeadlessScreen == "home-preview") workspace.Screens.OnPadButton(PadButton.Down);
-            using var home = SKSurface.Create(new SKImageInfo(640, 480));
-            workspace.Screens.Current!.Paint(home.Canvas, new(0, 0, 640, 480), arguments.HeadlessScreen == "home-preview");
+            if (arguments.HeadlessScreen == "home-preview") workspace.Screens.OnPadButton(PadButton.Right);
+            using var home = SKSurface.Create(new SKImageInfo(arguments.CaptureWidth, arguments.CaptureHeight));
+            var captureBounds = new SKRect(0, 0, arguments.CaptureWidth, arguments.CaptureHeight);
+            workspace.Screens.Current!.Paint(home.Canvas, captureBounds, arguments.HeadlessScreen == "home-preview");
             Task.Delay(200).GetAwaiter().GetResult(); // Let bundled sprite decodes complete, then capture the stable frame.
-            workspace.Screens.Current!.Paint(home.Canvas, new(0, 0, 640, 480), arguments.HeadlessScreen == "home-preview");
+            workspace.Screens.Current!.Paint(home.Canvas, captureBounds, arguments.HeadlessScreen == "home-preview");
             using var screenshot = home.Snapshot(); using var png = screenshot.Encode(SKEncodedImageFormat.Png, 100);
             File.WriteAllBytes(Path.Combine(ParkPlatform.DataDirectory, "headless-home.png"), png.ToArray());
             Console.WriteLine("HEADLESS HOME PASS: " + workspace.Screens.Current.GetType().Name); return 0;
@@ -220,6 +221,8 @@ try
         var timer = Stopwatch.StartNew();
         var performance = new FrameStatistics();
         double nextFrame = 0, lastControl = -1000;
+        var controlsPending = false;
+        var lastMotion = timer.Elapsed.TotalSeconds;
         workspace.Screens.Changed = () => { lastControl = -1000; if (workspace.Screens.Active) { page.Disappear(); services.GetRequiredService<IMusicPlayer>().EnterPlace(MusicPlace.Menus); } };
         var mouseHeld = false;
         while (!library.QuitRequested && (arguments.Seconds <= 0 || timer.Elapsed.TotalSeconds < arguments.Seconds))
@@ -281,6 +284,9 @@ try
             services.GetRequiredService<SdlMusicPlayer>().Tick();
             if (App.IsSuspended) { Thread.Sleep(20); continue; }
             var now = timer.Elapsed.TotalMilliseconds;
+            var motionNow = timer.Elapsed.TotalSeconds;
+            workspace.Screens.Tick((float)Math.Clamp(motionNow - lastMotion, 0, .05));
+            lastMotion = motionNow;
             if (now >= nextFrame)
             {
                 var start = Stopwatch.GetTimestamp();
@@ -298,7 +304,11 @@ try
                 nextFrame += 1000.0 / 30;
                 if (now - nextFrame > 100) nextFrame = now + 1000.0 / 30;
             }
-            if (dual && now - lastControl >= (workspace.Screens.Active || page.MenuOpen || library.IsShowing ? 33 : 200))
+            var activeControls = workspace.Screens.Active || page.MenuOpen || library.IsShowing || page.ControlRoot.HasActiveAnimations;
+            // Keep one fast presentation pending after motion/menu activity ends, so the
+            // final transparent frame (or closed menu) does not wait for the idle interval.
+            controlsPending |= activeControls;
+            if (dual && now - lastControl >= (controlsPending ? 33 : 200))
             {
                 var surface = controls.BeginFrame(); surface.Canvas.Clear(new SKColor(15, 25, 38));
                 if (workspace.Screens.Active) workspace.Screens.DrawControls(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls);
@@ -307,7 +317,7 @@ try
                     journal.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height - 70), controls);
                     page.ControlRoot.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls, page.ParkView);
                 }
-                controls.Present(); lastControl = now;
+                controls.Present(); lastControl = now; controlsPending = activeControls;
             }
             if (arguments.InputScript is { } script) library.RunScript(script, timer.Elapsed.TotalSeconds);
             Thread.Sleep(1);
@@ -363,9 +373,11 @@ internal sealed record Arguments
 {
     public const string UpstreamVersion = "3.1.1";
     public const string PortRevision = "0.2.2-dev";
-    public const string HelpText = "PKForge 3.1.1\n--data-dir PATH --start-page home|park --display-mode auto|single|dual --swap-screens --software --windowed\n--save PATH --demo --headless --seconds N --screenshot\n--phase Morning|Day|Evening|Night --weather Sunny|Cloudy|Rain|Storm\n--input-script PATH (timed controller actions for integration testing)";
+    public const string HelpText = "PKForge 3.1.1\n--data-dir PATH --start-page home|park --display-mode auto|single|dual --swap-screens --software --windowed\n--save PATH --demo --headless --seconds N --screenshot\n--headless-width N --headless-height N (Home/workspace capture size)\n--phase Morning|Day|Evening|Night --weather Sunny|Cloudy|Rain|Storm\n--input-script PATH (timed controller actions for integration testing)";
     public string StartPage { get; init; } = "home";
     public string HeadlessScreen { get; init; } = "home";
+    public int CaptureWidth { get; init; } = 640;
+    public int CaptureHeight { get; init; } = 480;
     public string DataDirectory { get; init; } = Path.Combine(AppContext.BaseDirectory, "userdata");
     public string DisplayMode { get; init; } = "auto";
     public bool Help { get; init; }
@@ -396,6 +408,8 @@ internal sealed record Arguments
                 "--save" => value with { SavePath = Next() }, "--seconds" => value with { Seconds = int.Parse(Next(), CultureInfo.InvariantCulture) },
                 "--start-page" => value with { StartPage = Next() },
                 "--headless-screen" => value with { HeadlessScreen = Next() },
+                "--headless-width" => value with { CaptureWidth = int.Parse(Next(), CultureInfo.InvariantCulture) },
+                "--headless-height" => value with { CaptureHeight = int.Parse(Next(), CultureInfo.InvariantCulture) },
                 "--input-script" => value with { InputScript = Next() },
                 "--phase" => value with { Phase = Enum.Parse<ParkDayPhase>(Next(), true) },
                 "--weather" => value with { Weather = Enum.Parse<ParkWeather>(Next(), true) },
@@ -404,6 +418,7 @@ internal sealed record Arguments
         }
         if (value.DisplayMode is not ("auto" or "single" or "dual")) throw new ArgumentException("Invalid display mode.");
         if (value.StartPage is not ("home" or "park")) throw new ArgumentException("Invalid start page.");
+        if (value.CaptureWidth is < 320 or > 3840 || value.CaptureHeight is < 240 or > 2160) throw new ArgumentException("Headless dimensions must be 320–3840 × 240–2160.");
         if (value.HeadlessScreen is not ("home" or "home-preview" or "boxes" or "summary" or "summary-overview" or "collection" or "bank")) throw new ArgumentException("Invalid headless screen.");
         if (value.Demo && !args.Contains("--data-dir")) throw new ArgumentException("--demo requires an explicit --data-dir to keep test residents separate.");
         return value;

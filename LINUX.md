@@ -56,6 +56,13 @@ normally; an older emulator save state can overwrite the edited save data.
 
 ## Controls and screens
 
+Home uses the Android-style cartridge shelf. Left/right selects a game; down moves
+to the Bank, Dex Autopilot, Poképark, Events and Settings tiles; up returns to the
+shelf. A selects/opens, B edits the selected cartridge's identity, L filters,
+Y links a folder, X opens a save and Start opens settings. On the shelf, touch
+opens a cartridge; hold it for its identity menu or drag to browse. Select opens
+the Linux library-actions list, including scan, continue and quit.
+
 | Control | Park action |
 | --- | --- |
 | A | Meet selected Pokémon; confirm in menus |

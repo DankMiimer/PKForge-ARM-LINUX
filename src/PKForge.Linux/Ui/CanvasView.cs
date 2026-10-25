@@ -35,12 +35,11 @@ namespace SkiaSharp.Views.Maui.Controls
         private GraphicsDevice? _owner;
         private readonly HashSet<long> _touches = [];
         public void InvalidateSurface() => _dirty = true;
-        public override void Draw(SKCanvas canvas, SKRect area, GraphicsDevice device, View? excluded = null)
+        protected override void DrawContent(SKCanvas canvas, GraphicsDevice device, View? excluded)
         {
-            if (!IsVisible || this == excluded) return;
-            Bounds = Arrange(area);
             var w = Math.Max(1, (int)Bounds.Width); var h = Math.Max(1, (int)Bounds.Height);
-            if (DirectDraw && Bounds.Left == 0 && Bounds.Top == 0 && w == device.Width && h == device.Height)
+            if (DirectDraw && device.CompositionDepth == 0 && ReferenceEquals(canvas, device.CurrentSurface.Canvas) &&
+                Bounds.Left == 0 && Bounds.Top == 0 && w == device.Width && h == device.Height)
             {
                 CanvasSize = new(w, h);
                 PaintSurface?.Invoke(this, new(device.CurrentSurface, new(w, h)));
@@ -65,7 +64,7 @@ namespace SkiaSharp.Views.Maui.Controls
             using var image = _surface.Snapshot();
             canvas.DrawImage(image, Bounds.Left, Bounds.Top);
         }
-        public override bool HandleTouch(SKTouchEventArgs e)
+        protected override bool OnTouch(SKTouchEventArgs e)
         {
             if (!EnableTouchEvents || InputTransparent || !IsVisible) return false;
             if (e.ActionType == SKTouchAction.Pressed && Bounds.Contains(e.Location)) _touches.Add(e.Id);
@@ -75,7 +74,7 @@ namespace SkiaSharp.Views.Maui.Controls
             Touch?.Invoke(this, local);
             return local.Handled;
         }
-        public override void ReleaseSurface() { _owner?.MakeCurrent(); _surface?.Dispose(); _surface = null; _owner = null; base.ReleaseSurface(); }
+        public override void ReleaseSurface() { _touches.Clear(); _owner?.MakeCurrent(); _surface?.Dispose(); _surface = null; _owner = null; base.ReleaseSurface(); }
     }
 }
 namespace Microsoft.Maui.Controls.Shapes { public sealed class RoundRectangle { public double CornerRadius { get; set; } } }
