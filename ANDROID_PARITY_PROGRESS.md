@@ -2,6 +2,32 @@
 
 Updated 2026-10-25. Android reference: v3.1.1, `799dfc310c94bb978962dcd31ddf7d39e6d8cba3`.
 
+## 0.3.0 implementation checkpoint — 12 November 2026
+
+- Preserved the earlier compatibility candidate in commit `ef8e426`, then restored
+  PortMaster's firmware hooks with a narrow dArkOS exception and bounded app cleanup.
+  Twelve real-shell launcher scenarios pass, including six simulated CFW modules.
+- Linux now compiles the original `DialogueBox` and `TouchScroller`. First-run Home
+  uses the Android introduction, and shelf/list touch gestures retain inertial
+  scrolling. Hidden dialogues/scrollers stop their timers and release input.
+- Dispatcher timers support the diagnostic clock and preserve their remaining
+  deadlines across suspend. Workspace UI targets the display cadence up to 60 FPS,
+  independently of the park's existing 30 FPS presentation. Single-screen park
+  overlays still share the park cadence and remain a motion-acceptance gap.
+- The complete Linux suite passes **1,958 tests**: 861 Domain, 966 Engine,
+  71 Park and 60 Linux. The changed Android application compiles without warnings
+  or errors. Component previews render 24 timed dialogue/menu/status frames.
+- The pinned original Android application was built separately and captured in
+  an isolated 720×480, 160-dpi emulator. These are reference captures, not evidence
+  of physical handheld input or complete Linux parity.
+- `PARITY_ACCEPTANCE.json` inventories all 98 pinned Android view-source units.
+  Verification remains pending; a shared source file alone does not pass it.
+  `python tools/linux/parity-inventory.py --require-complete` blocks a stable
+  publication until every reference unit has reviewed visual/interaction evidence
+  and motion evidence where applicable. Existing detailed U/M gates below remain.
+
+This checkpoint is development work towards 0.3.0, not a completed stable release.
+
 The fork is now [DankMiimer/PKForge-ARM-LINUX](https://github.com/DankMiimer/PKForge-ARM-LINUX). Commit `185da62` updates the hosted README, clone instructions and draft-release repository check. The upstream relationship and application name remain PKForge.
 
 ## Implemented in the first milestone

@@ -1,4 +1,39 @@
-# ARM64 port validation — 25 October 2026
+# ARM64 port validation
+
+## 0.3.0 development work — 12 November 2026
+
+The current Linux solution passes **1,958 tests** (861 Domain, 966 Engine,
+71 Park, 60 Linux). The changed Android application compiles with zero warnings
+or errors. Twelve real-shell launcher tests cover the PortMaster module/helper/
+cleanup lifecycle, dArkOS exception, overrides and bounded child termination.
+Twenty-four deterministic dialogue/menu/status frames exercise original shared
+dialogue, timer cleanup and intermediate animation states at two viewports.
+
+All four development ZIPs pass the strengthened channel/provenance, exact checksum
+set, embedded version/build information, asset/native ABI and source-layout checks.
+They contain 6,901 assets and 19 ARM64 binaries each; complete source contains
+15,753 entries. These are explicitly dirty candidate builds, not release assets.
+
+Candidate ZIP SHA-256
+`bf6df03c1afe2b6624be18bdcc360d07be92b5583000c16a0f12dddbf5aa8237`
+was extracted into a separate RGDS installation and launched through the normal
+EmulationStation Ports entry. Logs confirm both 640×480 Wayland/GLES windows,
+controller discovery, independent touch-panel discovery and SDL2_mixer initialization.
+The 35-second Home run measured 57.57 FPS overall with 8.75 ms mean drawing and
+12.67 ms drawing p95, then exited cleanly and returned to the frontend. This is
+a short UI measurement, not a park/long-session stability result or proof of
+physical controls. The original volume was restored. A first compositor capture
+attempt selected the compositor's pre-start environment rather than the frontend's
+complete environment and failed; that attempt does not establish screen capture.
+
+The pinned original Android build runs in an isolated 720×480/160-dpi emulator.
+Its source-derived inventory has 98 reference units with acceptance still pending.
+See `PARITY_ACCEPTANCE.json`, `ANDROID_PARITY_PROGRESS.md` and
+`HANDHELD_COMPATIBILITY.md`. Final RGDS physical/parity/data safety acceptance and
+the 90-minute mixed soak remain open. KNULLI is previously tested, awaiting the
+final version; other firmware packages remain experimental/hardware unverified.
+
+## Historical validation — 25 October 2026
 
 This is an **experimental preview**, pinned to PKForge v3.1.1 at
 `799dfc310c94bb978962dcd31ddf7d39e6d8cba3`. Both named handhelds have run the

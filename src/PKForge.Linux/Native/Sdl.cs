@@ -42,6 +42,7 @@ internal static class Sdl
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern void SDL_GetWindowSize(IntPtr window, out int width, out int height);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GetNumVideoDisplays();
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GetDisplayBounds(int display, out Rect rect);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GetCurrentDisplayMode(int display, out DisplayMode mode);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_GetCurrentVideoDriver();
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_ShowCursor(int toggle);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GL_SetAttribute(int attribute, int value);
@@ -73,6 +74,7 @@ internal static class Sdl
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern void SDL_JoystickGetGUIDString(JoystickGuid guid, byte[] buffer, int length);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_RWFromFile([MarshalAs(UnmanagedType.LPUTF8Str)] string file, [MarshalAs(UnmanagedType.LPUTF8Str)] string mode);
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int X, Y, W, H; }
+    [StructLayout(LayoutKind.Sequential)] public struct DisplayMode { public uint Format; public int Width, Height, RefreshRate; public IntPtr DriverData; }
     [StructLayout(LayoutKind.Sequential)] public struct JoystickGuid { public ulong A, B; }
     [StructLayout(LayoutKind.Explicit, Size = 56)] public struct Event
     {

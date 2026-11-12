@@ -8,6 +8,18 @@ namespace PKForge.Linux.Tests;
 public sealed class AnimationTests
 {
     [Fact]
+    public void Presentation_rate_switches_without_accumulating_frames_after_a_pause()
+    {
+        var clock = new PKForge.Linux.Native.PresentationClock();
+        var park = 1000.0 / 30; var ui = PKForge.Linux.Native.PresentationClock.UiInterval(60);
+        Assert.True(clock.Due(0, park)); Assert.False(clock.Due(16, park)); Assert.True(clock.Due(34, park));
+        Assert.True(clock.Due(40, ui)); Assert.False(clock.Due(50, ui)); Assert.True(clock.Due(57, ui));
+        Assert.True(clock.Due(60_000, ui)); Assert.False(clock.Due(60_001, ui)); Assert.True(clock.Due(60_017, ui));
+        Assert.Equal(1000.0 / 30, PKForge.Linux.Native.PresentationClock.UiInterval(30));
+        Assert.Equal(ui, PKForge.Linux.Native.PresentationClock.UiInterval(0));
+        Assert.Equal(ui, PKForge.Linux.Native.PresentationClock.UiInterval(120));
+    }
+    [Fact]
     public async Task Fade_has_intermediate_values_and_completes_only_at_its_end()
     {
         var time = TimeSpan.Zero;

@@ -10,6 +10,7 @@ public sealed class GraphicsDevice : IDisposable
     public bool Gpu => _context is not null;
     public int Width { get; private set; }
     public int Height { get; private set; }
+    public int RefreshRate { get; } = 60;
     private readonly IntPtr _gl;
     private readonly GRContext? _context;
     private readonly GRGlInterface? _interface;
@@ -34,6 +35,7 @@ public sealed class GraphicsDevice : IDisposable
 
     public GraphicsDevice(string title, int display, bool software, bool fullscreen = true)
     {
+        if (Sdl.SDL_GetCurrentDisplayMode(display, out var mode) == 0 && mode.RefreshRate > 0) RefreshRate = mode.RefreshRate;
         var width = 640; var height = 480;
         if (Sdl.SDL_GetDisplayBounds(display, out var bounds) == 0) { width = bounds.W; height = bounds.H; }
         Sdl.SDL_GL_SetAttribute(21, 4); // SDL_GL_CONTEXT_PROFILE_ES

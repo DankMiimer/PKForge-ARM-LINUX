@@ -8,8 +8,8 @@ namespace PKForge.App
         public static event Action? Suspended;
         public static event Action? Resumed;
         public static bool IsSuspended { get; private set; }
-        public static void Suspend() { if (IsSuspended) return; IsSuspended = true; UiDispatcher.Instance.Animations.SetSuspended(true); Suspended?.Invoke(); }
-        public static void Resume() { if (!IsSuspended) return; IsSuspended = false; UiDispatcher.Instance.Animations.SetSuspended(false); Resumed?.Invoke(); }
+        public static void Suspend() { if (IsSuspended) return; IsSuspended = true; UiDispatcher.Instance.SetSuspended(true); Suspended?.Invoke(); }
+        public static void Resume() { if (!IsSuspended) return; IsSuspended = false; UiDispatcher.Instance.SetSuspended(false); Resumed?.Invoke(); }
     }
     public static class PokeparkWidgetPublisher
     {
@@ -34,7 +34,13 @@ namespace PKForge.App.Theme
 {
     public static class UiTokens
     {
+        private static Color As(SkiaSharp.SKColor c) => new(c.Red, c.Green, c.Blue, c.Alpha);
         public static Color Housing => new(15, 25, 38);
+        public static Color Maroon => As(PKForge.Chrome.Pksm.HeaderBlue);
+        public static Color Outline => As(PKForge.Chrome.Pksm.ButtonBlueDeep);
+        public static Color Bright => As(PKForge.Chrome.ColorTheme.Current.Bright);
+        public static Color Scrim => As(PKForge.Chrome.Pksm.LogoVoid.WithAlpha(204));
+        public const double PanelEdge = 2, PanelRadius = 6;
         public static Color InkSoft { get { var c = PKForge.Chrome.Pksm.InkSoft; return new(c.Red, c.Green, c.Blue, c.Alpha); } }
         public const double TextBody = 13;
     }

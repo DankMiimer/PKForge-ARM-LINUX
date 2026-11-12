@@ -54,6 +54,10 @@ public class View : INotifyPropertyChanged
     public double MaximumWidthRequest { get; set; } = double.PositiveInfinity;
     public double WidthRequest { get; set; } = -1;
     public double HeightRequest { get; set; } = -1;
+    public double MinimumHeightRequest { get; set; }
+    public List<TapGestureRecognizer> GestureRecognizers { get; } = [];
+    private long? _tapId;
+    private SKPoint _tapStart;
     public double Width => Bounds.Width;
     public double Height => Bounds.Height;
     public SKRect Bounds { get; protected set; }
@@ -108,13 +112,25 @@ public class View : INotifyPropertyChanged
         var point = new SKPoint(Bounds.MidX + (e.Location.X - (float)TranslationX - Bounds.MidX) / (float)Scale,
             Bounds.MidY + (e.Location.Y - (float)TranslationY - Bounds.MidY) / (float)Scale);
         if (IsClippedToBounds && e.ActionType == SKTouchAction.Pressed && !Bounds.Contains(point)) return false;
-        return OnTouch(e.At(point));
+        if (OnTouch(e.At(point))) return true;
+        if (GestureRecognizers.Count == 0) return false;
+        if (e.ActionType == SKTouchAction.Pressed && Bounds.Contains(point)) { _tapId = e.Id; _tapStart = point; return true; }
+        if (_tapId != e.Id) return false;
+        if (e.ActionType == SKTouchAction.Moved && (Math.Abs(point.X - _tapStart.X) > 8 || Math.Abs(point.Y - _tapStart.Y) > 8)) _tapId = null;
+        if (e.ActionType == SKTouchAction.Cancelled) _tapId = null;
+        if (e.ActionType == SKTouchAction.Released)
+        {
+            _tapId = null;
+            if (Bounds.Contains(point)) foreach (var tap in GestureRecognizers.ToArray()) tap.Raise();
+        }
+        return true;
     }
     protected virtual bool OnTouch(SKTouchEventArgs e) => false;
     internal void AttachSurface() => _released = false;
     public virtual void ReleaseSurface()
     {
         _released = true;
+        _tapId = null;
         CancelAnimations();
         Unloaded?.Invoke(this, EventArgs.Empty);
     }
@@ -146,7 +162,11 @@ public sealed class Label : View
     public LineBreakMode LineBreakMode { get; set; }
     public TextAlignment HorizontalTextAlignment { get; set; }
     public TextAlignment VerticalTextAlignment { get; set; }
-    public override float NaturalHeight(float width) => (float)FontSize * 1.5f;
+    public override float NaturalHeight(float width)
+    {
+        using var font = PKForge.Linux.Workspace.NativePaint.Font(Text, (float)FontSize);
+        return (float)FontSize * 1.5f * (LineBreakMode == LineBreakMode.WordWrap ? Math.Max(1, NativeText.Wrap(Text, font, width).Count) : 1);
+    }
     public override float NaturalWidth(float width)
     {
         using var font = PKForge.Linux.Workspace.NativePaint.Font(Text, (float)FontSize);
@@ -156,12 +176,13 @@ public sealed class Label : View
     {
         using var font = PKForge.Linux.Workspace.NativePaint.Font(Text, (float)FontSize);
         using var paint = new SKPaint { Color = TextColor.Skia, IsAntialias = true };
-        var text = NativeText.Fit(Text, font, Bounds.Width);
+        var lines = LineBreakMode == LineBreakMode.WordWrap ? NativeText.Wrap(Text, font, Bounds.Width) : [NativeText.Fit(Text, font, Bounds.Width)];
         var align = HorizontalTextAlignment switch { TextAlignment.Center => SKTextAlign.Center, TextAlignment.End => SKTextAlign.Right, _ => SKTextAlign.Left };
         var x = align == SKTextAlign.Center ? Bounds.MidX : align == SKTextAlign.Right ? Bounds.Right : Bounds.Left;
-        var y = VerticalTextAlignment switch { TextAlignment.Center => Bounds.MidY - (font.Metrics.Ascent + font.Metrics.Descent) / 2,
-            TextAlignment.End => Bounds.Bottom - font.Metrics.Descent, _ => Bounds.Top + (float)FontSize + 2 };
-        canvas.DrawText(text, x, y, align, font, paint);
+        var lineHeight = (float)FontSize * 1.5f;
+        var y = VerticalTextAlignment switch { TextAlignment.Center => Bounds.MidY - (lines.Count - 1) * lineHeight / 2 - (font.Metrics.Ascent + font.Metrics.Descent) / 2,
+            TextAlignment.End => Bounds.Bottom - (lines.Count - 1) * lineHeight - font.Metrics.Descent, _ => Bounds.Top + (float)FontSize + 2 };
+        foreach (var text in lines) { if (y > Bounds.Bottom + 1) break; canvas.DrawText(text, x, y, align, font, paint); y += lineHeight; }
     }
 }
 public class Grid : View
@@ -275,7 +296,11 @@ public sealed class Border : View
     public View? Content { get; set; }
     public double StrokeThickness { get; set; }
     public object? StrokeShape { get; set; }
-    public override float NaturalHeight(float width) => Content is { } child ? child.NaturalHeight(width) + (float)(child.Margin.Top + child.Margin.Bottom) : 0;
+    public Color Stroke { get; set; } = Colors.Transparent;
+    public Shadow? Shadow { get; set; }
+    public Thickness Padding { get; set; }
+    public override float NaturalHeight(float width) => Math.Max((float)MinimumHeightRequest,
+        (Content is { } child ? child.NaturalHeight(Math.Max(1, width - (float)(Padding.Left + Padding.Right))) + (float)(child.Margin.Top + child.Margin.Bottom) : 0) + (float)(Padding.Top + Padding.Bottom));
     public override float NaturalWidth(float width) => Content is { } child ? child.NaturalWidth(width) + (float)(child.Margin.Left + child.Margin.Right) : width;
     public override bool HasActiveAnimations => base.HasActiveAnimations || Content is { IsVisible: true, HasActiveAnimations: true };
     protected override void DrawBackground(SKCanvas canvas)
@@ -283,11 +308,33 @@ public sealed class Border : View
         if (BackgroundColor.A == 0) return;
         using var paint = new SKPaint { Color = BackgroundColor.Skia, IsAntialias = true };
         var radius = StrokeShape is Microsoft.Maui.Controls.Shapes.RoundRectangle shape ? (float)shape.CornerRadius : 0;
+        if (Shadow is { } shadow)
+        {
+            paint.Color = shadow.Color.Skia; var shifted = Bounds; shifted.Offset(shadow.X, shadow.Y);
+            canvas.DrawRoundRect(shifted, radius, radius, paint); paint.Color = BackgroundColor.Skia;
+        }
         canvas.DrawRoundRect(Bounds, radius, radius, paint);
+        if (Stroke.A != 0 && StrokeThickness > 0)
+        {
+            paint.Color = Stroke.Skia; paint.Style = SKPaintStyle.Stroke; paint.StrokeWidth = (float)StrokeThickness;
+            canvas.DrawRoundRect(SKRect.Inflate(Bounds, -(float)StrokeThickness / 2, -(float)StrokeThickness / 2), radius, radius, paint);
+        }
     }
-    protected override void DrawContent(SKCanvas canvas, GraphicsDevice device, View? excluded) => Content?.Draw(canvas, Bounds, device, excluded);
+    protected override void DrawContent(SKCanvas canvas, GraphicsDevice device, View? excluded) => Content?.Draw(canvas,
+        new(Bounds.Left + (float)(Padding.Left + StrokeThickness), Bounds.Top + (float)(Padding.Top + StrokeThickness),
+            Bounds.Right - (float)(Padding.Right + StrokeThickness), Bounds.Bottom - (float)(Padding.Bottom + StrokeThickness)), device, excluded);
     protected override bool OnTouch(SKTouchEventArgs e) => Content?.HandleTouch(e) == true;
     public override void ReleaseSurface() { Content?.ReleaseSurface(); base.ReleaseSurface(); }
+}
+public sealed record Shadow(float X, float Y, Color Color);
+public sealed class TapGestureRecognizer
+{
+    public event EventHandler? Tapped;
+    internal void Raise() => Tapped?.Invoke(this, EventArgs.Empty);
+}
+public sealed class BoxView : View
+{
+    public Color Color { get => BackgroundColor; set => BackgroundColor = value; }
 }
 public class ContentPage
 {

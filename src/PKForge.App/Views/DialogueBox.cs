@@ -27,6 +27,7 @@ public sealed class DialogueBox : IPadHandler
     private string _current = "";
     private IDispatcherTimer? _typer;
     private IDispatcherTimer? _blink;
+    private bool _closed;
 
     public static Task ShowSequenceAsync(Grid host, params string[] lines) =>
         new DialogueBox(host, lines)._result.Task;
@@ -73,6 +74,8 @@ public sealed class DialogueBox : IPadHandler
         Grid.SetColumnSpan(_overlay, Math.Max(1, host.ColumnDefinitions.Count));
 
         _router?.Push(this);
+        _overlay.Unloaded += (_, _) => Close();
+        App.Suspended += Close;
         StartLine();
         StartBlink();
     }
@@ -151,6 +154,9 @@ public sealed class DialogueBox : IPadHandler
 
     private void Close()
     {
+        if (_closed) return;
+        _closed = true;
+        App.Suspended -= Close;
         _typer?.Stop();
         _blink?.Stop();
         _router?.Remove(this);

@@ -186,6 +186,15 @@ public sealed class PadMenu : IPadHandler
     }
 }
 
+public static class Kit
+{
+    public static Shadow HardShadow()
+    {
+        var color = Pksm.LogoVoid;
+        return new(3, 3, new(color.Red, color.Green, color.Blue, 140));
+    }
+}
+
 public static class DsChrome
 {
     public const string PixelFont = "PixelUI";

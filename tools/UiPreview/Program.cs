@@ -37,6 +37,18 @@ foreach (var width in new[] { 640, 720 })
     };
     var host = new Grid { Children = { background } };
     host.Draw(device.CurrentSurface.Canvas, new(0, 0, width, 480), device);
+    var dialogueStarted = time;
+    var dialogue = DialogueBox.ShowSequenceAsync(host, "Hello! Welcome to PKForge!");
+    foreach (var ms in new[] { 0, 24, 288, 624, 1104 })
+    {
+        var target = dialogueStarted + TimeSpan.FromMilliseconds(ms);
+        while (time < target) { time += TimeSpan.FromMilliseconds(Math.Min(8, (target - time).TotalMilliseconds)); UiDispatcher.Instance.Pump(); }
+        device.CurrentSurface.Canvas.Clear(SKColors.Transparent);
+        host.Draw(device.CurrentSurface.Canvas, new(0, 0, width, 480), device);
+        device.SaveScreenshot(Path.Combine(output, $"dialogue-{width}x480-{ms:D4}ms.png"));
+    }
+    router.Dispatch(PadButton.A);
+    if (!dialogue.IsCompletedSuccessfully || UiDispatcher.Instance.ActiveTimerCount != 0) throw new InvalidOperationException("Dialogue did not release timers/input.");
     var opened = time;
     var menu = PadMenu.ShowAsync(host, "Get started", "Choose where to find your games.",
         new PadOption("Link an emulator", IconPath: "link", Detail: "Choose a folder containing battery saves."),
@@ -70,7 +82,7 @@ foreach (var width in new[] { 640, 720 })
     if (!fade.IsCompletedSuccessfully || fade.Result || notice.Opacity != 0) throw new InvalidOperationException("Status fade did not finish at 600 ms.");
     host.ReleaseSurface();
 }
-Console.WriteLine("UI PREVIEW PASS: two viewports; 14 exact-time menu/status captures; animation completion and cleanup verified.");
+Console.WriteLine("UI PREVIEW PASS: two viewports; 24 exact-time dialogue/menu/status captures; animation and timer cleanup verified.");
 
 // Optional synthetic save input: create a copied, scanned Home fixture with two Ruby
 // saves (one stacked cartridge) and one Sapphire. The supplied source is read only.

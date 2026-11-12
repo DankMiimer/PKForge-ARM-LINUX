@@ -267,7 +267,7 @@ try
         };
         workspace.ParkRequested = () => { workspace.Screens.Deactivate(); page.RefreshRoster(); page.Appear(); };
         page.PrepareBenchmark(arguments.Phase, arguments.Weather, arguments.Seconds > 0);
-        if (arguments.StartPage == "park" || arguments.Demo) page.Appear(); else workspace.OpenHome();
+        if (arguments.StartPage == "park" || arguments.Demo) page.Appear(); else workspace.OpenHome(welcome: true);
         Console.WriteLine($"WORKSPACE active={workspace.Screens.Active}, screen={workspace.Screens.Current?.GetType().Name}");
         page.ControlRoot.ExcludedInput = dual ? page.ParkView : null;
         using var touchPanels = RgdsTouch.TryCreate(displays.Available);
@@ -283,10 +283,11 @@ try
         services.GetRequiredService<SdlMusicPlayer>().Initialize();
         var timer = Stopwatch.StartNew();
         var performance = new FrameStatistics();
-        double nextFrame = 0, lastControl = -1000;
+        var primaryClock = new PresentationClock();
+        var secondaryClock = new PresentationClock();
         var controlsPending = false;
         var lastMotion = timer.Elapsed.TotalSeconds;
-        workspace.Screens.Changed = () => { lastControl = -1000; if (workspace.Screens.Active) { page.Disappear(); services.GetRequiredService<IMusicPlayer>().EnterPlace(MusicPlace.Menus); } };
+        workspace.Screens.Changed = () => { primaryClock.Reset(); secondaryClock.Reset(); if (workspace.Screens.Active) { page.Disappear(); services.GetRequiredService<IMusicPlayer>().EnterPlace(MusicPlace.Menus); } };
         var mouseHeld = false;
         var refreshDisplays = false;
         var wasSuspended = App.IsSuspended;
@@ -338,7 +339,7 @@ try
             if (refreshDisplays && !App.IsSuspended)
             {
                 RefreshDisplays(); refreshDisplays = false; mouseHeld = false;
-                lastControl = -1000;
+                primaryClock.Reset(); secondaryClock.Reset();
             }
             input.Update();
             touchPanels?.Pump(controls.Width, controls.Height, (top, touch) =>
@@ -360,7 +361,8 @@ try
             var motionNow = timer.Elapsed.TotalSeconds;
             workspace.Screens.Tick((float)Math.Clamp(motionNow - lastMotion, 0, .05));
             lastMotion = motionNow;
-            if (now >= nextFrame)
+            var primaryInterval = workspace.Screens.Active ? PresentationClock.UiInterval((parkDisplay ?? controls).RefreshRate) : 1000.0 / 30;
+            if (primaryClock.Due(now, primaryInterval))
             {
                 var start = Stopwatch.GetTimestamp();
                 var display = parkDisplay ?? controls;
@@ -374,14 +376,12 @@ try
                 else page.ControlRoot.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                 display.Present();
                 performance.Add(Stopwatch.GetElapsedTime(start).TotalMilliseconds, now, workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : "Park");
-                nextFrame += 1000.0 / 30;
-                if (now - nextFrame > 100) nextFrame = now + 1000.0 / 30;
             }
             var activeControls = workspace.Screens.Active || page.MenuOpen || library.IsShowing || page.ControlRoot.HasActiveAnimations;
             // Keep one fast presentation pending after motion/menu activity ends, so the
             // final transparent frame (or closed menu) does not wait for the idle interval.
             controlsPending |= activeControls;
-            if (dual && now - lastControl >= (controlsPending ? 33 : 200))
+            if (dual && secondaryClock.Due(now, controlsPending ? PresentationClock.UiInterval(controls.RefreshRate) : 200))
             {
                 var surface = controls.BeginFrame(); surface.Canvas.Clear(new SKColor(15, 25, 38));
                 if (workspace.Screens.Active) workspace.Screens.DrawControls(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls);
@@ -390,7 +390,7 @@ try
                     journal.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height - 70), controls);
                     page.ControlRoot.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls, page.ParkView);
                 }
-                controls.Present(); lastControl = now; controlsPending = activeControls;
+                controls.Present(); controlsPending = activeControls;
             }
             if (arguments.InputScript is { } script) library.RunScript(script, timer.Elapsed.TotalSeconds);
             Thread.Sleep(1);

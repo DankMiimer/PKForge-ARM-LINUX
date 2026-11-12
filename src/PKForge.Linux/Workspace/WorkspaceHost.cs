@@ -36,7 +36,36 @@ public sealed partial class WorkspaceHost : INavigation
         if (cachedCount > 0) Status = $"Library restored · {cachedCount} saves. Scan linked folders to refresh.";
         Screens.Push(new HomeScreen(this));
     }
-    public void OpenHome() { Screens.Home(); Screens.Activate(); }
+    public void OpenHome(bool welcome = false)
+    {
+        Screens.Home(); Screens.Activate();
+        if (welcome && !Preferences.Default.Get("linux.welcome.v1", false) && LibraryGroups.Count == 0)
+        {
+            Preferences.Default.Set("linux.welcome.v1", true);
+            UiDispatcher.Instance.Dispatch(() => _ = Screens.RunAsync(WelcomeAsync));
+        }
+    }
+    private async Task WelcomeAsync()
+    {
+        await DialogueBox.ShowSequenceAsync(Screens.ControlRoot,
+            "Hello! Welcome to PKForge!",
+            "This is a place where your Pokémon from every game can live together, safely.",
+            "I can edit them, keep them in the Bank, and make sure each one is legal.",
+            "And every change is backed up before it is written, so nothing is ever lost.",
+            "Now then... let's find your games!");
+        if (PKForge.App.App.IsSuspended) return;
+        var choice = await PadMenu.ShowAsync(Screens.ControlRoot, "Get started", null,
+            new PadOption("Link an emulator", IconPath: "link", Detail: "Pick the emulator folder where your games keep their saves."),
+            new PadOption("Open a single save file", IconPath: "file", Detail: "Pick one save file instead of a whole emulator folder."),
+            new PadOption("Download the sprite pack (" + SpritePackDownloader.SizeHint + ")", IconPath: "download", Detail: "Animated sprites, HOME pictures and item icons, to use offline."),
+            new PadOption("Maybe later", IconPath: "close"));
+        switch (choice)
+        {
+            case "Link an emulator": await LinkFolderAsync(); break;
+            case "Open a single save file": await OpenFileAsync(); break;
+            case { } download when download.StartsWith("Download the sprite pack", StringComparison.Ordinal): await DownloadSpritesAsync(); break;
+        }
+    }
     public Task PushAsync(ContentPage page) { OpenHome(); return Task.CompletedTask; }
     public Task<ContentPage?> PopAsync() { OpenHome(); return Task.FromResult<ContentPage?>(null); }
     private SaveSession? _homeSession;

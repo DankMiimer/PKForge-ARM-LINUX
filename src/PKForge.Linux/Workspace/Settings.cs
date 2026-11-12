@@ -43,16 +43,7 @@ public sealed partial class WorkspaceHost
                     await Dialogs.MessageAsync("Generation ownership", profiles.UseCurrentTrainerForGeneration ? "Generated Pokémon use the current game's trainer." : "Generated Pokémon may use Auto-Legality trainer data."); break;
                 case "Music": await MusicMenu.ShowAsync(Screens.ControlRoot, message => Status = message); break;
                 case "Offline sprite pack":
-                    var downloader = Get<SpritePackDownloader>();
-                    if (!await Dialogs.ConfirmAsync("Offline sprite pack", $"{downloader.CountMissing()} missing assets. Full download {SpritePackDownloader.SizeHint}. Existing files are retained.", "Download")) break;
-                    using (var cancellation = new CancellationTokenSource())
-                    {
-                        var cancel = Dialogs.MenuAsync("Downloading sprite pack", "Progress appears in the library footer. Downloads can resume after cancellation.", "Cancel");
-                        var job = downloader.RunAsync((message, progress) => { Status = $"{message} · {progress:P0}"; Screens.Invalidate(); }, cancellation.Token);
-                        if (await Task.WhenAny(cancel, job) == cancel) cancellation.Cancel(); else Get<GamepadRouter>().Dispatch(PadButton.B);
-                        try { await job; Status = "Sprite pack ready."; } catch (OperationCanceledException) { Status = "Download stopped; cached assets retained."; }
-                        await cancel;
-                    } break;
+                    await DownloadSpritesAsync(); break;
                 case "Linked folders":
                     var roots = Get<IWatchedRootStore>().GetRoots(); var index = await Dialogs.PickAsync("Linked folders", roots.Select(r => r.DisplayName + " · " + r.TreeId).ToArray());
                     if (index is { } i && await Dialogs.ConfirmAsync("Unlink folder", roots[i].TreeId)) { Get<IWatchedRootStore>().RemoveRoot(roots[i]); Get<SaveCatalogue>().Refresh(); } break;
@@ -69,5 +60,16 @@ public sealed partial class WorkspaceHost
                     await InspectAsync("About / credits", "PKForge by sofianeelhor · upstream 3.1.1 · Linux " + Arguments.PortRevision + "\nManual ZIP / PortMaster updates.\n\n" + string.Join("\n\n", texts)); break;
             }
         }
+    }
+    private async Task DownloadSpritesAsync()
+    {
+        var downloader = Get<SpritePackDownloader>();
+        if (!await Dialogs.ConfirmAsync("Offline sprite pack", $"{downloader.CountMissing()} missing assets. Full download {SpritePackDownloader.SizeHint}. Existing files are retained.", "Download")) return;
+        using var cancellation = new CancellationTokenSource();
+        var cancel = Dialogs.MenuAsync("Downloading sprite pack", "Progress appears in the library footer. Downloads can resume after cancellation.", "Cancel");
+        var job = downloader.RunAsync((message, progress) => { Status = $"{message} · {progress:P0}"; Screens.Invalidate(); }, cancellation.Token);
+        if (await Task.WhenAny(cancel, job) == cancel) cancellation.Cancel(); else Get<GamepadRouter>().Dispatch(PadButton.B);
+        try { await job; Status = "Sprite pack ready."; } catch (OperationCanceledException) { Status = "Download stopped; cached assets retained."; }
+        finally { Get<GamepadRouter>().Dispatch(PadButton.B); await cancel; }
     }
 }
