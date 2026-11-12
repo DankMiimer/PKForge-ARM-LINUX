@@ -1691,11 +1691,13 @@
         "confirmation",
         "long-text"
       ],
-      "visualEvidence": [],
+      "visualEvidence": [
+        "docs/parity/picker-settled-720/evidence.json"
+      ],
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Original picker compiled into Linux with virtualized host rows. Input/filter/lifecycle regression tests pass; matched row/state/timing review pending."
+      "notes": "Original picker is shared with virtualized Linux controls. The recorded settled 720px sample has five row-label anchors within 0.8px; pixel/raster review, initial centering, 640px reference and complete state/timeline acceptance remain pending."
     },
     {
       "id": "PixelFont",

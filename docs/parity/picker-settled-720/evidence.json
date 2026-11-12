@@ -1,0 +1,178 @@
+{
+  "classification": "diagnostic; complete acceptance pending",
+  "baseline": {
+    "version": "3.1.1",
+    "commit": "799dfc310c94bb978962dcd31ddf7d39e6d8cba3"
+  },
+  "viewport": {
+    "width": 720,
+    "height": 480,
+    "densityDpi": 160
+  },
+  "state": "Adamant selected after navigation; opening animation complete",
+  "reference": {
+    "image": "android-reference.png",
+    "sha256": "1d35b5511da7c6a6e5caba0c4ceb3ba6a7549cc2cb5e4657df035a61ad4a679f",
+    "apkSha256": "3223f9cf3d6f38fdccf81383399f1b84a5f7908a9341403d26d09b4548cdac3b",
+    "apkKind": "isolated diagnostic harness; all 98 normalized original view files unchanged",
+    "capturedUtc": "2026-11-12T19:42:42Z"
+  },
+  "linux": {
+    "image": "linux-preview.png",
+    "sha256": "7a50d54f84741b442df4c626278d34fd3a387c6b4a5645bcaa27b81fd56910b3",
+    "backend": "Linux x64 Skia raster preview",
+    "buildBaseCommit": "73a0405a94181db5c15cdb66ed75db0cf19135be",
+    "matchingSourceSnapshotCommit": "19041b835c6cfcdc093c35853e2c8320cffe0fd4",
+    "normalizedSourceSha256": {
+      "src/PKForge.Linux/Ui/Views.cs": "1224179a52b40ef526da8cbef287c3eaaae8c561956b8a32c6de6f0ef8448961",
+      "src/PKForge.Linux/Ui/CollectionControls.cs": "441790ccec6712dd927ed66e63ce7342f4636e84b8d9d02a7b7649a965211793",
+      "src/PKForge.Linux/Ui/CanvasView.cs": "061619365d1562c44d7b7b51a6be9a19e1709ed16a428021b7fdfaef94b66e46",
+      "src/PKForge.Linux/Ui/LabelText.cs": "d1e8c21ed83758f8546a62a9c9cbaa33df4b66ec15d6e9e483dcc7f4c1c67103",
+      "src/PKForge.Linux/Ui/NativeLabelFonts.cs": "2c379543e99ce76c7da3010a1301eaed4dd0f5ea73d4dc6b805021227f163305",
+      "src/PKForge.Chrome/FontDeviceMetrics.cs": "f5fd603f106d86378bd83d32f91108a28eebd6c20ea0a9ad50c5347553f856b4",
+      "tools/UiPreview/Program.cs": "27c03d003d4429ca897be5eaa1e39613e7cc71c538a9e90ae47dbd681412e141"
+    },
+    "captureTiming": "captured before matching source snapshot was committed; not a release artifact"
+  },
+  "anchors": [
+    {
+      "text": "Lonely",
+      "referenceBounds": [
+        148,
+        116,
+        583,
+        135
+      ],
+      "linuxBounds": [
+        147.2,
+        115.5,
+        582.8,
+        134.5
+      ],
+      "largestAnchorDifference": 0.8
+    },
+    {
+      "text": "Brave",
+      "referenceBounds": [
+        148,
+        172,
+        583,
+        191
+      ],
+      "linuxBounds": [
+        147.2,
+        171.5,
+        582.8,
+        190.5
+      ],
+      "largestAnchorDifference": 0.8
+    },
+    {
+      "text": "Adamant",
+      "referenceBounds": [
+        148,
+        228,
+        583,
+        247
+      ],
+      "linuxBounds": [
+        147.2,
+        227.5,
+        582.8,
+        246.5
+      ],
+      "largestAnchorDifference": 0.8
+    },
+    {
+      "text": "Naughty",
+      "referenceBounds": [
+        148,
+        284,
+        583,
+        303
+      ],
+      "linuxBounds": [
+        147.2,
+        283.5,
+        582.8,
+        302.5
+      ],
+      "largestAnchorDifference": 0.8
+    },
+    {
+      "text": "Bold",
+      "referenceBounds": [
+        148,
+        340,
+        583,
+        359
+      ],
+      "linuxBounds": [
+        147.2,
+        339.5,
+        582.8,
+        358.5
+      ],
+      "largestAnchorDifference": 0.8
+    }
+  ],
+  "comparison": {
+    "viewport": [
+      720,
+      480
+    ],
+    "crop": [
+      116,
+      113,
+      604,
+      381
+    ],
+    "pixels": 130784,
+    "exactlyChangedPixels": 11252,
+    "exactMatchFraction": 0.9139650110105212,
+    "meanChannelDifference": [
+      6.318945742598483,
+      6.187981710300955,
+      5.8431535967702475
+    ],
+    "largestChannelDifference": 229,
+    "changedBoundsInCrop": [
+      0,
+      0,
+      488,
+      268
+    ],
+    "neighborRadius": 1,
+    "neighborColorTolerance": 8,
+    "changedPixelsWithNearbyReferenceColor": 7659,
+    "remainingChangedPixels": 3593,
+    "acceptance": "Review content, anchors, raster edges and state coverage separately.",
+    "inputs": [
+      {
+        "path": "android-reference.png",
+        "sha256": "1d35b5511da7c6a6e5caba0c4ceb3ba6a7549cc2cb5e4657df035a61ad4a679f"
+      },
+      {
+        "path": "linux-preview.png",
+        "sha256": "7a50d54f84741b442df4c626278d34fd3a387c6b4a5645bcaa27b81fd56910b3"
+      }
+    ]
+  },
+  "openItems": [
+    "Initial Android programmatic centering differs from settled navigation; opening/timing acceptance is pending.",
+    "Residual pixel differences still need raster-edge classification; numerical comparison does not grant acceptance.",
+    "The 640px reference counterpart, remaining states and interaction/timeline coverage are pending.",
+    "Linux adds a search hint under the approved platform-input adaptation; the body crop does not validate the footer or underlying Home."
+  ],
+  "rendererReferences": [
+    "https://github.com/dotnet/maui/blob/10.0.20/src/Core/src/Handlers/Items/Android/ScrollHelper.cs",
+    "https://github.com/dotnet/maui/blob/10.0.20/src/Core/src/Handlers/Items/Android/ItemContentView.cs",
+    "https://github.com/dotnet/maui/blob/10.0.20/src/Core/src/Graphics/MauiDrawable.Android.cs",
+    "https://github.com/dotnet/maui/blob/10.0.20/src/Controls/src/Core/Shapes/Shape.cs",
+    "https://github.com/dotnet/maui/blob/10.0.20/src/Controls/src/Core/Shapes/RoundRectangle.cs"
+  ],
+  "bundledFontSha256": {
+    "NDS12.ttf": "90431e5adeeb042cd15b4cc82c781c316217fde0579903a698eef9020b91852c",
+    "Roboto-Regular.ttf": "9e157d5ff70ae52cc8c527b36e89d9b3c69c6c814da79fa6237a0bf0895abc7c"
+  }
+}
