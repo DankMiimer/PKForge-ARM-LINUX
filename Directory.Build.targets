@@ -1,0 +1,9 @@
+<Project>
+  <!-- PKHeX's upstream props use the current second as SourceRevisionId. Keep
+       publication metadata tied to the actual pinned source, without editing
+       the submodule. These properties are supplied by the package builder. -->
+  <PropertyGroup Condition="'$(PKForgeBuildRevision)' != ''">
+    <SourceRevisionId Condition="'$(MSBuildProjectName)' != 'PKHeX.Core'">$(PKForgeBuildRevision)</SourceRevisionId>
+    <SourceRevisionId Condition="'$(MSBuildProjectName)' == 'PKHeX.Core'">$(PKForgePkhexRevision)</SourceRevisionId>
+  </PropertyGroup>
+</Project>

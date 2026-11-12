@@ -100,7 +100,7 @@ public sealed partial class WorkspaceHost
             if (secondary) { host.PaintGamePreview(canvas, bounds, _shelfIndex >= 0 ? _groups[_shelfIndex][0] : null); return; }
             var layout = _layout = HomeLayout.Create(bounds); var unit = layout.Unit;
             PksmPaint.LogoGrid(canvas, bounds, 14 * unit, unit);
-            AppChromePaint.Header(canvas, bounds, "PKForge", PixelFont.Face, unit);
+            AppChromePaint.StatusStrip(canvas, bounds, PixelFont.Face, unit);
             NativePaint.Text(canvas, "Games", layout.Header.Left, layout.Header.MidY + 5 * unit, 15 * unit, Pksm.Ink);
             PksmPaint.BlackButton(canvas, layout.Filter, 4 * unit);
             HomePaint.Text(canvas, "Filter · " + (host._libraryFilter == "all" ? "All" : host._libraryFilter), layout.Filter,

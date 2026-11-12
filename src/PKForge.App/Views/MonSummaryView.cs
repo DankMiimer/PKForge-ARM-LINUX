@@ -407,7 +407,7 @@ public sealed class MonSummaryView : ContentView
         var cardTop = Math.Max(640, size.Height - 390);
         var middle = (TabsHeight + cardTop) / 2 + 6;
         if (_pageKind == SummaryPage.Stats && s.Stats.Count == 6) PaintRadar(c, 300, middle, s);
-        else PaintPokemon(c, 300, middle, s);
+        else PaintPokemon(c, 300, middle, s, cardTop);
         PaintSpeciesCard(c, cardTop, s);
     }
 
@@ -429,7 +429,7 @@ public sealed class MonSummaryView : ContentView
     /// Showdown's static front sprite for the exact form (shiny when shiny), trimmed and
     /// scaled by a whole number so its pixels stay square; PKHeX's art when Showdown has none.
     /// </summary>
-    private void PaintPokemon(SKCanvas c, float cx, float cy, MonSummary s)
+    private void PaintPokemon(SKCanvas c, float cx, float cy, MonSummary s, float cardTop)
     {
         void Redraw() => MainThread.BeginInvokeOnMainThread(_left.InvalidateSurface);
         if (s.IsEgg)
@@ -450,12 +450,8 @@ public sealed class MonSummaryView : ContentView
             sprite = _sprites.GetSprite(s.Look);
             if (sprite is null) { _sprites.Warm(s.Look, Redraw); return; }
         }
-        var k = Math.Clamp(MathF.Floor(Math.Min(520f / sprite.Width, 500f / sprite.Height)), 1, 7);
-        var w = sprite.Width * k;
-        var h = sprite.Height * k;
         using var image = SKImage.FromBitmap(sprite);
-        c.DrawImage(image, new SKRect(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2),
-            new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.None));
+        PixelSpritePaint.Draw(c, image, new(cx - 260, Math.Max(170, cy - 250), cx + 260, Math.Min(cardTop - 16, cy + 250)));
     }
 
     /// <summary>

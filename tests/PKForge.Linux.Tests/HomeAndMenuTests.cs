@@ -18,6 +18,8 @@ public sealed class HomeAndMenuTests
     [Theory]
     [InlineData(640, 480)]
     [InlineData(720, 480)]
+    [InlineData(720, 720)]
+    [InlineData(1024, 768)]
     [InlineData(1280, 720)]
     public void Home_layout_keeps_all_destinations_visible_and_can_reach_the_last_cartridge(int width, int height)
     {

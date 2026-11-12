@@ -92,7 +92,7 @@ try
     collection.AddSingleton<IEmulatorDetectionService>(sp => sp.GetRequiredService<LocalEmulatorScanner>());
     collection.AddSingleton<SaveCatalogue>(sp => new(sp.GetRequiredService<IWatchedRootStore>(), sp.GetRequiredService<IIncrementalEmulatorDetectionService>(), sp.GetRequiredService<ISaveIdentityStore>(), Path.Combine(ParkPlatform.DataDirectory, "cache", "save-catalogue-v1.json")));
     collection.AddSingleton<ISaveCatalogue>(sp => sp.GetRequiredService<SaveCatalogue>());
-    collection.AddSingleton<WorkspaceHost>(sp => new(sp, !arguments.Headless && (arguments.DisplayMode == "dual" || arguments.DisplayMode == "auto" && Sdl.SDL_GetNumVideoDisplays() >= 2 && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") is not null)));
+    collection.AddSingleton<WorkspaceHost>(sp => new(sp, false));
     collection.AddSingleton<IFileDialogService>(sp => sp.GetRequiredService<WorkspaceHost>().Files);
     collection.AddSingleton<IFolderPicker>(sp => sp.GetRequiredService<WorkspaceHost>().Files);
     collection.AddSingleton<SaveMutationService>();
@@ -125,6 +125,11 @@ try
     {
         foreach (var root in FirmwareSaveRoots.Discover()) roots.AddRoot(root);
         Preferences.Default.Set("linux.root-discovery.v1", true);
+    }
+    if (!Preferences.Default.Get("linux.root-discovery.v2", false))
+    {
+        foreach (var root in FirmwareSaveRoots.DiscoverPortable()) roots.AddRoot(root);
+        Preferences.Default.Set("linux.root-discovery.v2", true);
     }
     var library = services.GetRequiredService<ParkLibrary>();
     if (arguments.Demo) DemoRoster.Install();
@@ -211,33 +216,61 @@ try
     try
     {
         Console.WriteLine($"PKForge {Arguments.UpstreamVersion} ARM64 port; CLR={Environment.Version}; OS={RuntimeInformation.OSDescription}; SDL={Marshal.PtrToStringUTF8(Sdl.SDL_GetCurrentVideoDriver())}");
-        var dualAvailable = arguments.DisplayMode == "dual" || arguments.DisplayMode == "auto" && Sdl.SDL_GetNumVideoDisplays() >= 2 && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") is not null;
-        var dual = dualAvailable && SecondScreenMode.Allowed;
-        // On this RGDS firmware DSI-2 is physically top; [w2]/DSI-1 is bottom.
-        var controlsDisplay = dualAvailable ? (arguments.SwapScreens ? 0 : 1) : 0;
-        var parkIndex = arguments.SwapScreens ? 1 : 0;
-        using var controls = new GraphicsDevice(dualAvailable && controlsDisplay == 1 ? "[w2] PKForge Controls" : "PKForge Controls", controlsDisplay, arguments.Software || !ParkCanvas.UsesGpu, !arguments.Windowed);
-        using var parkDisplay = dualAvailable ? new GraphicsDevice(parkIndex == 1 ? "[w2] PKForge Park" : "PKForge Park", parkIndex, arguments.Software || !ParkCanvas.UsesGpu, !arguments.Windowed) : null;
-        if (dualAvailable && !dual) Sdl.SDL_HideWindow(controls.Window);
+        using var displays = new DisplaySession<GraphicsDevice>(() =>
+        {
+            var targets = new List<DisplayTarget>();
+            for (var i = 0; i < Sdl.SDL_GetNumVideoDisplays(); i++)
+                if (Sdl.SDL_GetDisplayBounds(i, out var area) == 0) targets.Add(new(i, area.W, area.H));
+            return targets;
+        }, (index, secondary) =>
+        {
+            var title = (index == 1 ? "[w2] " : "") + (secondary ? "PKForge Controls" : "PKForge Park");
+            var device = new GraphicsDevice(title, index, arguments.Software || !ParkCanvas.UsesGpu, !arguments.Windowed);
+            try { device.BeginFrame(); return device; }
+            catch { device.Dispose(); throw; }
+        }, arguments.DisplayMode, arguments.SwapScreens, Console.WriteLine);
+        displays.Refresh(SecondScreenMode.Allowed);
+        var dual = displays.Dual;
+        var controls = displays.Secondary ?? displays.Primary;
+        var parkDisplay = displays.Secondary is not null ? displays.Primary : null;
         controls.MakeCurrent();
         using var input = new InputRouter(services.GetRequiredService<GamepadRouter>(), () => library.QuitRequested = true);
+        StartupDiagnostics.Write(ParkPlatform.DataDirectory, displays.Available, dual, displays.Primary.Gpu);
         var page = services.GetRequiredService<PokeparkPage>();
         library.Attach(page, services);
         var workspace = services.GetRequiredService<WorkspaceHost>();
+        workspace.DualAvailable = displays.Available;
+        workspace.Screens.SetDual(dual);
         HostNavigation.Current = workspace;
         workspace.QuitRequested = () => library.QuitRequested = true;
+        using var journal = new JournalSurface();
+        void RefreshDisplays()
+        {
+            displays.Refresh(SecondScreenMode.Allowed, () =>
+            {
+                input.ClearHeld();
+                if (workspace.Screens.Active) workspace.Screens.Current?.Leave();
+                (parkDisplay ?? controls).MakeCurrent(); workspace.Screens.Primary.ReleaseSurface(); page.ParkView.ReleaseSurface();
+                controls.MakeCurrent(); journal.ReleaseSurface(); workspace.Screens.ControlRoot.ReleaseSurface(); page.ControlRoot.ReleaseSurface();
+            });
+            dual = displays.Dual;
+            controls = displays.Secondary ?? displays.Primary;
+            parkDisplay = displays.Secondary is not null ? displays.Primary : null;
+            workspace.DualAvailable = displays.Available;
+            workspace.Screens.SetDual(dual); page.ControlRoot.ExcludedInput = dual ? page.ParkView : null;
+            controls.MakeCurrent();
+            if (workspace.Screens.Active) workspace.Screens.Current?.Enter();
+        }
         workspace.SecondScreenRequested = enabled =>
         {
-            SecondScreenMode.SetUserOff(!enabled); dual = dualAvailable && enabled;
-            workspace.Screens.SetDual(dual); page.ControlRoot.ExcludedInput = dual ? page.ParkView : null;
-            if (dualAvailable) { if (dual) Sdl.SDL_ShowWindow(controls.Window); else Sdl.SDL_HideWindow(controls.Window); }
+            SecondScreenMode.SetUserOff(!enabled); RefreshDisplays();
         };
         workspace.ParkRequested = () => { workspace.Screens.Deactivate(); page.RefreshRoster(); page.Appear(); };
         page.PrepareBenchmark(arguments.Phase, arguments.Weather, arguments.Seconds > 0);
         if (arguments.StartPage == "park" || arguments.Demo) page.Appear(); else workspace.OpenHome();
         Console.WriteLine($"WORKSPACE active={workspace.Screens.Active}, screen={workspace.Screens.Current?.GetType().Name}");
         page.ControlRoot.ExcludedInput = dual ? page.ParkView : null;
-        using var touchPanels = RgdsTouch.TryCreate(dualAvailable);
+        using var touchPanels = RgdsTouch.TryCreate(displays.Available);
         using var lid = new LidMonitor();
         using var terminate = OperatingSystem.IsLinux() ? PosixSignalRegistration.Create(PosixSignal.SIGTERM, context => { context.Cancel = true; library.QuitRequested = true; }) : null;
         using var pause = OperatingSystem.IsLinux() ? PosixSignalRegistration.Create((PosixSignal)10, context => { context.Cancel = true; UiDispatcher.Instance.Dispatch(App.Suspend); }) : null;
@@ -247,7 +280,6 @@ try
             page.Disappear(); workspace.OpenHome();
             UiDispatcher.Instance.Dispatch(() => _ = workspace.Screens.RunAsync(workspace.RecoveryAsync));
         }
-        using var journal = new JournalSurface();
         services.GetRequiredService<SdlMusicPlayer>().Initialize();
         var timer = Stopwatch.StartNew();
         var performance = new FrameStatistics();
@@ -256,6 +288,8 @@ try
         var lastMotion = timer.Elapsed.TotalSeconds;
         workspace.Screens.Changed = () => { lastControl = -1000; if (workspace.Screens.Active) { page.Disappear(); services.GetRequiredService<IMusicPlayer>().EnterPlace(MusicPlace.Menus); } };
         var mouseHeld = false;
+        var refreshDisplays = false;
+        var wasSuspended = App.IsSuspended;
         while (!library.QuitRequested && (arguments.Seconds <= 0 || timer.Elapsed.TotalSeconds < arguments.Seconds))
         {
             controls.MakeCurrent();
@@ -263,9 +297,10 @@ try
             while (Sdl.SDL_PollEvent(out var e) != 0)
             {
                 if (e.Type == Sdl.Quit) { library.QuitRequested = true; break; }
+                if (e.Type == Sdl.DisplayEvent) { refreshDisplays = true; continue; }
                 if (e.Type == Sdl.WindowEvent && e.WindowKind == 14) { library.QuitRequested = true; break; }
                 if (e.Type == 0x103) App.Suspend();
-                if (e.Type == 0x106) App.Resume();
+                if (e.Type == 0x106) { App.Resume(); refreshDisplays = true; }
                 if (input.Handle(e)) continue;
                 var finger = e.Type is Sdl.FingerDown or Sdl.FingerUp or Sdl.FingerMotion;
                 if (finger && touchPanels is not null) continue;
@@ -297,8 +332,15 @@ try
                     else page.ControlRoot.HandleTouch(touch);
                 }
             }
-            input.Update();
             lid.Pump();
+            if (wasSuspended && !App.IsSuspended) refreshDisplays = true;
+            wasSuspended = App.IsSuspended;
+            if (refreshDisplays && !App.IsSuspended)
+            {
+                RefreshDisplays(); refreshDisplays = false; mouseHeld = false;
+                lastControl = -1000;
+            }
+            input.Update();
             touchPanels?.Pump(controls.Width, controls.Height, (top, touch) =>
             {
                 if (!dual && !top) return;
@@ -311,7 +353,7 @@ try
                     if (services.GetRequiredService<GamepadRouter>().IsTop(page)) page.ParkView.HandleTouch(touch);
                 }
                 else page.ControlRoot.HandleTouch(touch);
-            });
+            }, arguments.SwapScreens && displays.Available);
             services.GetRequiredService<SdlMusicPlayer>().Tick();
             if (App.IsSuspended) { Thread.Sleep(20); continue; }
             var now = timer.Elapsed.TotalMilliseconds;
@@ -403,7 +445,7 @@ catch (Exception error)
 internal sealed record Arguments
 {
     public const string UpstreamVersion = "3.1.1";
-    public const string PortRevision = "0.2.2-dev";
+    public const string PortRevision = "0.2.3-dev";
     public const string HelpText = "PKForge 3.1.1\n--data-dir PATH --start-page home|park --display-mode auto|single|dual --swap-screens --software --windowed\n--save PATH --demo --headless --seconds N --screenshot\n--headless-width N --headless-height N (Home/workspace capture size)\n--headless-input \"A Right A\" (pad presses before the capture; hold:A / release:A split one)\n--phase Morning|Day|Evening|Night --weather Sunny|Cloudy|Rain|Storm\n--input-script PATH (timed controller actions for integration testing)";
     public string StartPage { get; init; } = "home";
     public string HeadlessScreen { get; init; } = "home";
@@ -517,5 +559,6 @@ internal sealed class JournalSurface : IDisposable
 {
     private readonly PokeparkJournalView _view = new();
     public void Draw(SKCanvas canvas, SKRect rect, GraphicsDevice device) => _view.Draw(canvas, rect, device);
+    public void ReleaseSurface() => _view.ReleaseSurface();
     public void Dispose() { _view.Detach(); _view.ReleaseSurface(); }
 }

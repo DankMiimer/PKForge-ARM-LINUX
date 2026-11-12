@@ -24,7 +24,7 @@ public sealed partial class WorkspaceHost : INavigation
     public Action? ParkRequested { get; set; }
     public Action? QuitRequested { get; set; }
     public Action<bool>? SecondScreenRequested { get; set; }
-    public bool DualAvailable { get; }
+    public bool DualAvailable { get; set; }
     public string Status { get; private set; } = "Choose a game, open a save, or browse your Bank.";
     private T Get<T>() where T : notnull => _services.GetRequiredService<T>();
     public WorkspaceHost(IServiceProvider services, bool dual)

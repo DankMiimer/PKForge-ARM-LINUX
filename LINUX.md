@@ -6,7 +6,7 @@ scene, interaction handlers, overlays, game rules, save engines and Bank format.
 It is an experimental preview; see `VALIDATION.md` for measured results and open
 release checks.
 
-Linux revision `0.2.2-dev` extends the park preview with a native Home library,
+Linux revision `0.2.3-dev` extends the park preview with a native Home library,
 Pokémon and save editors, Bank organization, durable transfers/recovery, generation,
 offline events, collection tools, Showdown/QR and game-specific tools. This is a
 development checkpoint towards full v3.1.1 parity. `FEATURE_COVERAGE.md` records
@@ -16,12 +16,25 @@ has passed acceptance.
 
 ## Install
 
-Extract `PKForge-v3.1.1-linux-0.2.2-dev-arm64.zip` into the Ports directory:
+Extract `PKForge-v3.1.1-linux-0.2.3-dev-arm64.zip` into the Ports directory:
 
 | Firmware | Directory |
 | --- | --- |
 | ROCKNIX | `/roms/ports/` (normally `/storage/roms/ports/`) |
 | KNULLI | `/userdata/roms/ports/` |
+| dArkOS (ARM64, including compatible R36S community images) | `/roms/ports/` or `/roms2/ports/` |
+| muOS | Data: `/mmc/ports/pkforge/`; launchers: `/mnt/mmc/ROMS/Ports/` |
+
+The muOS launcher also recognizes `/mnt/mmc/ports/pkforge` and
+`/mnt/sdcard/ports/pkforge`. A sibling `pkforge` folder takes precedence. Set
+`PKFORGE_HOME` to the directory containing `app` for another card layout.
+
+For NextUI choose `nextui-<platform>-arm64.zip`: `tg5040` for TrimUI
+Brick/Brick Pro/Smart Pro, `tg5050` for Smart Pro S, or `h700` for Anbernic H700.
+Extract at the SD-card root. It installs `Tools/<platform>/PKForge.pak` and
+`PKForge Pokepark.pak`; keep both together. Both share `.userdata/shared/pkforge`,
+outside the replaceable Paks. Preserve that directory during updates. muOS,
+dArkOS and NextUI are experimental until tested on their respective hardware.
 
 Keep `PKForge.sh` and `PKForge Pokepark.sh` beside the `pkforge` directory. Refresh
 the game list if needed. **PKForge** opens Home; **PKForge Pokepark** opens the park
@@ -73,6 +86,7 @@ the Linux library-actions list, including scan, continue and quit.
 | D-pad left / right | Select residents |
 | D-pad up / down | Zoom |
 | Left stick | Pan the camera, when available |
+| Hold L2 + D-pad | Pan without sticks; normal D-pad actions resume on release |
 | Right stick | Zoom, when available |
 | Start | Options |
 | Select | Spectate |
@@ -85,8 +99,15 @@ Use `--swap-screens` only if another firmware assigns those connectors different
 ROCKNIX's EmulationStation can leave the bottom panel disabled in sway, so SDL would
 see one display. On dual-screen ROCKNIX devices, `PKForge.sh` turns on any disabled or
 powered-off internal panel before starting and restores each panel's state on exit.
-Single-screen handhelds use overlay menus. Where SDL has no controller mapping,
-the port imports that device's existing EmulationStation input configuration.
+Single-screen handhelds use overlay menus. Automatic detection uses SDL's usable
+outputs on every backend; a failed secondary window falls back to one screen.
+Display changes and resume trigger a recheck. The saved second-screen toggle
+and `--display-mode auto|single|dual` / `--swap-screens` overrides remain.
+Where SDL has no mapping, the port imports the existing EmulationStation input
+configuration, then tries identified NextUI device profiles. A user
+`userdata/gamecontrollerdb.txt` takes precedence. L2 button and analog-trigger
+bindings both work; the desktop keyboard uses E. Camera input clears when menus
+open, focus is lost, controllers disconnect or the app suspends.
 
 PKForge follows the firmware's configured lid and power behavior. Its lid monitor
 only pauses/resumes application activity and saves park state; it does not change
@@ -147,8 +168,21 @@ source manifest verifies all source files and pinned dependencies. Do not run
 `git submodule update` inside an extracted archive. See `RELEASING.md` for CI and
 publication. The native package targets
 `linux-arm64`, uses SkiaSharp 3.116.1 and keeps trimming/AOT disabled. Linux native
-dependencies are separate from the bundled CLR; SDL2, SDL2_mixer, GLES, ICU and
-OpenSSL must be available in the firmware.
+dependencies are separate from the bundled CLR. App-local ICU 72.1.0.3 retains
+Unicode/globalization support. ARM64 glibc **2.29 or newer**, SDL2, libgcc,
+libstdc++ and zlib are required. Firmware SDL/GPU libraries take precedence;
+missing SDL2_mixer disables music and unavailable GLES falls back to raster where
+SDL can create a raster window. KNULLI's Mali-only SDL requires working firmware
+EGL even for those windows; missing EGL leaves a readable failure in the log.
+HTTPS downloads need compatible OpenSSL and CA certificates. The launcher does
+not install OS libraries or source firmware mods that rewrite graphics links;
+missing Mali EGL/GLES SONAMEs use private compatibility links.
+
+`userdata/launcher.log` records preflight/startup failures; graphical startup also
+writes `startup-diagnostics.json`. Controller names and mapping selection appear
+in the log, which rotates at 1 MiB. `app/native-dependencies.json` records native
+hashes, required symbol versions and NuGet provenance. Packaging rejects a higher
+glibc requirement or a wrong CPU architecture.
 
 Developer flags:
 

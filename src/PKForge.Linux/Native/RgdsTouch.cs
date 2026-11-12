@@ -28,10 +28,10 @@ internal sealed class RgdsTouch : IDisposable
         }
         catch (IOException error) { top?.Dispose(); Console.Error.WriteLine("TOUCH SDL fallback: " + error.Message); return null; }
     }
-    public void Pump(int width, int height, Action<bool, SKTouchEventArgs> dispatch)
+    public void Pump(int width, int height, Action<bool, SKTouchEventArgs> dispatch, bool swap = false)
     {
-        _top.Pump(width, height, e => dispatch(true, e));
-        _bottom.Pump(width, height, e => dispatch(false, e));
+        _top.Pump(width, height, e => dispatch(!swap, e));
+        _bottom.Pump(width, height, e => dispatch(swap, e));
     }
     public void Dispose() { _top.Dispose(); _bottom.Dispose(); }
     private sealed class TouchDevice : IDisposable

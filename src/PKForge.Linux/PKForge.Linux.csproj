@@ -9,6 +9,10 @@
     <RuntimeFrameworkVersion>10.0.3</RuntimeFrameworkVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-arm64'">
+    <PackageReference Include="Microsoft.ICU.ICU4C.Runtime" Version="72.1.0.3" />
+    <RuntimeHostConfigurationOption Include="System.Globalization.AppLocalIcu" Value="72.1.0.3" />
+  </ItemGroup>
   <ItemGroup>
     <Content Include="../PKForge.App/Resources/UI/dex/*.bin.gz" Link="assets/dex/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../PKForge.App/Resources/Events/*.bin.gz" Link="assets/events/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

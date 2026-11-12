@@ -77,6 +77,9 @@ public sealed partial class PokeparkPage : ContentPage, IPadHandler, IPadStickHa
             ("LR", "Places", () => FlyToPlace(1)),
             // Up and Down zoom, for players without a touch screen.
             ("↑↓", "Zoom", () => _scene.Viewport.Zoom(1)),
+#if LINUX
+            ("L2+✚", "Pan", null),
+#endif
             ("X", "Photo", () => _ = TakePhotoAsync()),
             ("+", "Options", () => _ = OptionsAsync()),
             // − lets the camera follow whatever is happening in the park.

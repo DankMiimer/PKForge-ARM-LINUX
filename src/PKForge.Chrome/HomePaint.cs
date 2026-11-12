@@ -48,7 +48,7 @@ public sealed record HomeLayout(float Unit, SKRect Header, SKRect Filter, SKRect
         var unit = Math.Clamp(bounds.Height / 480f, .75f, 2f);
         var footer = SKRect.Create(bounds.Left, bounds.Bottom - 42 * unit, bounds.Width, 42 * unit);
         var tiles = new SKRect(bounds.Left + 14 * unit, footer.Top - 98 * unit, bounds.Right - 14 * unit, footer.Top - 10 * unit);
-        var header = SKRect.Create(bounds.Left + 14 * unit, bounds.Top + 64 * unit, bounds.Width - 28 * unit, 26 * unit);
+        var header = SKRect.Create(bounds.Left + 14 * unit, bounds.Top + 36 * unit, bounds.Width - 28 * unit, 26 * unit);
         return new(unit, header, SKRect.Create(header.Right - 100 * unit, header.Top, 100 * unit, header.Height),
             new(header.Left, header.Bottom + 6 * unit, header.Right, tiles.Top - 10 * unit), tiles, footer);
     }

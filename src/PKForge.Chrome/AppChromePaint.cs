@@ -12,15 +12,22 @@ public static class AppChromePaint
         canvas.DrawRect(bounds.Left, bounds.Top, bounds.Width, 28 * unit, fill);
         using var titleFont = new SKFont(face, 16 * unit);
         PksmPaint.CenterText(canvas, title, bounds.MidX, bounds.Top + 14 * unit, titleFont, ColorTheme.Current.Bright, SKColors.Transparent, SKTextAlign.Center);
-        fill.Color = Pksm.Paper; canvas.DrawRect(bounds.Left, bounds.Top + 28 * unit, bounds.Width, 26 * unit, fill);
+        StatusStrip(canvas, new(bounds.Left, bounds.Top + 28 * unit, bounds.Right, bounds.Bottom), face, unit, statusName, status);
+    }
+
+    public static void StatusStrip(SKCanvas canvas, SKRect bounds, SKTypeface face, float unit = 1,
+        string statusName = "PKForge", string status = "Offline")
+    {
+        using var fill = new SKPaint { Color = Pksm.Paper };
+        canvas.DrawRect(bounds.Left, bounds.Top, bounds.Width, 26 * unit, fill);
         using var statusFont = new SKFont(face, 14 * unit);
-        var statusLeft = bounds.Left + 12 * unit; var statusY = bounds.Top + 41 * unit;
+        var statusLeft = bounds.Left + 12 * unit; var statusY = bounds.Top + 13 * unit;
         PksmPaint.CenterText(canvas, statusName, statusLeft, statusY, statusFont, Pksm.Ink, SKColors.Transparent);
         var marker = statusLeft + statusFont.MeasureText(statusName) + 15 * unit;
         fill.Color = Pksm.InkSoft; canvas.DrawRect(marker, statusY - 3 * unit, 6 * unit, 6 * unit, fill);
         using var flagFont = new SKFont(face, 13.5f * unit);
         PksmPaint.CenterText(canvas, status, marker + 21 * unit, statusY, flagFont, Pksm.InkSoft, SKColors.Transparent);
-        fill.Color = Pksm.InkSoft; var battery = SKRect.Create(bounds.Right - 34 * unit, bounds.Top + 35 * unit, 22 * unit, 12 * unit);
+        fill.Color = Pksm.InkSoft; var battery = SKRect.Create(bounds.Right - 34 * unit, bounds.Top + 7 * unit, 22 * unit, 12 * unit);
         canvas.DrawRoundRect(battery, 2 * unit, 2 * unit, fill);
         fill.Color = Pksm.Paper; canvas.DrawRect(SKRect.Inflate(battery, -2 * unit, -2 * unit), fill);
         fill.Color = Pksm.Legal; canvas.DrawRect(new(battery.Left + 3 * unit, battery.Top + 3 * unit, battery.Right - 8 * unit, battery.Bottom - 3 * unit), fill);

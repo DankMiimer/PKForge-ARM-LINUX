@@ -2,7 +2,7 @@ PKForge v3.1.1 adapted for ARM64 ROCKNIX and KNULLI with a native .NET 10 / SDL2
 
 ## Download and install
 
-Download **PKForge-v3.1.1-linux-0.2.2-dev-arm64.zip** and extract it into your firmware's Ports directory:
+Download **PKForge-v3.1.1-linux-0.2.3-dev-arm64.zip** and extract it into your firmware's Ports directory:
 
 - ROCKNIX: `/storage/roms/ports/`
 - KNULLI: `/userdata/roms/ports/`
@@ -13,6 +13,12 @@ For upgrades, close PKForge and preserve **all of `pkforge/userdata`**. The ZIP 
 
 ## Included
 
+- Removed the branded dark title strip while retaining status and page headings.
+- Summary sprites use final-framebuffer pixel scaling and aligned placement.
+- L2 + D-pad camera panning, SDL-based display detection and secondary failure fallback.
+- Relocatable firmware launchers, bundled ICU, native ABI manifests and experimental
+  muOS, dArkOS and NextUI packages. See `LINUX.md` for requirements and layouts.
+
 - The v3.1.1 Poképark, with map, weather, social interactions, daycare, photos and animated sprite caching.
 - Native save library, Pokémon/Bank editing, organization, durable transfers/recovery, creation and reference tools, offline events and supported game-specific save tools.
 - RGDS dual-screen routing and touch; RG34XXSP single-screen gamepad navigation.
@@ -22,7 +28,7 @@ For upgrades, close PKForge and preserve **all of `pkforge/userdata`**. The ZIP 
 
 Reference hardware: RGDS with ROCKNIX 20261001 and RG34XXSP with KNULLI Scarab. Other ARM64 handhelds remain experimental. .NET 10.0.3 is bundled; SDL2, SDL2_mixer and system/graphics dependencies must be available in the firmware.
 
-The desktop suite passes 1,898 tests and the workflow/animation harness passes 71/71 on each reference device. Historical 31-minute hardware runs met the 29.5 FPS warm park-only measurement gate. Wider format/editor acceptance and long-session memory stability remain open; this release does not claim complete v3.1.1 parity. RGDS lid resume passed owner testing; RG34XXSP retained its configured shutdown-on-close policy.
+The desktop suite passes 1,953 tests. Previous workflow/animation harness runs passed 71/71 on each reference device. This candidate ran from separate test installations on RGDS and RG34XXSP: both launchers, graphical summaries and display fallbacks passed, with 30.00 FPS in both complete warm park minutes on each handheld. Existing application/data files were verified unchanged and each frontend restored. Physical L2/D-pad, touch and hotplug checks remain owner acceptance. Historical 31-minute hardware runs met the 29.5 FPS warm park-only measurement gate. Wider format/editor acceptance and long-session memory stability remain open; this release does not claim complete v3.1.1 parity. RGDS lid resume passed owner testing; RG34XXSP retained its configured shutdown-on-close policy.
 
 See the repository's `FEATURE_COVERAGE.md`, `VALIDATION.md` and `LINUX.md` for scope, controls and measured limitations. Official Android APKs remain available from [upstream PKForge](https://github.com/sofianeelhor/PKForge/releases).
 

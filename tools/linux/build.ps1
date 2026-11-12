@@ -1,4 +1,4 @@
-param([string]$Configuration = 'Release')
+param([string]$Configuration = 'Release', [switch]$Candidate)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 Add-Type -AssemblyName System.IO.Compression
@@ -7,6 +7,7 @@ $publishDirectory = Join-Path $repoRoot 'artifacts\release-publish'
 $packageDirectory = Join-Path $repoRoot 'artifacts\package'
 $appDirectory = Join-Path $packageDirectory 'pkforge\app'
 $distributionDirectory = Join-Path $repoRoot 'dist'
+if ($Candidate) { $distributionDirectory = Join-Path $distributionDirectory 'candidate' }
 $portRevision = [regex]::Match([IO.File]::ReadAllText((Join-Path $repoRoot 'src\PKForge.Linux\Program.cs')), 'public const string PortRevision = "([^"]+)";').Groups[1].Value
 if (-not $portRevision) { throw 'Could not read the Linux revision.' }
 function New-PortableArchive([string]$Root, [string]$Destination) {
@@ -15,7 +16,7 @@ function New-PortableArchive([string]$Root, [string]$Destination) {
         foreach ($file in (Get-ChildItem -LiteralPath $Root -File -Recurse -Force | Sort-Object FullName)) {
             $relative = $file.FullName.Substring($Root.Length + 1).Replace('\', '/')
             $entry = $zip.CreateEntry($relative, [IO.Compression.CompressionLevel]::Optimal)
-            $mode = if ($relative.EndsWith('.sh') -or $relative -eq 'pkforge/app/pkforge') { 33261 } else { 33188 }
+            $mode = if ($relative.EndsWith('.sh') -or $relative.EndsWith('/app/pkforge')) { 33261 } else { 33188 }
             $entry.ExternalAttributes = $mode -shl 16
             $inputFile = $file.OpenRead()
             $outputFile = $entry.Open()
@@ -47,8 +48,14 @@ function New-PortableArchive([string]$Root, [string]$Destination) {
 Push-Location $repoRoot
 try {
     . (Join-Path $PSScriptRoot 'source.ps1')
-    $provenance = Read-SourceProvenance $repoRoot
-    dotnet publish src/PKForge.Linux/PKForge.Linux.csproj -c $Configuration -r linux-arm64 --self-contained true -p:PublishTrimmed=false -p:PublishAot=false -o $publishDirectory --nologo
+    . (Join-Path $PSScriptRoot 'native.ps1')
+    $provenance = Read-SourceProvenance $repoRoot -AllowDirty:$Candidate
+    if (Test-Path -LiteralPath $publishDirectory) {
+        $safePublish = [IO.Path]::GetFullPath($publishDirectory)
+        if (-not $safePublish.StartsWith([IO.Path]::GetFullPath((Join-Path $repoRoot 'artifacts')) + [IO.Path]::DirectorySeparatorChar)) { throw 'Unsafe publish path.' }
+        Remove-Item -LiteralPath $safePublish -Recurse -Force
+    }
+    dotnet publish src/PKForge.Linux/PKForge.Linux.csproj -c $Configuration -r linux-arm64 --self-contained true -p:PublishTrimmed=false -p:PublishAot=false "-p:PKForgeBuildRevision=$($provenance.portCommit)" "-p:PKForgePkhexRevision=$($provenance.submodules.'external/PKHeX')" -o $publishDirectory --nologo
     if ($LASTEXITCODE) { throw 'Publish failed.' }
     # Only generated directories below this repository's artifacts folder may be replaced.
     $artifactRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot 'artifacts')) + [IO.Path]::DirectorySeparatorChar
@@ -59,10 +66,12 @@ try {
     # Copy into app, preserving content paths.
     Get-ChildItem -LiteralPath $publishDirectory -Force | Where-Object Name -NotIn @('userdata', 'cache', 'exports', 'imports') | Copy-Item -Destination $appDirectory -Recurse -Force
     Get-ChildItem -LiteralPath $appDirectory -Filter '*.pdb' | Remove-Item -Force
+    Copy-Item -LiteralPath 'packaging/linux/launch.sh' -Destination $appDirectory
     Copy-Item -LiteralPath 'packaging\linux\PKForge.sh','packaging\linux\PKForge Pokepark.sh' -Destination $packageDirectory
     Copy-Item -LiteralPath 'packaging\linux\port.json' -Destination (Join-Path $packageDirectory 'pkforge')
     Copy-Item -LiteralPath 'LINUX.md','VALIDATION.md','FEATURE_COVERAGE.md','ACTION_INVENTORY.md','packaging\linux\ATTRIBUTION.md','LICENSE' -Destination (Join-Path $packageDirectory 'pkforge')
     $assets = Get-Content 'src\PKForge.Linux\obj\project.assets.json' -Raw | ConvertFrom-Json
+    Write-NativeManifest $appDirectory $assets
     $packageCache = $assets.packageFolders.PSObject.Properties.Name | Select-Object -First 1
     $runtimeVersion = (Get-Content (Join-Path $publishDirectory 'pkforge.runtimeconfig.json') -Raw | ConvertFrom-Json).runtimeOptions.includedFrameworks[0].version
     $noticePackages = @($assets.libraries.PSObject.Properties | Where-Object { $_.Value.type -eq 'package' } | ForEach-Object { $_.Value.path })
@@ -80,7 +89,7 @@ try {
         [ordered]@{ path=$_.FullName.Substring($manifestRoot.Length+1).Replace('\','/'); bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
     })
     [IO.File]::WriteAllText((Join-Path $appDirectory 'asset-manifest.json'), (ConvertTo-Json -InputObject $assetManifest -Depth 4))
-    $buildInfo = [ordered]@{ upstream='3.1.1'; upstreamCommit=$provenance.upstreamCommit; linux=$portRevision; portCommit=$provenance.portCommit; submodules=$provenance.submodules; dirty=$false; sdk=(dotnet --version); runtime=$runtimeVersion; rid='linux-arm64'; configuration=$Configuration }
+    $buildInfo = [ordered]@{ upstream='3.1.1'; upstreamCommit=$provenance.upstreamCommit; linux=$portRevision; portCommit=$provenance.portCommit; submodules=$provenance.submodules; dirty=$provenance.dirty; candidate=[bool]$Candidate; minimumGlibc='2.29'; sdk=(dotnet --version); runtime=$runtimeVersion; rid='linux-arm64'; configuration=$Configuration }
     $buildJson = ConvertTo-Json -Depth 5 -InputObject $buildInfo
     [IO.File]::WriteAllText((Join-Path $distributionDirectory 'BUILDINFO.json'), $buildJson)
     [IO.File]::WriteAllText((Join-Path $packageDirectory 'pkforge\BUILDINFO.json'), $buildJson)
@@ -91,6 +100,25 @@ try {
     $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
     [IO.File]::WriteAllText($archive + '.sha256', $hash + '  ' + [IO.Path]::GetFileName($archive) + "`n")
     Write-Output $archive
+    $binaryArchives = @($archive)
+    foreach ($platform in @('tg5040', 'tg5050', 'h700')) {
+        $nextRoot = Join-Path $repoRoot "artifacts/nextui-$platform"
+        if (-not ([IO.Path]::GetFullPath($nextRoot)).StartsWith($artifactRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe NextUI path.' }
+        if (Test-Path -LiteralPath $nextRoot) { Remove-Item -LiteralPath $nextRoot -Recurse -Force }
+        $toolsRoot = Join-Path $nextRoot "Tools/$platform"
+        $homePak = Join-Path $toolsRoot 'PKForge.pak'
+        $parkPak = Join-Path $toolsRoot 'PKForge Pokepark.pak'
+        New-Item -ItemType Directory -Force -Path $homePak,$parkPak | Out-Null
+        Copy-Item -LiteralPath (Join-Path $packageDirectory 'pkforge') -Destination $homePak -Recurse
+        $launcher = [IO.File]::ReadAllText((Join-Path $repoRoot 'packaging/linux/nextui-launch.sh'))
+        [IO.File]::WriteAllText((Join-Path $homePak 'launch.sh'), $launcher.Replace('@ENTRY@', 'home'))
+        [IO.File]::WriteAllText((Join-Path $parkPak 'launch.sh'), $launcher.Replace('@ENTRY@', 'park'))
+        $nextArchive = Join-Path $distributionDirectory "PKForge-v3.1.1-linux-$portRevision-nextui-$platform-arm64.zip"
+        if (Test-Path -LiteralPath $nextArchive) { Remove-Item -LiteralPath $nextArchive }
+        New-PortableArchive $nextRoot $nextArchive
+        $binaryArchives += $nextArchive
+        Write-Output $nextArchive
+    }
     # Export complete committed sources, including both pinned submodules. The
     # receipt also lets the extracted source build without a .git directory.
     $sourceDirectory = [IO.Path]::GetFullPath((Join-Path $repoRoot 'artifacts\complete-source'))
@@ -102,7 +130,7 @@ try {
     if (Test-Path -LiteralPath $sourceArchive) { Remove-Item -LiteralPath $sourceArchive }
     New-PortableArchive $sourceDirectory $sourceArchive
     Write-Output $sourceArchive
-    $checksums = @($archive, $sourceArchive, (Join-Path $distributionDirectory 'BUILDINFO.json')) | ForEach-Object {
+    $checksums = @($binaryArchives) + @($sourceArchive, (Join-Path $distributionDirectory 'BUILDINFO.json')) | ForEach-Object {
         (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + [IO.Path]::GetFileName($_)
     }
     [IO.File]::WriteAllText((Join-Path $distributionDirectory 'SHA256SUMS.txt'), ($checksums -join "`n") + "`n")

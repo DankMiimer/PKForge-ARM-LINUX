@@ -199,11 +199,11 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
         _cursor = Math.Clamp(_cursor, bank ? 0 : -1, Math.Max(0, SlotCount - 1));
         var slots = Slots;
         PksmPaint.LogoGrid(canvas, bounds, 14, 1);
-        AppChromePaint.Header(canvas, bounds, "PKForge", PixelFont.Face, statusName: bank ? "Bank" : Host.SaveTitle, status: bank ? "Open" : "Connected");
+        AppChromePaint.StatusStrip(canvas, bounds, PixelFont.Face, statusName: bank ? "Bank" : Host.SaveTitle, status: bank ? "Open" : "Connected");
         if (secondary) { PaintInspector(canvas, bounds); return; }
         var unit = Math.Max(bounds.Width, bounds.Height) / 1920;
         var left = 48 * unit; var right = 28 * unit;
-        var bar = SKRect.Create(left, 54 + 32 * unit, bounds.Width - left - right, 72 * unit);
+        var bar = SKRect.Create(left, bounds.Top + 26 + 32 * unit, bounds.Width - left - right, 72 * unit);
         using var headerFont = new SKFont(PixelFont.Face, 34 * unit);
         StoragePaint.BoxHeader(canvas, bar, HeaderName, headerFont, Box > 0, Box < BoxCount - 1, unit);
         // BankPage pads its body 20 (BoxBrowserPage 34) and stacks its LCD status line over the footer.
@@ -335,7 +335,7 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
             _inspector.Show(Selected is not null ? Host.BuildSummary(Target) : null,
                 emptyText: "Empty slot · A: import or generate a Pokémon");
         }
-        if (Host.Screens.DrawingDevice is { } device) _inspector.Draw(canvas, new(12, 62, bounds.Right - 12, bounds.Bottom - 45), device);
+        if (Host.Screens.DrawingDevice is { } device) _inspector.Draw(canvas, new(12, bounds.Top + 34, bounds.Right - 12, bounds.Bottom - 45), device);
         NativePaint.Footer(canvas, bounds, bank ? "+: menu · −: page" : "+: menu");
     }
 

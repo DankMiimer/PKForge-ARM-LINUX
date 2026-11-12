@@ -18,6 +18,7 @@ public sealed class GraphicsDevice : IDisposable
     private SKBitmap? _pixels;
     private SKSurface? _screen;
     private GRBackendRenderTarget? _target;
+    private bool _disposed;
     public SKSurface CurrentSurface => _screen ?? throw new InvalidOperationException("Begin a frame before drawing.");
     internal int CompositionDepth { get; set; }
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void GlGetInteger(uint name, out int value);
@@ -71,13 +72,18 @@ public sealed class GraphicsDevice : IDisposable
             if (Window == IntPtr.Zero) throw new InvalidOperationException("SDL window: " + Sdl.Error);
             _renderer = Sdl.SDL_CreateRenderer(Window, -1, 2);
             if (_renderer == IntPtr.Zero) _renderer = Sdl.SDL_CreateRenderer(Window, -1, 1);
-            if (_renderer == IntPtr.Zero) throw new InvalidOperationException("SDL presentation: " + Sdl.Error);
+            if (_renderer == IntPtr.Zero)
+            {
+                Sdl.SDL_DestroyWindow(Window);
+                throw new InvalidOperationException("SDL presentation: " + Sdl.Error);
+            }
         }
         WindowId = Sdl.SDL_GetWindowID(Window);
         Console.WriteLine($"WINDOW {title}: SDL={driver}, Skia={(Gpu ? "GLES" : "raster")}");
     }
     public void MakeCurrent()
     {
+        if (_disposed) return;
         if (_gl != IntPtr.Zero && Sdl.SDL_GL_MakeCurrent(Window, _gl) != 0) throw new InvalidOperationException(Sdl.Error);
     }
     public SKSurface BeginFrame()
@@ -141,7 +147,10 @@ public sealed class GraphicsDevice : IDisposable
     }
     public void Dispose()
     {
-        MakeCurrent();
+        if (_disposed) return;
+        // A disconnected monitor can already have invalidated its GL context.
+        if (_gl != IntPtr.Zero) Sdl.SDL_GL_MakeCurrent(Window, _gl);
+        _disposed = true;
         _screen?.Dispose(); _target?.Dispose(); _pixels?.Dispose(); _context?.Dispose(); _interface?.Dispose();
         if (_texture != IntPtr.Zero) Sdl.SDL_DestroyTexture(_texture);
         if (_renderer != IntPtr.Zero) Sdl.SDL_DestroyRenderer(_renderer);
