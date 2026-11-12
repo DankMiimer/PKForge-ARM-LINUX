@@ -16,7 +16,7 @@ public sealed partial class WorkspaceHost
         private static readonly (string Icon, string Label)[] Destinations =
             [("bank", "Bank"), ("pokedex", "Dex Autopilot"), ("park", "Poképark"), ("events", "Events"), ("settings", "Settings")];
         private static readonly (string Key, string Label)[] Hints =
-            [("A", "Open"), ("B", "Edit game · hold"), ("L", "Filter"), ("Y", "Link"), ("X", "File"), ("+", "Settings"), ("−", "Menu / quit")];
+            [("A", "Open"), ("B", "Edit game"), ("L", "Filter"), ("Y", "Link"), ("X", "File"), ("+", "Settings"), ("−", "Menu / quit")];
         private readonly Spring _scroll = new(0);
         private TouchScroller? _touchScroll;
         private TouchScroller TouchScroll => _touchScroll ??= new(UiDispatcher.Instance,
