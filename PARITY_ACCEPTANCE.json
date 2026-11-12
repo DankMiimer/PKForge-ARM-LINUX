@@ -1697,7 +1697,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Original picker is shared with virtualized Linux controls. The recorded settled 720px sample has five row-label anchors within 0.8px; pixel/raster review, initial centering, 640px reference and complete state/timeline acceptance remain pending."
+      "notes": "Original picker is shared with virtualized Linux controls. Per-container native pixel rounding makes the five recorded settled 720px row-label rectangles match exactly; pixel/raster review, initial centering, 640px reference and complete state/timeline acceptance remain pending."
     },
     {
       "id": "PixelFont",

@@ -19,12 +19,12 @@
   },
   "linux": {
     "image": "linux-preview.png",
-    "sha256": "7a50d54f84741b442df4c626278d34fd3a387c6b4a5645bcaa27b81fd56910b3",
+    "sha256": "edf221e35872fc63b80f6447f7163ff188a10866954a50b9f06aeff5fb485b29",
     "backend": "Linux x64 Skia raster preview",
-    "buildBaseCommit": "73a0405a94181db5c15cdb66ed75db0cf19135be",
-    "matchingSourceSnapshotCommit": "19041b835c6cfcdc093c35853e2c8320cffe0fd4",
+    "buildBaseCommit": "a2fe8edd0612a2e8850a83b30ce19e35daa273aa",
+    "matchingSourceSnapshotCommit": "ed1a58204e970800b9ab162dddc7b56be7bff196",
     "normalizedSourceSha256": {
-      "src/PKForge.Linux/Ui/Views.cs": "1224179a52b40ef526da8cbef287c3eaaae8c561956b8a32c6de6f0ef8448961",
+      "src/PKForge.Linux/Ui/Views.cs": "4586a5a4b2ceb78c44d169d5afbf6d91537a9ee7a9b7076255a4e62b83f305fa",
       "src/PKForge.Linux/Ui/CollectionControls.cs": "441790ccec6712dd927ed66e63ce7342f4636e84b8d9d02a7b7649a965211793",
       "src/PKForge.Linux/Ui/CanvasView.cs": "061619365d1562c44d7b7b51a6be9a19e1709ed16a428021b7fdfaef94b66e46",
       "src/PKForge.Linux/Ui/LabelText.cs": "d1e8c21ed83758f8546a62a9c9cbaa33df4b66ec15d6e9e483dcc7f4c1c67103",
@@ -44,12 +44,12 @@
         135
       ],
       "linuxBounds": [
-        147.2,
-        115.5,
-        582.8,
-        134.5
+        148,
+        116,
+        583,
+        135
       ],
-      "largestAnchorDifference": 0.8
+      "largestAnchorDifference": 0
     },
     {
       "text": "Brave",
@@ -60,12 +60,12 @@
         191
       ],
       "linuxBounds": [
-        147.2,
-        171.5,
-        582.8,
-        190.5
+        148,
+        172,
+        583,
+        191
       ],
-      "largestAnchorDifference": 0.8
+      "largestAnchorDifference": 0
     },
     {
       "text": "Adamant",
@@ -76,12 +76,12 @@
         247
       ],
       "linuxBounds": [
-        147.2,
-        227.5,
-        582.8,
-        246.5
+        148,
+        228,
+        583,
+        247
       ],
-      "largestAnchorDifference": 0.8
+      "largestAnchorDifference": 0
     },
     {
       "text": "Naughty",
@@ -92,12 +92,12 @@
         303
       ],
       "linuxBounds": [
-        147.2,
-        283.5,
-        582.8,
-        302.5
+        148,
+        284,
+        583,
+        303
       ],
-      "largestAnchorDifference": 0.8
+      "largestAnchorDifference": 0
     },
     {
       "text": "Bold",
@@ -108,12 +108,12 @@
         359
       ],
       "linuxBounds": [
-        147.2,
-        339.5,
-        582.8,
-        358.5
+        148,
+        340,
+        583,
+        359
       ],
-      "largestAnchorDifference": 0.8
+      "largestAnchorDifference": 0
     }
   ],
   "comparison": {
@@ -128,12 +128,12 @@
       381
     ],
     "pixels": 130784,
-    "exactlyChangedPixels": 11252,
-    "exactMatchFraction": 0.9139650110105212,
+    "exactlyChangedPixels": 10011,
+    "exactMatchFraction": 0.9234539393197945,
     "meanChannelDifference": [
-      6.318945742598483,
-      6.187981710300955,
-      5.8431535967702475
+      4.3218665891852215,
+      4.282091081477857,
+      4.163727978957671
     ],
     "largestChannelDifference": 229,
     "changedBoundsInCrop": [
@@ -144,8 +144,8 @@
     ],
     "neighborRadius": 1,
     "neighborColorTolerance": 8,
-    "changedPixelsWithNearbyReferenceColor": 7659,
-    "remainingChangedPixels": 3593,
+    "changedPixelsWithNearbyReferenceColor": 6422,
+    "remainingChangedPixels": 3589,
     "acceptance": "Review content, anchors, raster edges and state coverage separately.",
     "inputs": [
       {
@@ -154,7 +154,7 @@
       },
       {
         "path": "linux-preview.png",
-        "sha256": "7a50d54f84741b442df4c626278d34fd3a387c6b4a5645bcaa27b81fd56910b3"
+        "sha256": "edf221e35872fc63b80f6447f7163ff188a10866954a50b9f06aeff5fb485b29"
       }
     ]
   },
@@ -169,7 +169,9 @@
     "https://github.com/dotnet/maui/blob/10.0.20/src/Core/src/Handlers/Items/Android/ItemContentView.cs",
     "https://github.com/dotnet/maui/blob/10.0.20/src/Core/src/Graphics/MauiDrawable.Android.cs",
     "https://github.com/dotnet/maui/blob/10.0.20/src/Controls/src/Core/Shapes/Shape.cs",
-    "https://github.com/dotnet/maui/blob/10.0.20/src/Controls/src/Core/Shapes/RoundRectangle.cs"
+    "https://github.com/dotnet/maui/blob/10.0.20/src/Controls/src/Core/Shapes/RoundRectangle.cs",
+    "https://github.com/dotnet/maui/blob/10.0.20/src/Core/src/Handlers/ViewHandlerExtensions.Android.cs",
+    "https://github.com/dotnet/maui/blob/10.0.20/src/Core/src/Platform/Android/ContextExtensions.cs"
   ],
   "bundledFontSha256": {
     "NDS12.ttf": "90431e5adeeb042cd15b4cc82c781c316217fde0579903a698eef9020b91852c",

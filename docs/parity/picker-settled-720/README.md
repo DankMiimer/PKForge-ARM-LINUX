@@ -4,8 +4,8 @@ These disposable-fixture captures show Android v3.1.1 and the Linux raster host
 at 720×480 with Adamant selected after navigation. [The evidence manifest](evidence.json)
 records APK/source/image hashes, measured bounds and the comparison region.
 
-The five compared row-label bounds differ by at most 0.8 pixels. The picker body
-has 91.40% exact pixels; 3,593 changed pixels have no reference color within one
+The five compared row-label rectangles match exactly. The picker body
+has 92.35% exact pixels; 3,589 changed pixels have no reference color within one
 pixel at color tolerance 8. These numbers do not grant acceptance. Remaining
 raster differences, initial opening/centering, the 640px reference and the full
 state/timeline matrix remain open.
