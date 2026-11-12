@@ -212,6 +212,7 @@ try
     SynchronizationContext.SetSynchronizationContext(UiDispatcher.Instance);
     Sdl.SDL_SetHint("SDL_TOUCH_MOUSE_EVENTS", "0");
     Sdl.SDL_SetHint("SDL_MOUSE_TOUCH_EVENTS", "0");
+    InputRouter.PrepareMappings();
     if (Sdl.SDL_Init(Sdl.InitVideo | Sdl.InitController | Sdl.InitEvents) != 0) throw new InvalidOperationException(Sdl.Error);
     Sdl.SDL_ShowCursor(0);
     try

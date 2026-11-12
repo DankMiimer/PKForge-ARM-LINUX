@@ -16,7 +16,7 @@ public sealed partial class WorkspaceHost
         private static readonly (string Icon, string Label)[] Destinations =
             [("bank", "Bank"), ("pokedex", "Dex Autopilot"), ("park", "Poképark"), ("events", "Events"), ("settings", "Settings")];
         private static readonly (string Key, string Label)[] Hints =
-            [("A", "Open"), ("B", "Edit game · hold"), ("L", "Filter"), ("Y", "Link"), ("X", "File"), ("+", "Settings")];
+            [("A", "Open"), ("B", "Edit game · hold"), ("L", "Filter"), ("Y", "Link"), ("X", "File"), ("+", "Settings"), ("−", "Menu / quit")];
         private readonly Spring _scroll = new(0);
         private TouchScroller? _touchScroll;
         private TouchScroller TouchScroll => _touchScroll ??= new(UiDispatcher.Instance,
@@ -244,7 +244,7 @@ public sealed partial class WorkspaceHost
                 var tile = _destinationHits.FirstOrDefault(h => h.Rect.Contains(touch.Location));
                 if (tile.Rect.Width > 0) { Focus(1, tile.Index); Activate(); return; }
                 var hint = _footerHits.FirstOrDefault(h => h.Rect.Contains(touch.Location));
-                if (hint.Rect.Width > 0) Button(new[] { PadButton.A, PadButton.B, PadButton.L, PadButton.Y, PadButton.X, PadButton.Start }[hint.Index]);
+                if (hint.Rect.Width > 0) Button(new[] { PadButton.A, PadButton.B, PadButton.L, PadButton.Y, PadButton.X, PadButton.Start, PadButton.Select }[hint.Index]);
             }
             else if (touch.ActionType == SKTouchAction.Cancelled) { _pressed = false; _touchId = null; _touchScroll?.Reset(); }
         }

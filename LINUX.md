@@ -45,8 +45,11 @@ through `--start-page park`. Both share `pkforge/userdata`. The .NET 10 runtime 
 No firmware image, system library or Sway configuration needs replacing.
 
 Home can open a save, browse the Bank, link/scan emulator folders, filter the game
-library and enter Poképark. In storage, A opens Pokémon actions, X opens Summary,
-Y marks slots, Start opens tools and L/R changes boxes. D-pad and A/B operate
+library and enter Poképark. In storage, A picks up/drops a Pokémon, B cancels a
+carry or returns, Start opens Pokémon actions, X opens storage tools and L/R
+changes boxes. Select enters marking mode in saves; A marks and holding A while
+steering selects an area. In the Bank, Y marks a slot and Select opens Summary
+on a single screen or turns its page on the second screen. D-pad and A/B operate
 every picker/form. Text entry supports an on-screen keyboard, Unicode, an internal
 clipboard and UTF-8 files. In a save box or the Bank, choose **Send to Poképark**.
 In Summary, Select opens the box overview on a single screen. In the collection
@@ -77,7 +80,14 @@ to the Bank, Dex Autopilot, Poképark, Events and Settings tiles; up returns to 
 shelf. A selects/opens, B edits the selected cartridge's identity, L filters,
 Y links a folder, X opens a save and Start opens settings. On the shelf, touch
 opens a cartridge; hold it for its identity menu or drag to browse. Select opens
-the Linux library-actions list, including scan, continue and quit.
+the Linux library-actions list, including scan, continue and quit. Holding
+Start + Select for at least 0.6 seconds exits cleanly from anywhere in the app.
+
+On KNULLI, the app matches face-button prompts to the frontend's configured
+A/B/X/Y names when its Ports generator supplies the reversed default SDL layout.
+An existing per-game Xbox layout is already correct and stays in effect. A
+matching controller entry in `userdata/gamecontrollerdb.txt` takes precedence;
+set `PKFORGE_CONTROLLER_LAYOUT=sdl` to retain SDL's original face-button semantics.
 
 | Control | Park action |
 | --- | --- |

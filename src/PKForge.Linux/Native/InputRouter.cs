@@ -18,11 +18,28 @@ internal sealed class InputRouter : IDisposable
     {
         _router = router;
         _quit = quit;
-        var mappings = Path.Combine(ParkPlatform.DataDirectory, "gamecontrollerdb.txt");
-        if (File.Exists(mappings))
-            foreach (var line in File.ReadLines(mappings).Where(line => !string.IsNullOrWhiteSpace(line) && !line.StartsWith('#')))
-                Sdl.SDL_GameControllerAddMapping(line);
         OpenControllers();
+    }
+    public static void PrepareMappings()
+    {
+        static string[] Read(string? path)
+        {
+            try { return !string.IsNullOrEmpty(path) && File.Exists(path) ? File.ReadAllLines(path) : []; }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            { Console.Error.WriteLine("INPUT mapping file: " + error.Message); return []; }
+        }
+        var inherited = Read(Environment.GetEnvironmentVariable("SDL_GAMECONTROLLERCONFIG_FILE"))
+            .Concat((Environment.GetEnvironmentVariable("SDL_GAMECONTROLLERCONFIG") ?? "").Split('\n'));
+        var frontend = new Lazy<XElement[]>(() => FrontendInputs().ToArray());
+        var mappings = ControllerMappings.Prepare(Firmware(), Environment.GetEnvironmentVariable("PKFORGE_CONTROLLER_LAYOUT"),
+            inherited, Read(Path.Combine(ParkPlatform.DataDirectory, "gamecontrollerdb.txt")),
+            (guid, name) => EmulationStationMapping(guid, name, frontend.Value));
+        if (mappings is not null)
+        {
+            if (Sdl.SDL_SetHintWithPriority("SDL_GAMECONTROLLERCONFIG", mappings, 2) == 0)
+                Console.Error.WriteLine("INPUT could not apply controller mapping hint");
+            else Console.WriteLine("INPUT prepared frontend labels and app controller overrides before SDL init");
+        }
     }
     private void OpenControllers()
     {
@@ -37,20 +54,60 @@ internal sealed class InputRouter : IDisposable
             if (controller == IntPtr.Zero) continue;
             _controllers.Add(controller);
             Console.WriteLine("INPUT controller: " + Marshal.PtrToStringUTF8(Sdl.SDL_GameControllerName(controller)));
+            Console.WriteLine("INPUT controller mapping: " + ReadMapping(controller));
         }
     }
     private static void ImportEmulationStationMapping(int index)
     {
+        if (EmulationStationMapping(index) is not { } mapping) return;
+        if (Sdl.SDL_GameControllerAddMapping(mapping) >= 0) Console.WriteLine("INPUT imported EmulationStation mapping");
+    }
+    private static string? Firmware()
+    {
+        var name = Environment.GetEnvironmentVariable("CFW_NAME");
+        if (!string.IsNullOrEmpty(name)) return name;
+        try
+        {
+            if (File.Exists("/etc/os-release") && File.ReadLines("/etc/os-release")
+                .Any(line => line is "OS_NAME=knulli" or "OS_NAME=\"knulli\"")) return "knulli";
+        }
+        catch (IOException) { }
+        return null;
+    }
+    private static string? ReadMapping(IntPtr controller)
+    {
+        var value = Sdl.SDL_GameControllerMapping(controller);
+        try { return Marshal.PtrToStringUTF8(value); }
+        finally { if (value != IntPtr.Zero) Sdl.SDL_free(value); }
+    }
+    private static string? EmulationStationMapping(int index)
+    {
         var name = Marshal.PtrToStringUTF8(Sdl.SDL_JoystickNameForIndex(index));
+        var buffer = new byte[33]; Sdl.SDL_JoystickGetGUIDString(Sdl.SDL_JoystickGetDeviceGUID(index), buffer, buffer.Length);
+        var actualGuid = System.Text.Encoding.ASCII.GetString(buffer, 0, 32);
+        return EmulationStationMapping(actualGuid, name ?? "", FrontendInputs());
+    }
+    private static IEnumerable<XElement> FrontendInputs()
+    {
         foreach (var path in new[] { Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".emulationstation/es_input.cfg"),
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config/emulationstation/es_input.cfg"),
             "/storage/.config/emulationstation/es_input.cfg", "/userdata/system/configs/emulationstation/es_input.cfg", "/etc/emulationstation/es_input.cfg", "/usr/share/emulationstation/es_input.cfg" })
         {
             if (!File.Exists(path)) continue;
-            try
-            {
-                var config = XDocument.Load(path).Descendants("inputConfig").FirstOrDefault(c => (string?)c.Attribute("deviceName") == name);
-                if (config is null || (string?)config.Attribute("deviceGUID") is not { Length: 32 } guid) continue;
+            XElement[] inputs;
+            try { inputs = XDocument.Load(path).Descendants("inputConfig").ToArray(); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Xml.XmlException)
+            { Console.Error.WriteLine("INPUT mapping: " + error.Message); continue; }
+            foreach (var input in inputs) yield return input;
+        }
+    }
+    private static string? EmulationStationMapping(string actualGuid, string name, IEnumerable<XElement> inputs)
+    {
+        foreach (var config in inputs)
+        {
+                if ((string?)config.Attribute("deviceName") != name ||
+                    (string?)config.Attribute("deviceGUID") is not { Length: 32 } guid ||
+                    !string.Equals(actualGuid, guid, StringComparison.OrdinalIgnoreCase)) continue;
                 var fields = new List<string>();
                 foreach (var input in config.Elements("input"))
                 {
@@ -70,11 +127,9 @@ internal sealed class InputRouter : IDisposable
                     if (target is not null && binding is not null) fields.Add(target + ":" + binding);
                 }
                 var mapping = guid + "," + name!.Replace(',', ' ') + "," + string.Join(',', fields) + ",platform:Linux,";
-                if (Sdl.SDL_GameControllerAddMapping(mapping) >= 0) Console.WriteLine("INPUT imported EmulationStation mapping: " + name);
-                return;
-            }
-            catch (Exception error) when (error is IOException or System.Xml.XmlException) { Console.Error.WriteLine("INPUT mapping: " + error.Message); }
+                return mapping;
         }
+        return null;
     }
     private static void ImportNextUiMapping(int index)
     {

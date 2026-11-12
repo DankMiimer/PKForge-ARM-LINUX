@@ -2,8 +2,8 @@
 
 ## 0.3.0 development work — 12 November 2026
 
-The current Linux suites pass **1,981 tests** (861 Domain, 966 Engine,
-71 Park, 83 Linux). The changed Android application compiles with zero warnings
+The current Linux suites pass **1,984 tests** (861 Domain, 966 Engine,
+71 Park, 86 Linux). The changed Android application compiles with zero warnings
 or errors. Twelve real-shell launcher tests cover the PortMaster module/helper/
 cleanup lifecycle, dArkOS exception, overrides and bounded child termination.
 Fifty-eight dialogue/menu/status/Bank/theme/loading/picker frames plus ten summary pages
@@ -16,6 +16,23 @@ fallback from the reference emulator, with the upstream OFL notice. Measured
 15px "Lonely" advances total 52px; the 12.5px mixed pixel/Roboto detail is 17px
 high with a 14px baseline. Linux-native component captures verify these metrics;
 the complete matched-state and animation ledger remains pending.
+
+An exact clean CI archive for merge commit `20c65c255` (branch head `3e68051`)
+was installed separately on RGDS / ROCKNIX 20261001. The user confirmed L/R
+camera travel, D-pad zoom, L2+D-pad pan and normal behavior after release,
+touch on both screens, and lid/resume. Both entry points launched through Ports
+and recorded clean exits. All 1,015 existing userdata entries remained unchanged.
+The six-minute park trial included interaction and lid testing; its minute
+windows are not a controlled performance acceptance or the required soak.
+
+The same archive launched Home on RG34XXSP / KNULLI 20260511, ARM64/glibc 2.40,
+through firmware SDL 2.32.8 and GLES. Physical testing exposed swapped A/B and
+X/Y in KNULLI's default Ports mapping. An isolated probe using that same SDL
+library confirmed that a later AddMapping call returns success without replacing
+the higher-priority frontend mapping. A pre-initialization hint applies it.
+The app now merges explicit userdata overrides before SDL initialization and
+recognizes KNULLI's reversed default relative to the matching frontend GUID/name.
+The new app path still needs final-package physical acceptance.
 
 Picker checks cover 1,200 entries with bounded retained rows, filtered IDs, empty
 searches, drag cancellation, two-tap previews, suspend with an outstanding keyboard
