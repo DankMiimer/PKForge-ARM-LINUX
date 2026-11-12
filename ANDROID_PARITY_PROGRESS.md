@@ -15,8 +15,8 @@ Updated 2026-11-12. Android reference: v3.1.1, `799dfc310c94bb978962dcd31ddf7d39
   independently of the park's existing 30 FPS presentation. Single-screen park
   overlays now use UI cadence over a cached 30 FPS scene; final motion/presentation
   acceptance remains pending.
-- The Linux suites pass **1,988 tests**: 861 Domain, 966 Engine,
-  71 Park and 90 Linux. The changed Android application compiles without warnings
+- The Linux suites pass **1,989 tests**: 861 Domain, 966 Engine,
+  71 Park and 91 Linux. The changed Android application compiles without warnings
   or errors. Component previews render 60 dialogue/menu/status/Bank/theme/loading/picker frames
   and ten summary pages across both viewport sizes.
 - Linux uses the original graphical `BankBoxOverview`, `BankWallpaperPicker`
@@ -58,6 +58,10 @@ Updated 2026-11-12. Android reference: v3.1.1, `799dfc310c94bb978962dcd31ddf7d39
   Five compared row-label anchors in the settled 720px picker are within one
   physical pixel. Initial opening/centering and remaining raster differences stay
   open; diagnostic captures do not establish complete picker acceptance.
+- Native view frames now follow Android's per-container pixel rounding before
+  child layout; animated transforms retain fractional positions. The five settled
+  picker label rectangles now match exactly. The regression also checks nested
+  drawing and inverse touch coordinates; remaining raster/state/timing review is open.
 - Component captures now run on Linux's Skia backend as well as Windows. Android's
   measured loading-window and child bounds match the Linux reference layout.
   Asset decoding finishes before a deterministic capture timestamp is selected.

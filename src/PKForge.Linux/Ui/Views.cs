@@ -109,7 +109,13 @@ public class View : INotifyPropertyChanged
         // view tree on its new surface. Removed overlays are never drawn again.
         AttachSurface();
         var previous = Bounds;
-        Bounds = Arrange(area);
+        var arranged = Arrange(area);
+        // MAUI's Android host ceilings each native view's frame before laying
+        // out its children (ContextExtensions.ToPixels / PlatformArrangeHandler).
+        // Preserve that per-container placement, while leaving animated canvas
+        // transforms fractional. Fractional label origins change pixel glyphs.
+        Bounds = new(MathF.Ceiling(arranged.Left), MathF.Ceiling(arranged.Top),
+            MathF.Ceiling(arranged.Right), MathF.Ceiling(arranged.Bottom));
         if (!_loaded) { _loaded = true; Loaded?.Invoke(this, EventArgs.Empty); }
         if (previous.Size != Bounds.Size) SizeChanged?.Invoke(this, EventArgs.Empty);
         if (Opacity <= 0 || Scale == 0) return;

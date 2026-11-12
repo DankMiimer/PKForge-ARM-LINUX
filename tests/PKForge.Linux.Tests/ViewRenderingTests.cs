@@ -12,6 +12,29 @@ namespace PKForge.Linux.Tests;
 public sealed class ViewRenderingTests
 {
     [Fact]
+    public void Fractional_nested_frames_keep_native_pixel_origins_and_fractional_motion()
+    {
+        using var device = GraphicsDevice.CreateHeadless(80, 80);
+        SKPoint? touched = null;
+        var child = new SKCanvasView { EnableTouchEvents = true, TranslationX = .25 };
+        child.PaintSurface += (_, e) => e.Surface.Canvas.Clear(SKColors.Red);
+        child.Touch += (_, e) => { touched = e.Location; e.Handled = true; };
+        var grid = new Grid { Padding = .3, Children = { child } };
+        var border = new Border { StrokeThickness = 1.2, Content = grid };
+        border.Draw(device.CurrentSurface.Canvas, new(.2f, .4f, 79.2f, 79.4f), device);
+        // Native containers arrange children within their own rounded frame;
+        // rounding only the final text origin loses these accumulated insets.
+        Assert.Equal(new SKRect(1, 1, 80, 80), border.Bounds);
+        Assert.Equal(new SKRect(3, 3, 79, 79), grid.Bounds);
+        Assert.Equal(new SKRect(4, 4, 79, 79), child.Bounds);
+        Assert.True(border.HandleTouch(new(1, SKTouchAction.Pressed, new(20, 20))));
+        Assert.Equal(new SKPoint(15.75f, 16), touched);
+        Assert.Equal(255, Pixel(device, 20, 20).Red);
+        Assert.Equal(.25, child.TranslationX);
+        border.ReleaseSurface();
+    }
+
+    [Fact]
     public void Border_fill_uses_the_native_inset_path_and_a_stroke_can_have_no_fill()
     {
         using var device = GraphicsDevice.CreateHeadless(20, 20);

@@ -16,18 +16,26 @@ dotnet publish tools/UiPreview/UiPreview.csproj -c Release -r linux-x64 --self-c
 ```
 
 Run that executable on Linux (or WSL), passing an output directory and the
-synthetic save path. It writes 58 component frames plus ten summary frames at
+synthetic save path. It writes 60 component frames plus ten summary frames at
 640×480 and 720×480. It waits for reference wallpaper decoding before selecting
 the capture timestamp and checks timer/animation/input teardown. Loader layout
 JSON accompanies the loader and picker images, including retained row bounds and
 font metrics. Picker fixtures include nature and move previews, type/category/tag rows,
 long text, muted entries and empty search results. Linux's Select search hint is
 an explicit handheld-input adaptation.
+`picker-*.png` records initial centering; `picker-navigated-*.png` records the
+settled selection after navigation. Keep these states separate in comparisons.
 
 Windows can run the same project for host diagnostics. Its Skia font backend has
 different advances and rasterization; use the Linux-native output for Linux
 pixel comparisons. Neither headless backend establishes SDL/graphics-driver,
 physical input or handheld presentation timing acceptance.
+
+The host follows MAUI 10.0.20's native frame conversion before child layout:
+[frame arrangement](https://github.com/dotnet/maui/blob/10.0.20/src/Core/src/Handlers/ViewHandlerExtensions.Android.cs)
+uses [per-edge pixel ceilings](https://github.com/dotnet/maui/blob/10.0.20/src/Core/src/Platform/Android/ContextExtensions.cs).
+Animated transforms remain fractional. Keep native handler coordinates in the
+reference manifest; logical view coordinates alone miss nested pixel insets.
 
 For a short real-event-loop check, run the published Linux `pkforge` with
 `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy`, `--software --windowed

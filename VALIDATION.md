@@ -2,8 +2,8 @@
 
 ## 0.3.0 development work — 12 November 2026
 
-The current Linux suites pass **1,988 tests** (861 Domain, 966 Engine,
-71 Park, 90 Linux). The changed Android application compiles with zero warnings
+The current Linux suites pass **1,989 tests** (861 Domain, 966 Engine,
+71 Park, 91 Linux). The changed Android application compiles with zero warnings
 or errors. Twelve real-shell launcher tests cover the PortMaster module/helper/
 cleanup lifecycle, dArkOS exception, overrides and bounded child termination.
 Sixty dialogue/menu/status/Bank/theme/loading/picker frames plus ten summary pages
