@@ -4,8 +4,10 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -28,8 +30,15 @@ class Launchers(unittest.TestCase):
 import json, os, sys
 if '--help' in sys.argv:
     sys.exit(int(os.environ.get('FAIL_PREFLIGHT', '0')))
+if os.environ.get('STUB_HANG'):
+    import signal, time
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
 with open(os.environ['CAPTURE_FILE'], 'w') as f:
-    json.dump({'args': sys.argv[1:], 'mapping': os.environ.get('SDL_GAMECONTROLLERCONFIG', ''), 'video': os.environ.get('SDL_VIDEODRIVER', '')}, f)
+    json.dump({'args': sys.argv[1:], 'mapping': os.environ.get('SDL_GAMECONTROLLERCONFIG', ''), 'video': os.environ.get('SDL_VIDEODRIVER', ''), 'pid': os.getpid()}, f)
+if os.environ.get('LIFECYCLE'):
+    with open(os.environ['LIFECYCLE'], 'a') as f: f.write('app\\n')
+if os.environ.get('STUB_HANG'):
+    while True: time.sleep(1)
 sys.exit(int(os.environ.get('APP_EXIT', '0')))
 """)
         self.bin = self.root / "mock bin"
@@ -66,7 +75,7 @@ sys.exit(int(os.environ.get('APP_EXIT', '0')))
         result = self.run_launcher("PKForge Pokepark.sh", expected=7)
         self.assertEqual(["--start-page", "park"], result["args"][-2:])
 
-    def test_portmaster_preserves_override_and_does_not_source_system_mod(self):
+    def test_darkos_preserves_override_without_global_graphics_changes(self):
         pm = self.root / "PortMaster"
         pm.mkdir()
         (pm / "control.txt").write_text("CFW_NAME=dArkOS\nget_controls() { sdl_controllerconfig=firmware; }\n")
@@ -76,6 +85,54 @@ sys.exit(int(os.environ.get('APP_EXIT', '0')))
         result = self.run_launcher()
         self.assertEqual("firmware\nuser override", result["mapping"])
         self.assertFalse(marker.exists())
+
+    def test_firmware_module_owns_helper_and_finish_with_exit_status_preserved(self):
+        pm = self.root / "PortMaster"
+        pm.mkdir()
+        lifecycle = self.root / "lifecycle"
+        (pm / "control.txt").write_text('get_controls() { printf "controls\\n" >> "$LIFECYCLE"; sdl_controllerconfig=firmware; }\n')
+        for firmware in ("ROCKNIX", "KNULLI", "muOS", "ArkOS", "AmberELEC", "SpruceOS"):
+            with self.subTest(firmware=firmware):
+                lifecycle.unlink(missing_ok=True)
+                (pm / f"mod_{firmware}.txt").write_text('''[ "$PORT_32BIT" = N ] || exit 99
+printf 'module\\n' >> "$LIFECYCLE"
+pm_platform_helper() { [ "$1" = "$PKFORGE_HOME/app/pkforge" ] || exit 98; printf 'helper\\n' >> "$LIFECYCLE"; }
+pm_finish() { printf 'finish\\n' >> "$LIFECYCLE"; }
+''')
+                self.env.update(controlfolder=str(pm), CFW_NAME=firmware, LIFECYCLE=str(lifecycle), APP_EXIT="7")
+                self.run_launcher(expected=7)
+                self.assertEqual(["module", "controls", "helper", "app", "finish"], lifecycle.read_text().splitlines())
+
+    def test_portmaster_finish_runs_after_runtime_failure(self):
+        pm = self.root / "PortMaster"
+        pm.mkdir()
+        lifecycle = self.root / "lifecycle"
+        (pm / "control.txt").write_text('get_controls() { :; }\npm_finish() { printf "finish\\n" >> "$LIFECYCLE"; }\n')
+        self.env.update(controlfolder=str(pm), LIFECYCLE=str(lifecycle), FAIL_PREFLIGHT="8")
+        self.run_launcher(expected=1)
+        self.assertEqual(["finish"], lifecycle.read_text().splitlines())
+
+    def test_term_of_shared_launcher_bounds_stalled_app_cleanup(self):
+        self.env["STUB_HANG"] = "1"
+        process = subprocess.Popen(["sh", str(self.app / "launch.sh")], env=self.env)
+        child = None
+        try:
+            deadline = time.monotonic() + 5
+            while not self.capture.exists() and time.monotonic() < deadline:
+                time.sleep(.02)
+            self.assertTrue(self.capture.exists(), "Application did not start")
+            child = json.loads(self.capture.read_text())["pid"]
+            process.terminate()
+            self.assertEqual(143, process.wait(timeout=6))
+            with self.assertRaises(ProcessLookupError):
+                os.kill(child, 0)
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=2)
+            if child:
+                try: os.kill(child, signal.SIGKILL)
+                except ProcessLookupError: pass
 
     def test_nextui_paks_share_data_and_payload(self):
         tools = self.root / "Tools/h700"

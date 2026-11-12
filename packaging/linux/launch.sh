@@ -59,7 +59,15 @@ done
 restore="$DATADIR/.outputs-$$"
 child=
 cleanup() {
-    if [ -n "$child" ]; then kill -TERM "$child" 2>/dev/null; wait "$child" 2>/dev/null; fi
+    if [ -n "$child" ]; then
+        kill -TERM "$child" 2>/dev/null
+        attempts=0
+        while kill -0 "$child" 2>/dev/null && [ "$attempts" -lt 30 ]; do
+            sleep 0.1; attempts=$((attempts + 1))
+        done
+        kill -KILL "$child" 2>/dev/null
+        wait "$child" 2>/dev/null
+    fi
     if [ -f "$restore" ]; then
         while read -r name active power; do
             [ "$power" = true ] || swaymsg output "$name" power off >/dev/null 2>&1

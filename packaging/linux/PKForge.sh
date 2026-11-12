@@ -17,8 +17,12 @@ for candidate in "${controlfolder:-}" /PortMaster /opt/system/Tools/PortMaster /
     if [ -f "$candidate/control.txt" ]; then
         controlfolder="$candidate"
         . "$controlfolder/control.txt"
-        # mod_dArkOS and some other mod scripts change system graphics links.
-        # The common launcher supplies private compatibility links instead.
+        PORT_32BIT=N
+        # dArkOS's module rewrites /usr/lib graphics links. launch.sh provides
+        # those missing SONAMEs privately; other CFW modules own their hooks.
+        if [ "${CFW_NAME:-}" != dArkOS ] && [ -f "$controlfolder/mod_${CFW_NAME:-}.txt" ]; then
+            . "$controlfolder/mod_${CFW_NAME}.txt"
+        fi
         get_controls
         [ -z "$caller_mapping_file" ] || export SDL_GAMECONTROLLERCONFIG_FILE="$caller_mapping_file"
         export SDL_GAMECONTROLLERCONFIG="${sdl_controllerconfig:-}
@@ -27,6 +31,7 @@ $caller_mapping"
     fi
 done
 if declare -F pm_platform_helper >/dev/null; then pm_platform_helper "$PKFORGE_HOME/app/pkforge"; fi
-if declare -F pm_finish >/dev/null; then trap pm_finish EXIT; fi
 sh "$PKFORGE_HOME/app/launch.sh" "$@"
-exit $?
+result=$?
+if declare -F pm_finish >/dev/null; then pm_finish; fi
+exit "$result"
