@@ -2,11 +2,11 @@
 
 ## 0.3.0 development work — 12 November 2026
 
-The current Linux solution passes **1,974 tests** (861 Domain, 966 Engine,
-71 Park, 76 Linux). The changed Android application compiles with zero warnings
+The current Linux suites pass **1,977 tests** (861 Domain, 966 Engine,
+71 Park, 79 Linux). The changed Android application compiles with zero warnings
 or errors. Twelve real-shell launcher tests cover the PortMaster module/helper/
 cleanup lifecycle, dArkOS exception, overrides and bounded child termination.
-Fifty-six dialogue/menu/status/Bank/theme/loading/picker frames plus ten summary pages
+Fifty-eight dialogue/menu/status/Bank/theme/loading/picker frames plus ten summary pages
 exercise original shared views, timer/input cleanup and intermediate animation
 states at two viewports. Linux-native raster previews provide the pixel evidence;
 Windows font metrics differ and remain host diagnostics only.
@@ -15,6 +15,10 @@ Picker checks cover 1,200 entries with bounded retained rows, filtered IDs, empt
 searches, drag cancellation, two-tap previews, suspend with an outstanding keyboard
 request and nature previews using staged editor values. These checks establish
 host behavior and read-only selection, not full matched Android state acceptance.
+Information-rich picker tests also preserve game-specific held-item IDs, captured
+move facts, legal ordering and filtering, Stellar type IDs and unavailable Hidden
+Power spread labels. The shared overloads accept captured facts so a chooser
+cannot outlive the temporary Bank session that supplied them.
 
 All four development ZIPs pass the strengthened channel/provenance, exact checksum
 set, embedded version/build information, asset/native ABI and source-layout checks.

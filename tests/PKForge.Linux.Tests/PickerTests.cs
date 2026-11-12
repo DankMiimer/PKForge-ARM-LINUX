@@ -3,6 +3,7 @@ using Microsoft.Maui.Controls;
 using PKForge.App.Services;
 using PKForge.App.Views;
 using PKForge.Domain;
+using PKForge.Engine;
 using PKForge.Linux.Native;
 using PKForge.Linux.Workspace;
 using PKForge.Park;
@@ -14,6 +15,62 @@ namespace PKForge.Linux.Tests;
 
 public sealed class PickerTests
 {
+    [Fact]
+    public async Task Type_pickers_preserve_stellar_and_mark_unavailable_hidden_power_spreads()
+    {
+        using var fixture = new Fixture();
+        var tera = InfoPickers.ShowTeraAsync(fixture.Host, [new(10, "Water"), new(99, "Stellar")], 99, [10]);
+        fixture.Draw(); var list = Find<CollectionView>(fixture.Host).Single();
+        Assert.Equal(99, Assert.IsType<PickItem>(list.SelectedItem).Id);
+        Assert.Equal("Own type", list.ItemsSource.Cast<PickItem>().First().Tag);
+        fixture.Router.Dispatch(PadButton.A); Assert.Equal(99, (await tera)!.Id);
+        var hidden = InfoPickers.ShowHiddenPowerAsync(fixture.Host, 1, type => type == 1 ? null : [31, 31, 31, 31, 31, 31]);
+        fixture.Draw(); list = Find<CollectionView>(fixture.Host).Single();
+        Assert.Equal(Enumerable.Range(1, 16), list.ItemsSource.Cast<PickItem>().Select(item => item.Id));
+        var unavailable = list.ItemsSource.Cast<PickItem>().First();
+        Assert.True(unavailable.Muted); Assert.Contains("Not reachable", unavailable.Detail);
+        fixture.Router.Dispatch(PadButton.B); Assert.Null(await hidden);
+    }
+
+    [Fact]
+    public async Task Move_fact_snapshot_keeps_legal_order_details_and_the_selected_game_id()
+    {
+        using var fixture = new Fixture();
+        MoveChoice[] moves = [
+            new(33, 0, MoveCategory.Physical, 40, 100, 35, new(LearnKind.LevelUp, 15), "A physical attack."),
+            new(55, 10, MoveCategory.Special, 40, 100, 25, new(LearnKind.None), "A water attack."),
+        ];
+        var before = moves.ToArray();
+        var picker = InfoPickers.ShowMovesAsync(fixture.Host, "Moves", new GameDataService(), moves, 33);
+        fixture.Draw(); var list = Find<CollectionView>(fixture.Host).Single();
+        Assert.Equal(new[] { 0, 33 }, list.ItemsSource.Cast<PickItem>().Select(item => item.Id));
+        var row = list.ItemsSource.Cast<PickItem>().Last();
+        Assert.Equal(0, row.TypeId); Assert.Equal(MoveCategory.Physical, row.Category);
+        Assert.Contains("15", row.Tag); Assert.Contains("40", row.Detail);
+        fixture.Router.Dispatch(PadButton.Y); fixture.Draw();
+        Assert.Equal(new[] { 0, 33, 55 }, list.ItemsSource.Cast<PickItem>().Select(item => item.Id));
+        Assert.True(list.ItemsSource.Cast<PickItem>().Last().Muted);
+        fixture.Router.Dispatch(PadButton.Down); fixture.Router.Dispatch(PadButton.A);
+        Assert.Equal(55, (await picker)!.Id); Assert.Equal(before, moves);
+    }
+
+    [Fact]
+    public async Task Held_item_snapshot_uses_game_id_space_and_current_nonholdable_item_stays_reachable()
+    {
+        using var fixture = new Fixture();
+        // These deliberately differ from the modern item table's IDs.
+        string[] names = ["", "Potion", "Master Ball", "Oran Berry"];
+        var picker = InfoPickers.ShowHeldItemsAsync(fixture.Host, "Held item", names, new HashSet<int> { 3 }, 2, _ => null);
+        fixture.Draw(); var list = Find<CollectionView>(fixture.Host).Single();
+        Assert.Equal(2, Assert.IsType<PickItem>(list.SelectedItem).Id);
+        Assert.Equal("Master Ball", Assert.IsType<PickItem>(list.SelectedItem).Name);
+        Assert.Equal(new[] { 0, 3, 1, 2 }, list.ItemsSource.Cast<PickItem>().Select(item => item.Id));
+        fixture.Router.Dispatch(PadButton.Y); fixture.Draw();
+        Assert.Equal(new[] { 0, 3 }, list.ItemsSource.Cast<PickItem>().Select(item => item.Id));
+        fixture.Router.Dispatch(PadButton.Down); fixture.Router.Dispatch(PadButton.A);
+        Assert.Equal(3, (await picker)!.Id); Assert.Equal("Oran Berry", names[3]);
+    }
+
     [Fact]
     public async Task Long_list_virtualizes_rows_and_search_preserves_original_ids()
     {

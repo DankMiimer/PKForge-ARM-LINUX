@@ -1164,8 +1164,8 @@
       "sha256": "c68337e09be226a9507096624dc7152426acfd68afbacd6f54135cec3fcce47f",
       "kind": "component",
       "motionSources": [],
-      "linuxRoute": "",
-      "fixture": "",
+      "linuxRoute": "Pokemon editor moves/ability/held item; Potential > Tera type; Reference > Hidden Power",
+      "fixture": "tools/UiPreview move-preview at both viewports; Linux PickerTests captured move/item/type fixtures",
       "states": [
         "normal",
         "focused",
@@ -1181,7 +1181,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Original information-rich picker renderers shared through immutable-fact overloads; temporary Bank sessions remain host-owned. Game-specific item IDs and legal/type filtering tests pass. Full matched Android state/timing evidence remains pending."
     },
     {
       "id": "KeyItemEventsEditor",
@@ -1553,7 +1553,7 @@
       "sha256": "b1a8cf70aaaa828ad1543533fb8d3be69b36db69cd6d13fa3c2ef67850c3eafe",
       "kind": "component",
       "motionSources": [],
-      "linuxRoute": "Pokemon editor nature; Additional fields > Stat nature (mint)",
+      "linuxRoute": "Pokemon editor nature and mint; generation wizard; nature reroll; reference nature/stats calculator",
       "fixture": "tools/UiPreview nature-preview and nature-preview-highlight at both viewports",
       "states": [
         "normal",

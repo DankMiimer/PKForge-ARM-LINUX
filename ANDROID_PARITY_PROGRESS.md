@@ -14,9 +14,9 @@ Updated 2026-11-12. Android reference: v3.1.1, `799dfc310c94bb978962dcd31ddf7d39
   deadlines across suspend. Workspace UI targets the display cadence up to 60 FPS,
   independently of the park's existing 30 FPS presentation. Single-screen park
   overlays still share the park cadence and remain a motion-acceptance gap.
-- The complete Linux suite passes **1,974 tests**: 861 Domain, 966 Engine,
-  71 Park and 76 Linux. The changed Android application compiles without warnings
-  or errors. Component previews render 56 dialogue/menu/status/Bank/theme/loading/picker frames
+- The Linux suites pass **1,977 tests**: 861 Domain, 966 Engine,
+  71 Park and 79 Linux. The changed Android application compiles without warnings
+  or errors. Component previews render 58 dialogue/menu/status/Bank/theme/loading/picker frames
   and ten summary pages across both viewport sizes.
 - Linux uses the original graphical `BankBoxOverview`, `BankWallpaperPicker`
   and `ThemePicker`, including their spring motion. Platform-owned Bank operations
@@ -39,6 +39,13 @@ Updated 2026-11-12. Android reference: v3.1.1, `799dfc310c94bb978962dcd31ddf7d39
   1,200-item retention, search IDs, empty results, filtering, drag versus tap,
   preview confirmation and staged-edit cancellation. Native font fallback applies
   per glyph; matched row geometry and full state acceptance remain under review.
+- Original `InfoPickers` now supplies move effects, learn/type/category tags,
+  ability effects/slots, held-item effects and filters, Tera typing and Hidden Power
+  spreads. The host captures immutable facts while temporary Bank sessions are open;
+  shared rendering never retains those sessions. Held-item IDs stay in the game's
+  own item table. Generation, nature reroll and the calculator also use the original
+  nature preview. Cancelling calculator assumptions returns without opening another
+  chooser. Full specialized-editor composition remains open.
 - Component captures now run on Linux's Skia backend as well as Windows. Android's
   measured loading-window and child bounds match the Linux reference layout.
   Asset decoding finishes before a deterministic capture timestamp is selected.

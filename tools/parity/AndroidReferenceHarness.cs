@@ -54,8 +54,19 @@ internal static class ReferenceHarness
                 var visual = element as VisualElement;
                 return new { type = element.GetType().Name, visual?.X, visual?.Y, visual?.Width, visual?.Height,
                     text = (visual as Label)?.Text, desired = visual is Microsoft.Maui.IView view ? view.DesiredSize.ToString() : null,
-                    nativeText = visual?.Handler?.PlatformView is Android.Widget.TextView native ? new { native.TextSize, native.PaddingLeft, native.PaddingRight, native.PaddingTop, native.PaddingBottom, measuredText = native.Paint?.MeasureText(native.Text ?? "") } : null,
+                    nativeText = DescribeText(visual?.Handler?.PlatformView as Android.Widget.TextView),
                     children = element.GetVisualChildren().Select(Describe).ToArray() };
+            }
+            object? DescribeText(Android.Widget.TextView? native)
+            {
+                if (native is null) return null;
+                using var metrics = native.Paint?.GetFontMetricsInt();
+                var layout = native.Layout;
+                return new { native.TextSize, native.PaddingLeft, native.PaddingRight, native.PaddingTop, native.PaddingBottom,
+                    native.Baseline, native.LineHeight, native.IncludeFontPadding, measuredText = native.Paint?.MeasureText(native.Text ?? ""),
+                    metrics = metrics is null ? null : new { metrics.Ascent, metrics.Descent, metrics.Top, metrics.Bottom, metrics.Leading },
+                    firstLine = layout is { LineCount: > 0 } ? new { top = layout.GetLineTop(0), bottom = layout.GetLineBottom(0),
+                        ascent = layout.GetLineAscent(0), descent = layout.GetLineDescent(0), baseline = layout.GetLineBaseline(0) } : null };
             }
             File.WriteAllText(Path.Combine(FileSystem.AppDataDirectory, "reference-layout-" + route + ".json"),
                 System.Text.Json.JsonSerializer.Serialize(new { host.Width, host.Height, root = Describe(root) }));

@@ -16,11 +16,11 @@ dotnet publish tools/UiPreview/UiPreview.csproj -c Release -r linux-x64 --self-c
 ```
 
 Run that executable on Linux (or WSL), passing an output directory and the
-synthetic save path. It writes 56 component frames plus ten summary frames at
+synthetic save path. It writes 58 component frames plus ten summary frames at
 640×480 and 720×480. It waits for reference wallpaper decoding before selecting
 the capture timestamp and checks timer/animation/input teardown. Loader layout
 JSON accompanies the loader and picker images, including retained row bounds and
-font metrics. Picker fixtures include nature previews, type/category/tag rows,
+font metrics. Picker fixtures include nature and move previews, type/category/tag rows,
 long text, muted entries and empty search results. Linux's Select search hint is
 an explicit handheld-input adaptation.
 
@@ -71,7 +71,9 @@ Start the diagnostic app normally, resolve its activity through
 `am start --activity-single-top`. Routes are `theme`, `overview`, `wallpaper`,
 `picker`, `dialogue`, `choice`, `loading` and `about`. The driver waits for launch
 insets to settle and writes app-private `reference-layout-ROUTE.json` after the
-normal opening/typewriter interval. Read that dump after it has completed.
+normal opening/typewriter interval. Text dumps include native line height, baseline,
+font padding and first-line metrics to distinguish text measurement from outer
+layout differences. Read the dump after it has completed.
 
 Record emulator key events as app input only. They are not physical handheld
 acceptance. Preserve the baseline APK and distinguish harness images in every

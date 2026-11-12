@@ -44,7 +44,7 @@
     <Compile Include="../PKForge.App/Views/BankBoxOverview.cs;../PKForge.App/Views/BankWallpaperPicker.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Compile Include="../PKForge.App/Views/ThemePicker.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Compile Include="../PKForge.App/Views/Kit.Walker.cs;../PKForge.App/Views/LoadingOverlay.cs;../PKForge.App/Views/PadOverlay.cs;../PKForge.App/Views/DialogueChoiceBox.cs" Link="Upstream/%(Filename)%(Extension)" />
-    <Compile Include="../PKForge.App/Views/PickerMenu.cs;../PKForge.App/Views/NaturePicker.cs;../PKForge.App/Views/InfoKit.cs" Link="Upstream/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Views/PickerMenu.cs;../PKForge.App/Views/NaturePicker.cs;../PKForge.App/Views/InfoKit.cs;../PKForge.App/Views/InfoPickers.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Compile Include="../PKForge.App/Views/Kit.Pickers.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Compile Include="../PKForge.App/Services/IBankBoxOverviewActions.cs;../PKForge.App/Services/Motion.cs;../PKForge.App/Services/FrameInvalidator.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Content Include="../PKForge.App/Resources/Pokepark/park/*.png" Link="assets/pokepark/park/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

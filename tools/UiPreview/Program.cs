@@ -197,9 +197,18 @@ foreach (var width in new[] { 640, 720 })
     device.SaveScreenshot(Path.Combine(output, $"picker-empty-{width}x480.png"));
     router.Dispatch(PadButton.B); UiDispatcher.Instance.Pump();
     if (!picker.IsCompletedSuccessfully || UiDispatcher.Instance.ActiveTimerCount != 0 || UiDispatcher.Instance.Animations.Active) throw new InvalidOperationException("Picker retained input, timers or motion.");
+    using var moveFixture = args.Length > 1 ? new SaveEngine().OpenSession(File.ReadAllBytes(args[1]), "UI fixture") : null;
+    IReadOnlyList<MoveChoice> moveFacts = moveFixture is null ? [] : new MonInfoService().GetMoveChoices(moveFixture, 0, 0);
+    var movePicker = InfoPickers.ShowMovesAsync(host, "Move 1", new GameDataService(), moveFacts, moveFixture?.ReadEntity(0, 0).Move1);
+    router.Dispatch(PadButton.Down);
+    FrameTo(time + TimeSpan.FromMilliseconds(160));
+    device.SaveScreenshot(Path.Combine(output, $"move-preview-{width}x480.png"));
+    File.WriteAllText(Path.Combine(output, $"move-preview-layout-{width}x480.json"), System.Text.Json.JsonSerializer.Serialize(Layout(host)));
+    router.Dispatch(PadButton.B); UiDispatcher.Instance.Pump();
+    if (!movePicker.IsCompletedSuccessfully || UiDispatcher.Instance.ActiveTimerCount != 0 || UiDispatcher.Instance.Animations.Active) throw new InvalidOperationException("Move picker retained input, timers or motion.");
     host.ReleaseSurface();
 }
-Console.WriteLine("UI PREVIEW PASS: two viewports; 56 dialogue/menu/status/Bank/theme/loading/picker captures; animation and timer cleanup verified.");
+Console.WriteLine("UI PREVIEW PASS: two viewports; 58 dialogue/menu/status/Bank/theme/loading/picker captures; animation and timer cleanup verified.");
 
 // Optional synthetic save input: create a copied, scanned Home fixture with two Ruby
 // saves (one stacked cartridge) and one Sapphire. The supplied source is read only.
