@@ -144,6 +144,7 @@ try
     }
     // Complete font tasks before entering the UI loop; no event-loop continuation is required.
     Task.WhenAll(PixelFont.WarmAsync(), PixelFont.WarmFallbackAsync()).GetAwaiter().GetResult();
+    _ = NativeLabelFonts.AndroidFallback;
     if (arguments.Headless)
     {
         if (arguments.StartPage == "home" && !arguments.Demo)

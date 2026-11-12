@@ -2,14 +2,20 @@
 
 ## 0.3.0 development work — 12 November 2026
 
-The current Linux suites pass **1,979 tests** (861 Domain, 966 Engine,
-71 Park, 81 Linux). The changed Android application compiles with zero warnings
+The current Linux suites pass **1,981 tests** (861 Domain, 966 Engine,
+71 Park, 83 Linux). The changed Android application compiles with zero warnings
 or errors. Twelve real-shell launcher tests cover the PortMaster module/helper/
 cleanup lifecycle, dArkOS exception, overrides and bounded child termination.
 Fifty-eight dialogue/menu/status/Bank/theme/loading/picker frames plus ten summary pages
 exercise original shared views, timer/input cleanup and intermediate animation
 states at two viewports. Linux-native raster previews provide the pixel evidence;
 Windows font metrics differ and remain host diagnostics only.
+
+Native labels now use NDS12's authored `hdmx` advances and the exact Roboto 3.011
+fallback from the reference emulator, with the upstream OFL notice. Measured
+15px "Lonely" advances total 52px; the 12.5px mixed pixel/Roboto detail is 17px
+high with a 14px baseline. Linux-native component captures verify these metrics;
+the complete matched-state and animation ledger remains pending.
 
 Picker checks cover 1,200 entries with bounded retained rows, filtered IDs, empty
 searches, drag cancellation, two-tap previews, suspend with an outstanding keyboard

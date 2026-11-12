@@ -15,8 +15,8 @@ Updated 2026-11-12. Android reference: v3.1.1, `799dfc310c94bb978962dcd31ddf7d39
   independently of the park's existing 30 FPS presentation. Single-screen park
   overlays now use UI cadence over a cached 30 FPS scene; final motion/presentation
   acceptance remains pending.
-- The Linux suites pass **1,979 tests**: 861 Domain, 966 Engine,
-  71 Park and 81 Linux. The changed Android application compiles without warnings
+- The Linux suites pass **1,981 tests**: 861 Domain, 966 Engine,
+  71 Park and 83 Linux. The changed Android application compiles without warnings
   or errors. Component previews render 58 dialogue/menu/status/Bank/theme/loading/picker frames
   and ten summary pages across both viewport sizes.
 - Linux uses the original graphical `BankBoxOverview`, `BankWallpaperPicker`
@@ -47,6 +47,11 @@ Updated 2026-11-12. Android reference: v3.1.1, `799dfc310c94bb978962dcd31ddf7d39
   own item table. Generation, nature reroll and the calculator also use the original
   nature preview. Cancelling calculator assumptions returns without opening another
   chooser. Full specialized-editor composition remains open.
+- Native-label measurements now use the font's authored device advances and the
+  exact upstream Roboto 3.011 fallback present in the Android reference. The
+  mixed-font detail matches its 213px advance, 17px height and 14px baseline;
+  the "Lonely" title matches 52px. Picker comparison still has row/layout and
+  raster differences, so this does not close its state or timeline acceptance.
 - Component captures now run on Linux's Skia backend as well as Windows. Android's
   measured loading-window and child bounds match the Linux reference layout.
   Asset decoding finishes before a deterministic capture timestamp is selected.

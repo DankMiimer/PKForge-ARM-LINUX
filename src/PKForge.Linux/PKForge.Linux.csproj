@@ -14,6 +14,7 @@
     <RuntimeHostConfigurationOption Include="System.Globalization.AppLocalIcu" Value="72.1.0.3" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Resources/Fonts/*.ttf" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../PKForge.App/Resources/UI/dex/*.bin.gz" Link="assets/dex/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../PKForge.App/Resources/Events/*.bin.gz" Link="assets/events/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../PKForge.App/Resources/UI/lumi/*.png" Link="assets/sprites/lumi/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

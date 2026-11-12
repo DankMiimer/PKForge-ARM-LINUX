@@ -20,6 +20,7 @@ Directory.CreateDirectory(output);
 ParkPlatform.Configure(Path.Combine(output, "userdata"), Path.Combine(AppContext.BaseDirectory, "assets"));
 ParkPlatform.Dispatch = UiDispatcher.Instance.Dispatch;
 Task.WhenAll(PixelFont.WarmAsync(), PixelFont.WarmFallbackAsync()).GetAwaiter().GetResult();
+_ = NativeLabelFonts.AndroidFallback;
 var router = new GamepadRouter();
 using var services = new ServiceCollection().AddSingleton(router).AddSingleton<ISpriteService, SpriteService>().BuildServiceProvider();
 IPlatformApplication.Current = new PlatformApplication(services);
@@ -291,7 +292,9 @@ static object? Metrics(View view)
     font.ForceAutoHinting = false; font.Hinting = SKFontHinting.Normal;
     font.EmbeddedBitmaps = true; var embedded = font.MeasureText(label.Text);
     font.EmbeddedBitmaps = false; var noEmbedded = font.MeasureText(label.Text);
+    using var fallback = new SKFont(NativeLabelFonts.AndroidFallback, (float)label.FontSize);
     return new { label.FontSize, font.Metrics.Ascent, font.Metrics.Descent, font.Metrics.Top, font.Metrics.Bottom, font.Metrics.Leading,
+        fallback = new { fallback.Metrics.Ascent, fallback.Metrics.Descent, fallback.Metrics.Top, fallback.Metrics.Bottom },
         advances = new { measured, linear, subpixel, linearSubpixel, hinted, defaultEmbeddedBitmaps, embedded, noEmbedded } };
 }
 
