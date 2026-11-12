@@ -26,6 +26,7 @@ public readonly record struct Thickness(double Left, double Top, double Right, d
 public enum LayoutOptions { Fill, Start, Center, End }
 public enum TextAlignment { Start, Center, End }
 public enum LineBreakMode { TailTruncation, WordWrap }
+[Flags] public enum FontAttributes { None = 0, Bold = 1, Italic = 2 }
 public sealed class Easing(Func<double, double> ease)
 {
     public static readonly Easing Linear = new(UiEasing.Linear), CubicOut = new(UiEasing.CubicOut),
@@ -36,6 +37,7 @@ public class View : INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? Unloaded;
+    public event EventHandler? Loaded;
     public event EventHandler? SizeChanged;
     protected void Changed(string property) => PropertyChanged?.Invoke(this, new(property));
     public IDispatcher Dispatcher => UiDispatcher.Instance;
@@ -51,8 +53,10 @@ public class View : INotifyPropertyChanged
     public double TranslationY { get; set; }
     public bool IsClippedToBounds { get; set; }
     private bool _released;
+    private bool _loaded;
     public virtual bool HasActiveAnimations => !_released && UiDispatcher.Instance.Animations.IsAnimating(this);
     public double MaximumWidthRequest { get; set; } = double.PositiveInfinity;
+    public double MaximumHeightRequest { get; set; } = double.PositiveInfinity;
     public double WidthRequest { get; set; } = -1;
     public double HeightRequest { get; set; } = -1;
     public double MinimumHeightRequest { get; set; }
@@ -72,6 +76,7 @@ public class View : INotifyPropertyChanged
         AttachSurface();
         var previous = Bounds;
         Bounds = Arrange(area);
+        if (!_loaded) { _loaded = true; Loaded?.Invoke(this, EventArgs.Empty); }
         if (previous.Size != Bounds.Size) SizeChanged?.Invoke(this, EventArgs.Empty);
         if (Opacity <= 0 || Scale == 0) return;
         var save = canvas.Save();
@@ -104,8 +109,9 @@ public class View : INotifyPropertyChanged
         area = new(area.Left + (float)Margin.Left, area.Top + (float)Margin.Top,
             area.Right - (float)Margin.Right, area.Bottom - (float)Margin.Bottom);
         var width = Math.Min(area.Width, (float)MaximumWidthRequest);
-        if (HorizontalOptions != LayoutOptions.Fill) width = Math.Min(width, NaturalWidth(width));
-        var height = VerticalOptions == LayoutOptions.Fill ? area.Height : Math.Min(area.Height, NaturalHeight(width));
+        if (HorizontalOptions != LayoutOptions.Fill || WidthRequest > 0) width = Math.Min(width, WidthRequest > 0 ? (float)WidthRequest : NaturalWidth(width));
+        var height = Math.Min((float)MaximumHeightRequest, HeightRequest > 0 ? Math.Min(area.Height, (float)HeightRequest)
+            : VerticalOptions == LayoutOptions.Fill ? area.Height : Math.Min(area.Height, NaturalHeight(width)));
         var x = HorizontalOptions switch { LayoutOptions.End => area.Right - width, LayoutOptions.Center => area.MidX - width / 2, _ => area.Left };
         var y = VerticalOptions switch { LayoutOptions.End => area.Bottom - height, LayoutOptions.Center => area.MidY - height / 2, _ => area.Top };
         return SKRect.Create(x, y, Math.Max(1, width), Math.Max(1, height));
@@ -134,6 +140,7 @@ public class View : INotifyPropertyChanged
     public virtual void ReleaseSurface()
     {
         _released = true;
+        _loaded = false;
         _tapId = null;
         CancelAnimations();
         Unloaded?.Invoke(this, EventArgs.Empty);
@@ -162,6 +169,8 @@ public sealed class Label : View
     public string Text { get => _text; set { if (_text != value) { _text = value; Changed(nameof(Text)); } } }
     public double FontSize { get; set; } = 15;
     public string? FontFamily { get; set; }
+    public FontAttributes FontAttributes { get; set; }
+    public Thickness Padding { get; set; }
     public Color TextColor { get; set; } = Colors.White;
     public LineBreakMode LineBreakMode { get; set; }
     public TextAlignment HorizontalTextAlignment { get; set; }
@@ -169,32 +178,35 @@ public sealed class Label : View
     public override float NaturalHeight(float width)
     {
         using var font = PKForge.Linux.Workspace.NativePaint.Font(Text, (float)FontSize);
-        return (float)FontSize * 1.5f * (LineBreakMode == LineBreakMode.WordWrap ? Math.Max(1, NativeText.Wrap(Text, font, width).Count) : 1);
+        var lineHeight = MathF.Ceiling(-font.Metrics.Ascent) + MathF.Ceiling(font.Metrics.Descent);
+        return (float)(Padding.Top + Padding.Bottom) + lineHeight * (LineBreakMode == LineBreakMode.WordWrap ? Math.Max(1, NativeText.Wrap(Text, font, Math.Max(1, width - (float)(Padding.Left + Padding.Right))).Count) : 1);
     }
     public override float NaturalWidth(float width)
     {
         using var font = PKForge.Linux.Workspace.NativePaint.Font(Text, (float)FontSize);
-        return Math.Min(width, font.MeasureText(Text));
+        return Math.Min(width, font.MeasureText(Text) + (float)(Padding.Left + Padding.Right));
     }
     protected override void DrawContent(SKCanvas canvas, GraphicsDevice device, View? excluded)
     {
         using var font = PKForge.Linux.Workspace.NativePaint.Font(Text, (float)FontSize);
+        font.Embolden = (FontAttributes & FontAttributes.Bold) != 0;
         using var paint = new SKPaint { Color = TextColor.Skia, IsAntialias = true };
-        var lines = LineBreakMode == LineBreakMode.WordWrap ? NativeText.Wrap(Text, font, Bounds.Width) : [NativeText.Fit(Text, font, Bounds.Width)];
+        var area = new SKRect(Bounds.Left + (float)Padding.Left, Bounds.Top + (float)Padding.Top, Bounds.Right - (float)Padding.Right, Bounds.Bottom - (float)Padding.Bottom);
+        var lines = LineBreakMode == LineBreakMode.WordWrap ? NativeText.Wrap(Text, font, area.Width) : [NativeText.Fit(Text, font, area.Width)];
         var align = HorizontalTextAlignment switch { TextAlignment.Center => SKTextAlign.Center, TextAlignment.End => SKTextAlign.Right, _ => SKTextAlign.Left };
-        var x = align == SKTextAlign.Center ? Bounds.MidX : align == SKTextAlign.Right ? Bounds.Right : Bounds.Left;
-        var lineHeight = (float)FontSize * 1.5f;
-        var y = VerticalTextAlignment switch { TextAlignment.Center => Bounds.MidY - (lines.Count - 1) * lineHeight / 2 - (font.Metrics.Ascent + font.Metrics.Descent) / 2,
-            TextAlignment.End => Bounds.Bottom - (lines.Count - 1) * lineHeight - font.Metrics.Descent, _ => Bounds.Top + (float)FontSize + 2 };
-        foreach (var text in lines) { if (y > Bounds.Bottom + 1) break; canvas.DrawText(text, x, y, align, font, paint); y += lineHeight; }
+        var x = align == SKTextAlign.Center ? area.MidX : align == SKTextAlign.Right ? area.Right : area.Left;
+        var lineHeight = MathF.Ceiling(-font.Metrics.Ascent) + MathF.Ceiling(font.Metrics.Descent);
+        var y = VerticalTextAlignment switch { TextAlignment.Center => area.MidY - (lines.Count - 1) * lineHeight / 2 - (font.Metrics.Ascent + font.Metrics.Descent) / 2,
+            TextAlignment.End => area.Bottom - (lines.Count - 1) * lineHeight - font.Metrics.Descent, _ => area.Top + MathF.Ceiling(-font.Metrics.Ascent) };
+        foreach (var text in lines) { if (y > area.Bottom + 1) break; canvas.DrawText(text, x, y, align, font, paint); y += lineHeight; }
     }
 }
 public class Grid : View
 {
     public List<View> Children { get; } = [];
     public View? ExcludedInput { get; set; }
-    public List<RowDefinition> RowDefinitions { get; } = [];
-    public List<ColumnDefinition> ColumnDefinitions { get; } = [];
+    public List<RowDefinition> RowDefinitions { get; set; } = [];
+    public List<ColumnDefinition> ColumnDefinitions { get; set; } = [];
     public Thickness Padding { get; set; }
     public double RowSpacing { get; set; }
     public double ColumnSpacing { get; set; }
@@ -202,6 +214,22 @@ public class Grid : View
     public void Remove(View view) { if (Children.Remove(view)) view.ReleaseSurface(); }
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<View, Cell> Cells = new();
     private sealed class Cell { public int Row, Column; public int Rows = 1, Columns = 1; }
+    public override float NaturalHeight(float width)
+    {
+        if (HeightRequest > 0) return (float)HeightRequest;
+        var count = Math.Max(1, RowDefinitions.Count);
+        var heights = new float[count];
+        foreach (var child in Children.Where(c => c.IsVisible))
+        {
+            var cell = Cells.GetOrCreateValue(child); var row = Math.Min(cell.Row, count - 1);
+            if (cell.Rows > 1) continue;
+            heights[row] = Math.Max(heights[row], (child.HeightRequest > 0 ? (float)child.HeightRequest : child.NaturalHeight(width))
+                + (float)(child.Margin.Top + child.Margin.Bottom));
+        }
+        for (var row = 0; row < RowDefinitions.Count; row++)
+            if (RowDefinitions[row].Height.GridUnitType == GridUnitType.Absolute) heights[row] = (float)RowDefinitions[row].Height.Value;
+        return heights.Sum() + Math.Max(0, count - 1) * (float)RowSpacing + (float)(Padding.Top + Padding.Bottom);
+    }
     public static void SetRow(View view, int row) => Cells.GetOrCreateValue(view).Row = Math.Max(0, row);
     public static void SetColumn(View view, int column) => Cells.GetOrCreateValue(view).Column = Math.Max(0, column);
     public static void SetRowSpan(View view, int count) => Cells.GetOrCreateValue(view).Rows = Math.Max(1, count);
@@ -295,7 +323,7 @@ public sealed class VerticalStackLayout : Grid
         }
     }
 }
-public sealed class Border : View
+public class Border : View
 {
     public View? Content { get; set; }
     public double StrokeThickness { get; set; }
@@ -304,7 +332,7 @@ public sealed class Border : View
     public Shadow? Shadow { get; set; }
     public Thickness Padding { get; set; }
     public override float NaturalHeight(float width) => Math.Max((float)MinimumHeightRequest,
-        (Content is { } child ? child.NaturalHeight(Math.Max(1, width - (float)(Padding.Left + Padding.Right))) + (float)(child.Margin.Top + child.Margin.Bottom) : 0) + (float)(Padding.Top + Padding.Bottom));
+        (Content is { } child ? child.NaturalHeight(Math.Max(1, width - (float)(Padding.Left + Padding.Right + StrokeThickness * 2))) + (float)(child.Margin.Top + child.Margin.Bottom) : 0) + (float)(Padding.Top + Padding.Bottom + StrokeThickness * 2));
     public override float NaturalWidth(float width) => Content is { } child ? child.NaturalWidth(width) + (float)(child.Margin.Left + child.Margin.Right) : width;
     public override bool HasActiveAnimations => base.HasActiveAnimations || Content is { IsVisible: true, HasActiveAnimations: true };
     protected override void DrawBackground(SKCanvas canvas)

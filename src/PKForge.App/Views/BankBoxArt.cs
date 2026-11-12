@@ -34,9 +34,11 @@ public static class BankBoxArt
     public static SKColor Tone(int box) => Tone(Of(box));
 
     /// <summary>True once the box's wallpaper can be drawn as it will finally look.</summary>
-    public static bool IsReady(int box)
+    public static bool IsReady(int box) => IsReady(Of(box));
+
+    public static bool IsReady(BankWallpaper wallpaper)
     {
-        if (Of(box).ArtAsset is not { } asset) return true;
+        if (wallpaper.ArtAsset is not { } asset) return true;
         lock (Gate) return Pictures.ContainsKey(asset);
     }
 

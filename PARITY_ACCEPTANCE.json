@@ -729,8 +729,8 @@
         "CreateTimer",
         "FadeToAsync"
       ],
-      "linuxRoute": "",
-      "fixture": "",
+      "linuxRoute": "Shared source component preview; Android APK-update prompts are platform-specific",
+      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
       "states": [
         "normal",
         "focused",
@@ -746,7 +746,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Original typed-message and answer window shared and captured. Suspend/unload cleanup tested. Linux does not install Android APK updates; reference-flow adaptation and full state/timeline review remain pending."
     },
     {
       "id": "DsKit",
@@ -1323,8 +1323,8 @@
       "sha256": "904f5d04a3919dc52b113feec8e2843dcf98de0068f2d09d49c9c6c065ef73ef",
       "kind": "component",
       "motionSources": [],
-      "linuxRoute": "",
-      "fixture": "",
+      "linuxRoute": "Home scan; Settings > Offline sprite pack; community downloads",
+      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
       "states": [
         "normal",
         "focused",
@@ -1340,7 +1340,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Original loading view and walking-sprite timer shared; Chrome owns modal painters. Cancellation reaches the operation; closing/unloading releases input and timers. Android and native Linux layout measurements recorded. Full timeline, error and interruption acceptance remains pending."
     },
     {
       "id": "MetOriginEditor",

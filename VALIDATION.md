@@ -2,12 +2,14 @@
 
 ## 0.3.0 development work — 12 November 2026
 
-The current Linux solution passes **1,958 tests** (861 Domain, 966 Engine,
-71 Park, 60 Linux). The changed Android application compiles with zero warnings
+The current Linux solution passes **1,969 tests** (861 Domain, 966 Engine,
+71 Park, 71 Linux). The changed Android application compiles with zero warnings
 or errors. Twelve real-shell launcher tests cover the PortMaster module/helper/
 cleanup lifecycle, dArkOS exception, overrides and bounded child termination.
-Twenty-four deterministic dialogue/menu/status frames exercise original shared
-dialogue, timer cleanup and intermediate animation states at two viewports.
+Forty-six dialogue/menu/status/Bank/theme/loading frames plus ten summary pages
+exercise original shared views, timer/input cleanup and intermediate animation
+states at two viewports. Linux-native raster previews provide the pixel evidence;
+Windows font metrics differ and remain host diagnostics only.
 
 All four development ZIPs pass the strengthened channel/provenance, exact checksum
 set, embedded version/build information, asset/native ABI and source-layout checks.
@@ -21,12 +23,23 @@ EmulationStation Ports entry. Logs confirm both 640×480 Wayland/GLES windows,
 controller discovery, independent touch-panel discovery and SDL2_mixer initialization.
 The 35-second Home run measured 57.57 FPS overall with 8.75 ms mean drawing and
 12.67 ms drawing p95, then exited cleanly and returned to the frontend. This is
-a short UI measurement, not a park/long-session stability result or proof of
-physical controls. The original volume was restored. A first compositor capture
+a short UI measurement, not proof of physical controls. A separate 185-second
+night/storm park run measured 29.62 FPS overall and 30 FPS in both measured warm
+minutes. Both entry points returned through the frontend. All 1,015 installed
+userdata entries matched their original hashes; the temporary Ports entries
+were removed and normal volume was restored. These trials used an earlier
+candidate, before the newest Bank/loading changes, and do not establish the
+90-minute stability or final-byte gates. A first compositor capture
 attempt selected the compositor's pre-start environment rather than the frontend's
 complete environment and failed; that attempt does not establish screen capture.
 
 The pinned original Android build runs in an isolated 720×480/160-dpi emulator.
+A separate diagnostic APK adds a command entry hook and fixture driver; all 98
+view-source files match the pinned baseline after LF normalization. It captures
+common overlays at 720×480 single and two 640×480 logical displays, with measured
+MAUI bounds. Capture metadata distinguishes that harness from the unmodified
+reference APK and records the installed APK hash. Neither emulator captures nor
+headless Linux previews establish physical handheld acceptance.
 Its source-derived inventory has 98 reference units with acceptance still pending.
 See `PARITY_ACCEPTANCE.json`, `ANDROID_PARITY_PROGRESS.md` and
 `HANDHELD_COMPATIBILITY.md`. Final RGDS physical/parity/data safety acceptance and

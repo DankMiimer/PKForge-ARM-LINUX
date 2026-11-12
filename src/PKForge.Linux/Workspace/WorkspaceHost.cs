@@ -163,15 +163,10 @@ public sealed partial class WorkspaceHost : INavigation
     private async Task ScanAsync()
     {
         Status = "Scanning linked save folders…"; Screens.Invalidate();
-        using var cancellation = new CancellationTokenSource();
-        var progress = Dialogs.MenuAsync("Finding saves", "Scanning linked folders. Cancel stops this scan.", "Cancel");
-        var scan = Task.Run(() => Get<ISaveCatalogue>().ScanAsync(cancellation.Token));
-        var first = await Task.WhenAny(progress, scan);
-        if (first == progress) cancellation.Cancel();
-        else Get<GamepadRouter>().Dispatch(PadButton.B);
-        try { await scan; Status = $"Found {Get<ISaveCatalogue>().Saves.Count} saves."; }
+        var overlay = LoadingOverlay.Show(Screens.ControlRoot, "Finding saves", "Scanning linked folders. Cancel stops this scan.");
+        try { await Task.Run(() => Get<ISaveCatalogue>().ScanAsync(overlay.Cancellation.Token)); Status = $"Found {Get<ISaveCatalogue>().Saves.Count} saves."; }
         catch (OperationCanceledException) { Status = "Scan cancelled; discovered saves are available."; }
-        await progress;
+        finally { overlay.Close(); }
     }
     private async Task<bool> CommitAsync(Func<ISaveEngineSession, GenerationOutcome> action, string description, SaveAction kind = SaveAction.EditMon, WriteScope? scope = null)
     {

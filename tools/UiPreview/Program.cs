@@ -21,10 +21,41 @@ ParkPlatform.Configure(Path.Combine(output, "userdata"), Path.Combine(AppContext
 ParkPlatform.Dispatch = UiDispatcher.Instance.Dispatch;
 Task.WhenAll(PixelFont.WarmAsync(), PixelFont.WarmFallbackAsync()).GetAwaiter().GetResult();
 var router = new GamepadRouter();
-using var services = new ServiceCollection().AddSingleton(router).BuildServiceProvider();
+using var services = new ServiceCollection().AddSingleton(router).AddSingleton<ISpriteService, SpriteService>().BuildServiceProvider();
 IPlatformApplication.Current = new PlatformApplication(services);
 var time = TimeSpan.Zero;
 UiDispatcher.Instance.UseAnimationClock(() => time);
+
+// Decode the visible reference wallpapers before selecting a motion timestamp.
+// Real I/O completion must not be confused with an animation's deterministic time.
+using (var bitmap = new SKBitmap(4, 4))
+using (var canvas = new SKCanvas(bitmap))
+{
+    var wallpapers = BankWallpaper.ArtCatalog.First().Assets.Select(BankWallpaper.Art).ToArray();
+    foreach (var wallpaper in wallpapers)
+    {
+        if (!File.Exists(Path.Combine(ParkPlatform.AssetDirectory, "wallpapers", wallpaper.ArtAsset + ".png")))
+            throw new FileNotFoundException("Missing reference wallpaper", wallpaper.ArtAsset);
+        BankBoxArt.Paint(canvas, new(0, 0, 4, 4), wallpaper, () => { });
+    }
+    var deadline = System.Diagnostics.Stopwatch.StartNew();
+    while (wallpapers.Any(w => !BankBoxArt.IsReady(w)) && deadline.Elapsed < TimeSpan.FromSeconds(10)) { Thread.Sleep(10); UiDispatcher.Instance.Pump(); }
+    if (wallpapers.Any(w => !BankBoxArt.IsReady(w))) throw new TimeoutException("Reference wallpapers did not finish decoding.");
+}
+
+// Use the same portable entities for Android and Linux component captures.
+if (args.Length > 1)
+{
+    using var fixture = new SaveEngine().OpenSession(File.ReadAllBytes(args[1]), "UI fixture");
+    var bank = new FileBankService(Path.Combine(ParkPlatform.DataDirectory, "bank"));
+    if (bank.GetAll().Count == 0)
+        for (var slot = 0; slot < 2; slot++)
+        {
+            var exported = fixture.ExportSlot(0, slot);
+            bank.Add(exported.Data, new SaveEngine().TryDescribeEntity(exported.Data, "Pokémon Ruby", exported.Format)
+                ?? throw new InvalidDataException("Reference Bank entity did not decode."));
+        }
+}
 
 foreach (var width in new[] { 640, 720 })
 {
@@ -97,6 +128,8 @@ foreach (var width in new[] { 640, 720 })
         host.Draw(device.CurrentSurface.Canvas, new(0, 0, width, 480), device);
     }
     FrameTo(overviewStart + TimeSpan.FromMilliseconds(160));
+    // Sprite decoding is asynchronous, independent of the injected motion clock.
+    for (var pass = 0; pass < 20; pass++) { Thread.Sleep(10); FrameTo(time); }
     device.SaveScreenshot(Path.Combine(output, $"bank-overview-{width}x480.png"));
     router.Dispatch(PadButton.Y); router.Dispatch(PadButton.Right);
     var pickedUp = time;
@@ -119,9 +152,26 @@ foreach (var width in new[] { 640, 720 })
     device.SaveScreenshot(Path.Combine(output, $"themes-{width}x480.png"));
     router.Dispatch(PadButton.B);
     if (!theme.IsCompletedSuccessfully || UiDispatcher.Instance.Animations.Active) throw new InvalidOperationException("Theme picker retained input or animation work.");
+    var choices = DialogueChoiceBox.ShowAsync(host, "Would you like to continue?", "YES", "NO", "MAYBE LATER");
+    router.Dispatch(PadButton.A); FrameTo(time + TimeSpan.FromMilliseconds(100));
+    device.SaveScreenshot(Path.Combine(output, $"dialogue-choice-{width}x480.png"));
+    router.Dispatch(PadButton.Down); router.Dispatch(PadButton.A);
+    if (!choices.IsCompletedSuccessfully || choices.Result != "NO") throw new InvalidOperationException("Dialogue choices did not hand input back.");
+    var loading = LoadingOverlay.Show(host, "Loading fixture", "A disposable reference operation."); loading.Report(5, 10);
+    var waitingAt = time; FrameTo(waitingAt + TimeSpan.FromMilliseconds(160));
+    device.SaveScreenshot(Path.Combine(output, $"loading-{width}x480.png"));
+    FrameTo(waitingAt + TimeSpan.FromSeconds(2));
+    device.SaveScreenshot(Path.Combine(output, $"loading-{width}x480-2000ms.png"));
+    object Layout(View view) => new { Type = view.GetType().Name, Bounds = new { view.Bounds.Left, view.Bounds.Top, view.Bounds.Width, view.Bounds.Height }, text = (view as Label)?.Text,
+        children = view is Grid grid ? grid.Children.Select(Layout).ToArray() : view is Border { Content: { } content } ? new[] { Layout(content) } : Array.Empty<object>() };
+    File.WriteAllText(Path.Combine(output, $"loading-layout-{width}x480.json"), System.Text.Json.JsonSerializer.Serialize(Layout(host)));
+    router.Dispatch(PadButton.B);
+    if (!loading.Cancellation.IsCancellationRequested) throw new InvalidOperationException("Loading cancel was not delivered.");
+    loading.Close(); UiDispatcher.Instance.Pump();
+    if (UiDispatcher.Instance.ActiveTimerCount != 0 || UiDispatcher.Instance.Animations.Active) throw new InvalidOperationException("Loading overlay retained timer/animation work.");
     host.ReleaseSurface();
 }
-Console.WriteLine("UI PREVIEW PASS: two viewports; 40 dialogue/menu/status/Bank/theme captures; animation and timer cleanup verified.");
+Console.WriteLine("UI PREVIEW PASS: two viewports; 46 dialogue/menu/status/Bank/theme/loading captures; animation and timer cleanup verified.");
 
 // Optional synthetic save input: create a copied, scanned Home fixture with two Ruby
 // saves (one stacked cartridge) and one Sapphire. The supplied source is read only.

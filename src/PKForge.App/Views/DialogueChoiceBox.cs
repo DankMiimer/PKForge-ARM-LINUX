@@ -25,12 +25,14 @@ public sealed class DialogueChoiceBox : IPadHandler
     private int _index;
     private int _charIndex;
     private bool _choicesVisible;
+    private bool _closed;
 
     public static Task<string?> ShowAsync(Grid host, string message, params string[] choices) =>
         new DialogueChoiceBox(host, message, choices)._result.Task;
 
     private DialogueChoiceBox(Grid host, string message, string[] choices)
     {
+        if (choices.Length == 0) throw new ArgumentException("At least one dialogue choice is required.", nameof(choices));
         _host = host;
         _text = message;
         _router = IPlatformApplication.Current?.Services.GetService<GamepadRouter>();
@@ -145,6 +147,8 @@ public sealed class DialogueChoiceBox : IPadHandler
         };
         _typer.Start();
         _router?.Push(this);
+        _overlay.Unloaded += (_, _) => Close(null);
+        App.Suspended += Suspend;
     }
 
     public bool OnPadButton(PadButton button)
@@ -207,9 +211,13 @@ public sealed class DialogueChoiceBox : IPadHandler
 
     private void Close(string? choice)
     {
+        if (_closed) return;
+        _closed = true;
+        App.Suspended -= Suspend;
         _typer.Stop();
         _router?.Remove(this);
         _host.Remove(_overlay);
         _result.TrySetResult(choice);
     }
+    private void Suspend() => Close(null);
 }

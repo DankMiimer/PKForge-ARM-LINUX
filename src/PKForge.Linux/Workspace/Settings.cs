@@ -66,11 +66,9 @@ public sealed partial class WorkspaceHost
     {
         var downloader = Get<SpritePackDownloader>();
         if (!await Dialogs.ConfirmAsync("Offline sprite pack", $"{downloader.CountMissing()} missing assets. Full download {SpritePackDownloader.SizeHint}. Existing files are retained.", "Download")) return;
-        using var cancellation = new CancellationTokenSource();
-        var cancel = Dialogs.MenuAsync("Downloading sprite pack", "Progress appears in the library footer. Downloads can resume after cancellation.", "Cancel");
-        var job = downloader.RunAsync((message, progress) => { Status = $"{message} · {progress:P0}"; Screens.Invalidate(); }, cancellation.Token);
-        if (await Task.WhenAny(cancel, job) == cancel) cancellation.Cancel(); else Get<GamepadRouter>().Dispatch(PadButton.B);
+        var overlay = LoadingOverlay.Show(Screens.ControlRoot, "Downloading sprite pack", "Downloads can resume after cancellation.");
+        var job = downloader.RunAsync((message, progress) => { overlay.Report(message, progress); Status = $"{message} · {progress:P0}"; Screens.Invalidate(); }, overlay.Cancellation.Token);
         try { await job; Status = "Sprite pack ready."; } catch (OperationCanceledException) { Status = "Download stopped; cached assets retained."; }
-        finally { Get<GamepadRouter>().Dispatch(PadButton.B); await cancel; }
+        finally { overlay.Close(); }
     }
 }

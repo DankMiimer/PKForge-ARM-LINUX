@@ -1,5 +1,6 @@
 using System.Text;
 using PKForge.App.Services;
+using PKForge.App.Views;
 using PKForge.Application;
 using PKForge.Domain;
 using PKForge.Engine;
@@ -205,15 +206,12 @@ public sealed partial class WorkspaceHost
     }
     private async Task<T> CancellableAsync<T>(string title, Func<CancellationToken, Task<T>> operation)
     {
-        using var cancellation = new CancellationTokenSource();
-        var cancel = Dialogs.MenuAsync(title, "Cached content is retained. Cancel stops before any Bank import.", "Cancel");
+        var overlay = LoadingOverlay.Show(Screens.ControlRoot, title, "Cached content is retained. Cancel stops before any Bank import.");
         try
         {
-            var job = operation(cancellation.Token);
-            if (await Task.WhenAny(cancel, job) == cancel) cancellation.Cancel();
-            return await job;
+            return await operation(overlay.Cancellation.Token);
         }
-        finally { if (!cancel.IsCompleted) Get<GamepadRouter>().Dispatch(PadButton.B); await cancel; }
+        finally { overlay.Close(); }
     }
     private async Task TrainerProfilesAsync()
     {

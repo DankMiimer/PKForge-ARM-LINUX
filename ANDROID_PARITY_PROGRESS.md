@@ -14,9 +14,9 @@ Updated 2026-11-12. Android reference: v3.1.1, `799dfc310c94bb978962dcd31ddf7d39
   deadlines across suspend. Workspace UI targets the display cadence up to 60 FPS,
   independently of the park's existing 30 FPS presentation. Single-screen park
   overlays still share the park cadence and remain a motion-acceptance gap.
-- The complete Linux suite passes **1,966 tests**: 861 Domain, 966 Engine,
-  71 Park and 68 Linux. The changed Android application compiles without warnings
-  or errors. Component previews render 40 dialogue/menu/status/Bank/theme frames
+- The complete Linux suite passes **1,969 tests**: 861 Domain, 966 Engine,
+  71 Park and 71 Linux. The changed Android application compiles without warnings
+  or errors. Component previews render 46 dialogue/menu/status/Bank/theme/loading frames
   and ten summary pages across both viewport sizes.
 - Linux uses the original graphical `BankBoxOverview`, `BankWallpaperPicker`
   and `ThemePicker`, including their spring motion. Platform-owned Bank operations
@@ -25,13 +25,23 @@ Updated 2026-11-12. Android reference: v3.1.1, `799dfc310c94bb978962dcd31ddf7d39
   The overview waits for an in-flight write before closing on suspend. Picker
   teardown releases animation/input ownership; display recreation restores touch
   to retained views. The background uses Android's original 32-pixel grid.
+- Scanning, community downloads and sprite-pack downloads use the original
+  `LoadingOverlay`, including its original 90 ms walking-sprite timer. Cancellation
+  reaches the operation directly; completion closes its own overlay rather than
+  dispatching a synthetic Back action. Unload/suspend stops its callbacks and
+  releases modal input. The original dialogue-choice window is also shared.
+- Component captures now run on Linux's Skia backend as well as Windows. Android's
+  measured loading-window and child bounds match the Linux reference layout.
+  Asset decoding finishes before a deterministic capture timestamp is selected.
+  Pixel-difference reports remain diagnostic; full state/timeline acceptance is
+  pending. Windows text metrics must not substitute for Linux pixel evidence.
 - The earlier candidate was launched through the RGDS frontend from a separate
   installation with disposable fixtures. Home ran for 35 seconds; the park ran
   for 185 seconds and both measured warm minutes reached 30 FPS. Both entry points
   returned cleanly, normal volume was restored, and the installed userdata tree
   matched all 1,015 original entries. These are short candidate checks, before the
   newest Bank changes; they do not establish physical input or final soak acceptance.
-- Pushed checkpoint `44f7878` passed all Linux, Android, launcher and genuinely
+- Pushed checkpoint `9f200db` passed all Linux, Android, launcher and genuinely
   outside-Git source-rebuild CI jobs. Draft PR #1 remains in progress.
 - The pinned original Android application was built separately and captured in
   an isolated 720×480, 160-dpi emulator. These are reference captures, not evidence
@@ -98,7 +108,7 @@ Review captures: [Linux Home with scanned synthetic saves](docs/screenshots/linu
 | --- | --- |
 | U0 / M0 reference inventory | Source-backed plans exist; complete matched Android runtime captures and the full screen/effect ledger are still required. |
 | U1 / M1 primitives | Main compositing, scheduler, fonts, row styling and repeat corrections implemented. Android cadence measurement, frame pacing and full host lifecycle/input acceptance remain. |
-| U2 / M2 Home/common UI | Home/menu composition, first-run dialogue, inertial shelf/list scrolling and graphical theme picker are implemented. Full matched reference comparison, remaining pickers, loading/progress and remaining common effects are still open. |
+| U2 / M2 Home/common UI | Home/menu composition, first-run/choice dialogues, inertial shelf/list scrolling, graphical theme picker and original loading/progress/walker view are implemented. Full matched reference comparison, searchable pickers and remaining common effects are still open. |
 | U3 / M3 storage/Bank/summary | Original grid, party, Bank well/status, summary, carry, party swap/pulse, multi-select and graphical Bank overview/wallpaper picker are shared. The original X/Y/+ menu contents, save box manager mode, single-screen side panel, Autopilot route motion and full matched reference verification remain. |
 | U4 remaining surfaces | Dedicated original presentations for generation/events, advanced editors, collections, transfers and other utility pages remain. |
 | U5 / M4 Poképark | Shared scene and existing Swellow/Donphan fixes retained; full effect/pose/overlay comparison and remaining host differences remain. |

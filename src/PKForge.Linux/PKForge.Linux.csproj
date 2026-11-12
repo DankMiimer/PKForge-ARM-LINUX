@@ -42,6 +42,7 @@
     <Compile Include="../PKForge.App/Views/DialogueBox.cs;../PKForge.App/Views/TouchScroller.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Compile Include="../PKForge.App/Views/BankBoxOverview.cs;../PKForge.App/Views/BankWallpaperPicker.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Compile Include="../PKForge.App/Views/ThemePicker.cs" Link="Upstream/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Views/Kit.Walker.cs;../PKForge.App/Views/LoadingOverlay.cs;../PKForge.App/Views/PadOverlay.cs;../PKForge.App/Views/DialogueChoiceBox.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Compile Include="../PKForge.App/Services/IBankBoxOverviewActions.cs;../PKForge.App/Services/Motion.cs;../PKForge.App/Services/FrameInvalidator.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Content Include="../PKForge.App/Resources/Pokepark/park/*.png" Link="assets/pokepark/park/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../PKForge.App/Resources/Fonts/*.ttf" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

@@ -42,7 +42,13 @@ namespace PKForge.App.Theme
         public static Color Scrim => As(PKForge.Chrome.Pksm.LogoVoid.WithAlpha(204));
         public const double PanelEdge = 2, PanelRadius = 6;
         public static Color InkSoft { get { var c = PKForge.Chrome.Pksm.InkSoft; return new(c.Red, c.Green, c.Blue, c.Alpha); } }
-        public const double TextBody = 13;
+        public static Color Ink0 => As(PKForge.Chrome.Pksm.Ink);
+        public static Color Ink1 => InkSoft;
+        public static Color Paper => As(PKForge.Chrome.Pksm.Paper);
+        public static Color ShellEdge => As(PKForge.Chrome.Pksm.PaperEdge);
+        public static Color Bad => As(PKForge.Chrome.Pksm.Illegal);
+        public static Color Green => As(PKForge.Chrome.Pksm.Legal);
+        public const double TextBody = 13.5;
     }
 }
 namespace Microsoft.Maui.Controls

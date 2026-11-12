@@ -186,7 +186,7 @@ public sealed class PadMenu : IPadHandler
     }
 }
 
-public static class Kit
+public static partial class Kit
 {
     public static Grid AttachOverlay(Grid host, View window, Action? onScrimTap = null)
     {
