@@ -28,6 +28,23 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
     }
     public bool IsBank => bank;
     public int Box { get; private set; }
+    internal void SelectBox(int box)
+    {
+        Box = Math.Clamp(box, 0, Math.Max(0, Host.StorageBoxCount(bank) - 1));
+        _cursor = 0; Host.Screens.Invalidate();
+    }
+    internal void RemapBoxes(BankBoxRemap remap)
+    {
+        var marks = Marks.Where(at => remap.Map(at.Box) is not null).Select(at => new SlotRef(remap.Map(at.Box)!.Value, at.Slot)).ToArray();
+        Marks.Clear(); Marks.UnionWith(marks);
+        if (_carry is { } carry)
+        {
+            if (remap.Map(carry.Box) is { } mapped) _carry = new(mapped, carry.Slot);
+            else CancelCarry();
+        }
+        Box = Math.Clamp(remap.Map(Box) ?? Box, 0, Math.Max(0, Host.StorageBoxCount(bank) - 1));
+        _rectangle = null; _selectHeld = false; Host.Screens.Invalidate();
+    }
     // -1 after a save box turn until the d-pad or A brings the cursor back, as in the original.
     private int _cursor;
     public int Cursor => Math.Max(0, _cursor);
@@ -198,7 +215,7 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
         Box = Math.Clamp(Box, FirstBox, Math.Max(0, BoxCount - 1));
         _cursor = Math.Clamp(_cursor, bank ? 0 : -1, Math.Max(0, SlotCount - 1));
         var slots = Slots;
-        PksmPaint.LogoGrid(canvas, bounds, 14, 1);
+        AppChromePaint.Backdrop(canvas, bounds, 26);
         AppChromePaint.StatusStrip(canvas, bounds, PixelFont.Face, statusName: bank ? "Bank" : Host.SaveTitle, status: bank ? "Open" : "Connected");
         if (secondary) { PaintInspector(canvas, bounds); return; }
         var unit = Math.Max(bounds.Width, bounds.Height) / 1920;

@@ -7,14 +7,20 @@ namespace PKForge.App.Services;
 /// the real time since the last one, and asks for the next frame only while something still
 /// moves. No timer, so frames land on vsync and an idle screen costs nothing.
 /// </summary>
-public sealed class FramePacer(FrameInvalidator frame)
+public sealed class FramePacer
 {
-    private readonly Stopwatch _watch = Stopwatch.StartNew();
-    private long _last;
+    private readonly FrameInvalidator _frame;
+    private readonly Func<TimeSpan> _clock;
+    private readonly TimeSpan _started;
+    private TimeSpan _last;
     private bool _running;
+    public FramePacer(FrameInvalidator frame, Func<TimeSpan>? clock = null)
+    {
+        _frame = frame; _clock = clock ?? (() => Stopwatch.GetElapsedTime(0)); _started = _clock();
+    }
 
     /// <summary>Seconds since the pacer was created; for looping effects like a bob.</summary>
-    public float Now => (float)_watch.Elapsed.TotalSeconds;
+    public float Now => (float)(_clock() - _started).TotalSeconds;
 
     /// <summary>Starts (or keeps) the frame loop going.</summary>
     public void Kick()
@@ -22,17 +28,17 @@ public sealed class FramePacer(FrameInvalidator frame)
         if (!_running)
         {
             _running = true;
-            _last = _watch.ElapsedTicks;
+            _last = _clock();
         }
-        frame.Request();
+        _frame.Request();
     }
 
     /// <summary>Call first thing in a paint: seconds to advance by (0 while idle).</summary>
     public float Advance()
     {
         if (!_running) return 0;
-        var now = _watch.ElapsedTicks;
-        var dt = (float)((now - _last) / (double)Stopwatch.Frequency);
+        var now = _clock();
+        var dt = (float)(now - _last).TotalSeconds;
         _last = now;
         return Math.Clamp(dt, 0, 0.05f);
     }
@@ -41,6 +47,6 @@ public sealed class FramePacer(FrameInvalidator frame)
     public void Continue(bool animating)
     {
         _running = animating;
-        if (animating) frame.Request();
+        if (animating) _frame.Request();
     }
 }

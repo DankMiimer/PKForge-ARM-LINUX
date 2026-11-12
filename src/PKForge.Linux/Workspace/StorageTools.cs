@@ -149,14 +149,16 @@ public sealed partial class WorkspaceHost
     internal async Task BoxManagementAsync(StorageScreen screen)
     {
         var labels = new List<string> { "Rename", "Wallpaper", "Lock / unlock", "Move selected within storage", "Swap boxes", "Copy box", "Delete box (rescue Pokémon)", "Empty box", "Move box in order" };
-        if (screen.IsBank) labels.Add("Insert empty Bank box");
+        if (screen.IsBank) { labels.Insert(0, "Box overview"); labels.Add("Insert empty Bank box"); }
         else { if (!BoxLayoutService.SupportsNames(Session)) labels.Remove("Rename"); if (!BoxLayoutService.SupportsWallpapers(Session)) labels.Remove("Wallpaper"); }
         var choice = await Dialogs.MenuAsync("Box management", "Box indexes in prompts start at 1.", labels.ToArray());
+        if (choice == "Box overview") { await BankOverviewAsync(screen); return; }
         var key = screen.IsBank ? "bank" : Sessions.Current!.Document.DocumentId;
         if (choice == "Lock / unlock") { Get<ProtectionStore>().ToggleBox(key, screen.Box); return; }
         if (Get<ProtectionStore>().IsBoxLocked(key, screen.Box)) throw new InvalidOperationException("Unlock this box before modifying it.");
         if (choice == "Rename")
         {
+            if (screen.IsBank) { await RenameBankBoxAsync(screen.Box); return; }
             var name = await Dialogs.TextAsync("Box name", screen.IsBank ? BankBoxDecor.Label(screen.Box) : Session.GetBoxName(screen.Box)); if (name is null) return;
             if (!screen.IsBank && name.Length > BoxLayoutService.GetNameMaxLength(Session)) throw new InvalidOperationException($"This game's box names allow {BoxLayoutService.GetNameMaxLength(Session)} characters.");
             if (screen.IsBank) { await Get<JournaledBankService>().ExecuteAsync(SaveAction.Move, "Rename Bank box", stage => { stage.Names.SetMany([(screen.Box, name)]); return true; }); BankBoxDecor.Names.Reload(); }
@@ -166,12 +168,7 @@ public sealed partial class WorkspaceHost
         {
             if (screen.IsBank)
             {
-                var kind = await Dialogs.MenuAsync("Bank wallpaper", "Choose a palette color or bundled game art.", "Color", "Game wallpaper", "Reset");
-                BankWallpaper? wallpaper = null;
-                if (kind == "Color") { var color = await Dialogs.NumberAsync("Palette color", 0, 0, 15); if (color is null) return; wallpaper = BankWallpaper.Color((int)color); }
-                else if (kind == "Game wallpaper") { var groups = BankWallpaper.ArtCatalog; var group = await Dialogs.PickAsync("Game", groups.Select(g => g.Title).ToArray()); if (group is null) return; var asset = await Dialogs.PickAsync("Wallpaper", groups[group.Value].Assets); if (asset is null) return; wallpaper = BankWallpaper.Art(groups[group.Value].Assets[asset.Value]); }
-                else if (kind is null) return;
-                await Get<JournaledBankService>().ExecuteAsync(SaveAction.Move, "Bank wallpaper", stage => { stage.Wallpapers.Set(screen.Box, wallpaper); return true; }); BankBoxDecor.Wallpapers.Reload();
+                await PickBankWallpaperAsync(screen.Box);
             }
             else
             {
@@ -205,18 +202,7 @@ public sealed partial class WorkspaceHost
         {
             if (screen.IsBank)
             {
-                if (Get<ProtectionStore>().LockedBoxes("bank").Any(b => b >= screen.Box)) throw new InvalidOperationException("Unlock boxes affected by deletion before reordering them.");
-                if (!await Dialogs.ConfirmAsync("Delete Bank box", "Every Pokémon will be rescued into unlocked space, adding a box when needed. Names and wallpapers move with their boxes.")) return;
-                await Get<JournaledBankService>().ExecuteAsync(SaveAction.Move, "Rescue and delete Bank box", stage =>
-                {
-                    var rescued = stage.Bank.GetAll().Where(e => e.Box == screen.Box).ToArray();
-                    var used = stage.Bank.GetAll().Select(e => (e.Box, e.Slot)).ToHashSet();
-                    var free = Enumerable.Range(0, stage.Bank.BoxCount).Where(box => box != screen.Box && !Get<ProtectionStore>().IsBoxLocked("bank", box)).SelectMany(box => Enumerable.Range(0, 30).Where(slot => !used.Contains((box, slot))).Select(slot => new SlotRef(box, slot))).ToList();
-                    while (free.Count < rescued.Length || stage.Bank.BoxCount == 1) { var added = stage.Bank.BoxCount; stage.Bank.AddBox(); free.AddRange(Enumerable.Range(0, 30).Select(slot => new SlotRef(added, slot))); }
-                    stage.Bank.Place(rescued.Select((entry, i) => (entry.Id, free[i].Box, free[i].Slot)).ToArray());
-                    var remap = BankBoxRemap.Remove(stage.Bank.BoxCount, screen.Box); stage.Bank.RemapBoxes(remap); stage.Names.Remap(remap); stage.Wallpapers.Remap(remap); return true;
-                });
-                BankBoxDecor.Names.Reload(); BankBoxDecor.Wallpapers.Reload();
+                await DeleteBankBoxAsync(screen.Box);
             }
             else
             {
@@ -246,11 +232,12 @@ public sealed partial class WorkspaceHost
                 new(Session.Snapshot.Slots.Where(s => s.Box >= Math.Min(screen.Box, target) && s.Box <= Math.Max(screen.Box, target)).Select(s => new SlotRef(s.Box, s.Slot)).ToArray()));
         }
     }
-    private async Task RemapBankAsync(BankBoxRemap remap)
+    internal async Task RemapBankAsync(BankBoxRemap remap)
     {
         if (Get<ProtectionStore>().LockedBoxes("bank").Any(box => remap.Map(box) != box)) throw new InvalidOperationException("Unlock affected boxes before reordering them.");
         await Get<JournaledBankService>().ExecuteAsync(SaveAction.Move, "Reorder Bank boxes", stage => { stage.Bank.RemapBoxes(remap); stage.Names.Remap(remap); stage.Wallpapers.Remap(remap); return true; });
         BankBoxDecor.Names.Reload(); BankBoxDecor.Wallpapers.Reload();
+        RemapBankPresentation(remap);
     }
     private async Task BatchAsync(string title, StorageScreen screen)
     {

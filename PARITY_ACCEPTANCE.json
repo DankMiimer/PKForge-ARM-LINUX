@@ -182,8 +182,8 @@
         "CreateTimer",
         "Spring"
       ],
-      "linuxRoute": "",
-      "fixture": "",
+      "linuxRoute": "Bank > Tools > Box overview; WorkspaceHost.BankOverviewAsync",
+      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
       "states": [
         "normal",
         "focused",
@@ -199,7 +199,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Original graphical overview and springs shared through IBankBoxOverviewActions. Linux mutations remain journaled; reorder/suspend tests pass. Matched runtime verification remains pending."
     },
     {
       "id": "BankEntryEditor",
@@ -288,8 +288,8 @@
       "motionSources": [
         "Spring"
       ],
-      "linuxRoute": "",
-      "fixture": "",
+      "linuxRoute": "Bank > Box management > Wallpaper; WorkspaceHost.PickBankWallpaperAsync",
+      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
       "states": [
         "normal",
         "focused",
@@ -305,7 +305,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Original graphical wallpaper picker and spring scrolling shared. Chosen decoration uses journaled Linux mutation. Matched runtime verification remains pending."
     },
     {
       "id": "BoxBrowserPage.EditorPanel",
@@ -701,8 +701,8 @@
       "motionSources": [
         "CreateTimer"
       ],
-      "linuxRoute": "",
-      "fixture": "",
+      "linuxRoute": "Home first-run introduction; original shared DialogueBox",
+      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
       "states": [
         "normal",
         "focused",
@@ -718,7 +718,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Timed 24 ms typer and suspend/input cleanup implemented. Matched runtime timeline verification remains pending."
     },
     {
       "id": "DialogueChoiceBox",
@@ -2368,8 +2368,8 @@
       "motionSources": [
         "Spring"
       ],
-      "linuxRoute": "",
-      "fixture": "",
+      "linuxRoute": "Settings > Color scheme; WorkspaceHost.SettingsAsync",
+      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
       "states": [
         "normal",
         "focused",
@@ -2385,7 +2385,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Original graphical theme previews and spring scrolling shared. Platform host persists selected theme. Matched runtime verification remains pending."
     },
     {
       "id": "TouchScroller",
@@ -2396,8 +2396,8 @@
         "CreateTimer",
         "TouchScroller"
       ],
-      "linuxRoute": "",
-      "fixture": "",
+      "linuxRoute": "Home shelf and NativeListScreen touch scrolling",
+      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
       "states": [
         "normal",
         "focused",
@@ -2413,7 +2413,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Original inertial gesture implementation shared. Physical touch/cancellation and Android timeline comparison remain pending."
     },
     {
       "id": "TrainerCardPopup",

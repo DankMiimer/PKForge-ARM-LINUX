@@ -32,7 +32,7 @@ foreach (var width in new[] { 640, 720 })
     var background = new SKCanvasView();
     background.PaintSurface += (_, e) =>
     {
-        PksmPaint.LogoGrid(e.Surface.Canvas, new(0, 0, width, 480), 14, 1);
+        AppChromePaint.Backdrop(e.Surface.Canvas, new(0, 0, width, 480), 54);
         AppChromePaint.Header(e.Surface.Canvas, new(0, 0, width, 480), "PKForge", PixelFont.Face);
     };
     var host = new Grid { Children = { background } };
@@ -80,9 +80,48 @@ foreach (var width in new[] { 640, 720 })
         device.SaveScreenshot(Path.Combine(output, $"status-{width}x480-{ms:D3}ms.png"));
     }
     if (!fade.IsCompletedSuccessfully || fade.Result || notice.Opacity != 0) throw new InvalidOperationException("Status fade did not finish at 600 ms.");
+    var bank = new FileBankService(Path.Combine(ParkPlatform.DataDirectory, "bank"));
+    var overviewStart = time;
+    var overview = BankBoxOverview.ShowAsync(new PreviewBankActions(bank), host, bank, new SpriteService(), 0, () => time);
+    void FrameTo(TimeSpan target)
+    {
+        while (time < target)
+        {
+            time += TimeSpan.FromMilliseconds(Math.Min(1000.0 / 60, (target - time).TotalMilliseconds));
+            UiDispatcher.Instance.Pump();
+            device.CurrentSurface.Canvas.Clear(SKColors.Transparent);
+            host.Draw(device.CurrentSurface.Canvas, new(0, 0, width, 480), device);
+        }
+        UiDispatcher.Instance.Pump();
+        device.CurrentSurface.Canvas.Clear(SKColors.Transparent);
+        host.Draw(device.CurrentSurface.Canvas, new(0, 0, width, 480), device);
+    }
+    FrameTo(overviewStart + TimeSpan.FromMilliseconds(160));
+    device.SaveScreenshot(Path.Combine(output, $"bank-overview-{width}x480.png"));
+    router.Dispatch(PadButton.Y); router.Dispatch(PadButton.Right);
+    var pickedUp = time;
+    foreach (var ms in new[] { 0, 100, 300, 600 })
+    {
+        FrameTo(pickedUp + TimeSpan.FromMilliseconds(ms));
+        device.SaveScreenshot(Path.Combine(output, $"bank-carry-{width}x480-{ms:D3}ms.png"));
+    }
+    router.Dispatch(PadButton.B); router.Dispatch(PadButton.B);
+    if (!overview.IsCompletedSuccessfully) throw new InvalidOperationException("Bank overview retained input.");
+    var wallpaper = BankWallpaperPicker.ShowAsync(host, "Wallpaper · Box 01", BankWallpaper.Color(0), () => time);
+    FrameTo(time + TimeSpan.FromMilliseconds(160));
+    device.SaveScreenshot(Path.Combine(output, $"bank-wallpaper-{width}x480-colors.png"));
+    router.Dispatch(PadButton.R); FrameTo(time + TimeSpan.FromMilliseconds(600));
+    device.SaveScreenshot(Path.Combine(output, $"bank-wallpaper-{width}x480-game.png"));
+    router.Dispatch(PadButton.B);
+    if (!wallpaper.IsCompletedSuccessfully || UiDispatcher.Instance.Animations.Active) throw new InvalidOperationException("Wallpaper picker retained input or animation work.");
+    var theme = ThemePicker.ShowAsync(host, () => time);
+    FrameTo(time + TimeSpan.FromMilliseconds(160));
+    device.SaveScreenshot(Path.Combine(output, $"themes-{width}x480.png"));
+    router.Dispatch(PadButton.B);
+    if (!theme.IsCompletedSuccessfully || UiDispatcher.Instance.Animations.Active) throw new InvalidOperationException("Theme picker retained input or animation work.");
     host.ReleaseSurface();
 }
-Console.WriteLine("UI PREVIEW PASS: two viewports; 24 exact-time dialogue/menu/status captures; animation and timer cleanup verified.");
+Console.WriteLine("UI PREVIEW PASS: two viewports; 40 dialogue/menu/status/Bank/theme captures; animation and timer cleanup verified.");
 
 // Optional synthetic save input: create a copied, scanned Home fixture with two Ruby
 // saves (one stacked cartridge) and one Sapphire. The supplied source is read only.
@@ -106,6 +145,16 @@ if (args.Length > 1)
     Console.WriteLine("HOME FIXTURE READY: " + root);
 
     using var session = new SaveEngine().OpenSession(source.Write().ToArray(), "UI fixture");
+    var referenceBank = new FileBankService(Path.Combine(root, "bank"));
+    if (referenceBank.GetAll().Count == 0)
+    {
+        for (var slot = 0; slot < 2; slot++)
+        {
+            var export = session.ExportSlot(0, slot);
+            referenceBank.Add(export.Data, new SaveEngine().TryDescribeEntity(export.Data, "Pokémon Ruby", export.Format)
+                ?? throw new InvalidDataException("Reference Bank entity did not decode."));
+        }
+    }
     var summary = new MonSummaryService().Build(session, 0, 0, true) ?? throw new InvalidDataException("Fixture slot 0 must be occupied.");
     var sprites = new SpriteService();
     foreach (var width in new[] { 640, 720 })
@@ -118,7 +167,7 @@ if (args.Length > 1)
             for (var pass = 0; pass < 3; pass++)
             {
                 UiDispatcher.Instance.Pump();
-                PksmPaint.LogoGrid(device.CurrentSurface.Canvas, new(0, 0, width, 480), 14, 1);
+                AppChromePaint.Backdrop(device.CurrentSurface.Canvas, new(0, 0, width, 480), 54);
                 view.Draw(device.CurrentSurface.Canvas, new(12, 52, width - 12, 436), device);
                 if (pass < 2) await Task.Delay(100);
             }
@@ -127,4 +176,13 @@ if (args.Length > 1)
         view.ReleaseSurface();
     }
     Console.WriteLine("SUMMARY PREVIEW PASS: original summary component; five pages at two viewports.");
+}
+
+sealed class PreviewBankActions(IBankService bank) : IBankBoxOverviewActions
+{
+    public int? LivingDexStartBox => null;
+    public Task<bool> ApplyBoxRemapAsync(BankBoxRemap remap) { bank.RemapBoxes(remap); return Task.FromResult(true); }
+    public Task<bool> RenameBoxAsync(int box) => Task.FromResult(false);
+    public Task<bool> PickWallpaperAsync(int box) => Task.FromResult(false);
+    public Task<bool> DeleteBoxAsync(int box) => Task.FromResult(false);
 }

@@ -9,6 +9,7 @@ namespace Microsoft.Maui.Controls;
 public interface IDispatcherTimer
 {
     TimeSpan Interval { get; set; }
+    bool IsRepeating { get; set; }
     event EventHandler? Tick;
     void Start();
     void Stop();
@@ -84,6 +85,7 @@ public sealed class UiDispatcher : SynchronizationContext, IDispatcher
     private sealed class UiTimer(UiDispatcher owner) : IDispatcherTimer
     {
         public TimeSpan Interval { get; set; } = TimeSpan.FromMilliseconds(16);
+        public bool IsRepeating { get; set; } = true;
         public event EventHandler? Tick;
         public bool Running { get; private set; }
         private long _next;
@@ -105,6 +107,7 @@ public sealed class UiDispatcher : SynchronizationContext, IDispatcher
             while (Running && now >= _next && count++ < 4)
             {
                 _next += step;
+                if (!IsRepeating) Running = false;
                 Tick?.Invoke(this, EventArgs.Empty);
             }
             if (now >= _next) _next = now + step;

@@ -32,7 +32,8 @@ public sealed partial class WorkspaceHost
             else switch (choice)
             {
                 case "Color theme":
-                    var themes = ColorThemes.All; var theme = await Dialogs.PickAsync("Color theme", themes.Select(t => t.Name).ToArray()); if (theme is { } ti) ColorThemeSetting.Set(themes[ti]); break;
+                    if (await ThemePicker.ShowAsync(Screens.ControlRoot) is { } theme) ColorThemeSetting.Set(theme);
+                    Screens.Invalidate(); break;
                 case "Box background":
                     var styles = Enum.GetValues<StoragePaint.WallpaperStyle>(); var style = await Dialogs.PickAsync("Box background", styles.Select(BoxBackground.Name).ToArray()); if (style is { } si) BoxBackground.Set(styles[si]); break;
                 case "Show hidden saves":

@@ -109,6 +109,7 @@ public sealed class DialogueAndScrollTests
         {
             public bool Running;
             public TimeSpan Interval { get; set; }
+            public bool IsRepeating { get; set; } = true;
             public event EventHandler? Tick;
             public void Start() => Running = true;
             public void Stop() => Running = false;

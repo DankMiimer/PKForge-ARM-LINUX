@@ -5,6 +5,17 @@ namespace PKForge.Chrome;
 /// <summary>The original DS title/status strips, composed from the shared theme.</summary>
 public static class AppChromePaint
 {
+    /// <summary>The original grid begins at the content host, below its title/status rows.</summary>
+    public static void Backdrop(SKCanvas canvas, SKRect bounds, float contentTop)
+    {
+        using var fill = new SKPaint { Color = Pksm.Housing };
+        canvas.DrawRect(bounds, fill);
+        var body = new SKRect(bounds.Left, bounds.Top + contentTop, bounds.Right, bounds.Bottom);
+        if (body.Height <= 0) return;
+        var saved = canvas.Save(); canvas.ClipRect(body); canvas.Translate(body.Left, body.Top);
+        PksmPaint.LogoGrid(canvas, new(0, 0, body.Width, body.Height));
+        canvas.RestoreToCount(saved);
+    }
     public static void Header(SKCanvas canvas, SKRect bounds, string title, SKTypeface face, float unit = 1,
         string statusName = "PKForge", string status = "Offline")
     {

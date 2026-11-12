@@ -31,7 +31,8 @@ public sealed partial class WorkspaceHost
         }
         var destinations = sources.Where(s => !s.IsExcluded).ToArray();
         var chosen = await Dialogs.PickAsync("Living Dex destination", destinations.Select(s => s.Label).ToArray()); if (chosen is null) return;
-        var options = (LivingDexOptions?)await Forms.RecordAsync("Living Dex options", typeof(LivingDexOptions), new LivingDexOptions(destinations[chosen.Value].Id), enabled: f => !f.Equals("DestinationId", StringComparison.OrdinalIgnoreCase));
+        var options = (LivingDexOptions?)await Forms.RecordAsync("Living Dex options", typeof(LivingDexOptions), new LivingDexOptions(destinations[chosen.Value].Id,
+            BankStartBox: destinations[chosen.Value].Id == LivingDexPlanner.BankId ? BankBoxDecor.LivingDexStartBox : null), enabled: f => !f.Equals("DestinationId", StringComparison.OrdinalIgnoreCase));
         if (options is null) return;
         var plan = await Task.Run(() => LivingDexPlanner.Plan(LivingDexCatalogBuilder.Build(), sources, options));
         var protections = Get<ProtectionStore>(); var bankEntries = Bank.GetAll().ToDictionary(e => e.Id);
@@ -60,6 +61,7 @@ public sealed partial class WorkspaceHost
             var changes = staged.ExportPreparedSaves().Select(s => new PreparedFileChange(s.Save.DocumentId, s.Original, s.Candidate, s.Save.DocumentId == options.DestinationId ? 0 : 3, true, s.Scope, s.Save.EngineHint, s.Save.Format)).ToList();
             changes.AddRange(bank.Changes(plan.DestinationKind == LivingDexSourceKind.Bank ? 0 : 3, 5));
             var journal = Get<RecoveryJournal>(); var record = await journal.PrepareAsync("Living Dex Autopilot", changes); await journal.CommitAsync(record.Id);
+            if (plan.DestinationKind == LivingDexSourceKind.Bank && BankBoxDecor.LivingDexStartBox is null) BankBoxDecor.LivingDexStartBox = plan.BankStartBox;
             await RefreshStoresAsync(); await InspectAsync("Autopilot results", staged.StepOutcomes);
         }
         finally { Screens.Pop(); }

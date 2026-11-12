@@ -43,6 +43,7 @@ public sealed class StorageControlsTests : IDisposable
         collection.AddSingleton<IGameDataService, GameDataService>();
         collection.AddSingleton<ISaveCatalogue>(new EmptyCatalogue());
         collection.AddSingleton<GamepadRouter>();
+        collection.AddSingleton<ProtectionStore>();
         collection.AddSingleton<SecondScreenState>();
         _services = collection.BuildServiceProvider();
         _workspace = new WorkspaceHost(_services, dual: false);
@@ -142,6 +143,31 @@ public sealed class StorageControlsTests : IDisposable
     {
         public IReadOnlyList<DetectedSave> Saves => [];
         public Task ScanAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task Bank_reorder_keeps_names_wallpapers_marks_and_living_dex_anchor_with_their_boxes()
+    {
+        var screen = Open(bank: true); var bank = _services.GetRequiredService<IBankService>();
+        BankBoxDecor.Names.SetMany([(0, "First"), (1, "Second")]);
+        BankBoxDecor.Wallpapers.Set(0, BankWallpaper.Color(3));
+        BankBoxDecor.LivingDexStartBox = 0; screen.Marks.Add(new(0, 4));
+        await _workspace.RemapBankAsync(BankBoxRemap.Swap(bank.BoxCount, 0, 1));
+        Assert.Equal("First", BankBoxDecor.Names.Get(1)); Assert.Equal("Second", BankBoxDecor.Names.Get(0));
+        Assert.Equal(BankWallpaper.Color(3).Id, BankBoxDecor.Wallpapers.Get(1)?.Id);
+        Assert.Equal(1, BankBoxDecor.LivingDexStartBox); Assert.Equal(1, screen.Box);
+        Assert.Equal(new SlotRef(1, 4), Assert.Single(screen.Marks));
+        Assert.Empty(_services.GetRequiredService<RecoveryJournal>().Pending());
+    }
+
+    [Fact]
+    public async Task Locked_bank_box_refuses_reorder_before_metadata_or_selection_changes()
+    {
+        var screen = Open(bank: true); var bank = _services.GetRequiredService<IBankService>();
+        BankBoxDecor.Names.SetMany([(0, "Protected")]); BankBoxDecor.LivingDexStartBox = 0;
+        _services.GetRequiredService<ProtectionStore>().ToggleBox("bank", 0);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _workspace.RemapBankAsync(BankBoxRemap.Swap(bank.BoxCount, 0, 1)));
+        Assert.Equal("Protected", BankBoxDecor.Names.Get(0)); Assert.Equal(0, BankBoxDecor.LivingDexStartBox); Assert.Equal(0, screen.Box);
     }
 
     /// <summary>A Gen 3 save with Pikachu in box 1 slot 1 and Mewtwo in slot 2, as the Park tests use.</summary>

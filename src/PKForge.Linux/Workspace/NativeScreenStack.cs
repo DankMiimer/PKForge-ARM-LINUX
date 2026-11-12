@@ -174,7 +174,7 @@ internal static class NativePaint
     public static void Background(SKCanvas c, SKRect bounds, string title)
     {
         c.Clear(ColorTheme.Current.Deck);
-        PksmPaint.LogoGrid(c, bounds, 14, 1);
+        AppChromePaint.Backdrop(c, bounds, 54);
         AppChromePaint.Header(c, bounds, title, PixelFont.Face);
     }
     public static void Text(SKCanvas c, string text, float x, float y, float size, SKColor color, float maxWidth = float.PositiveInfinity)

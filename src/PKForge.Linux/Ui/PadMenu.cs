@@ -188,6 +188,19 @@ public sealed class PadMenu : IPadHandler
 
 public static class Kit
 {
+    public static Grid AttachOverlay(Grid host, View window, Action? onScrimTap = null)
+    {
+        var scrim = new BoxView { Color = PKForge.App.Theme.UiTokens.Scrim };
+        if (onScrimTap is not null)
+        {
+            var tap = new TapGestureRecognizer(); tap.Tapped += (_, _) => onScrimTap(); scrim.GestureRecognizers.Add(tap);
+        }
+        var overlay = new Grid { Children = { scrim, window } };
+        host.Add(overlay); Grid.SetRowSpan(overlay, Math.Max(1, host.RowDefinitions.Count)); Grid.SetColumnSpan(overlay, Math.Max(1, host.ColumnDefinitions.Count));
+        window.Opacity = 0; window.Scale = .92;
+        _ = window.FadeToAsync(1, 130, Easing.CubicOut); _ = window.ScaleToAsync(1, 160, Easing.SpringOut);
+        return overlay;
+    }
     public static Shadow HardShadow()
     {
         var color = Pksm.LogoVoid;

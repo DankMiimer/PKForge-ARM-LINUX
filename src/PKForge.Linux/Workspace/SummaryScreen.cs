@@ -66,7 +66,7 @@ internal sealed class SummaryScreen(WorkspaceHost host, PokemonTarget target) : 
     {
         var overview = secondary || _overview && !host.Screens.Dual;
         if (overview) { NativePaint.Background(canvas, bounds, "Summary · Box overview"); Overview(canvas, bounds); return; }
-        PksmPaint.LogoGrid(canvas, bounds, 14, 1);
+        AppChromePaint.Backdrop(canvas, bounds, 26);
         // MonSummaryScreen's surface: padding 12/10, rows 8 apart; ‹ L capsule, centred header, R › capsule.
         var top = SKRect.Create(bounds.Left + 12, bounds.Top + 10, bounds.Width - 24, 36);
         _previous = SKRect.Create(top.Left, top.Top, 44, top.Height);

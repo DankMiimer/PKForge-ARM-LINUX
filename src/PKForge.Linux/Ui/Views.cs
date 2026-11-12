@@ -19,6 +19,7 @@ public static class Colors
 }
 public readonly record struct Thickness(double Left, double Top, double Right, double Bottom)
 {
+    public static implicit operator Thickness(double all) => new(all);
     public Thickness(double all) : this(all, all, all, all) { }
     public Thickness(double horizontal, double vertical) : this(horizontal, vertical, horizontal, vertical) { }
 }
@@ -66,6 +67,9 @@ public class View : INotifyPropertyChanged
     public void Draw(SKCanvas canvas, SKRect area, GraphicsDevice device, View? excluded = null)
     {
         if (!IsVisible || this == excluded) return;
+        // A display recreation releases GPU/input ownership, then draws the retained
+        // view tree on its new surface. Removed overlays are never drawn again.
+        AttachSurface();
         var previous = Bounds;
         Bounds = Arrange(area);
         if (previous.Size != Bounds.Size) SizeChanged?.Invoke(this, EventArgs.Empty);

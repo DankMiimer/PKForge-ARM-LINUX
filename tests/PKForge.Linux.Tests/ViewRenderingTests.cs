@@ -11,6 +11,25 @@ namespace PKForge.Linux.Tests;
 
 public sealed class ViewRenderingTests
 {
+    [Fact]
+    public void Retained_tree_accepts_new_touch_after_its_display_surface_is_recreated()
+    {
+        var taps = 0; var button = new BoxView(); var tap = new TapGestureRecognizer();
+        tap.Tapped += (_, _) => taps++; button.GestureRecognizers.Add(tap);
+        var tree = new Grid { Children = { button } };
+        using (var original = GraphicsDevice.CreateHeadless(80, 80))
+        {
+            tree.Draw(original.CurrentSurface.Canvas, new(0, 0, 80, 80), original);
+            Assert.True(tree.HandleTouch(new(1, SKTouchAction.Pressed, new(40, 40))));
+            tree.ReleaseSurface();
+        }
+        using var replacement = GraphicsDevice.CreateHeadless(80, 80);
+        tree.Draw(replacement.CurrentSurface.Canvas, new(0, 0, 80, 80), replacement);
+        Assert.False(tree.HandleTouch(new(1, SKTouchAction.Released, new(40, 40))));
+        Assert.True(tree.HandleTouch(new(2, SKTouchAction.Pressed, new(40, 40))));
+        Assert.True(tree.HandleTouch(new(2, SKTouchAction.Released, new(40, 40))));
+        Assert.Equal(1, taps); tree.ReleaseSurface();
+    }
     private static readonly SKRect Area = new(0, 0, 80, 80);
     private static SKColor Pixel(GraphicsDevice device, int x = 40, int y = 40)
     {

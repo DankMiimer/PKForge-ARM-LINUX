@@ -46,17 +46,11 @@ public sealed record LivingDexShelf(
 /// </summary>
 public static class LivingDexAutopilot
 {
-    private const string BankStartKey = "livingdex_bank_start_box";
-
     /// <summary>The Bank's living dex region, once a run created it (kept so later runs fill the same boxes).</summary>
     public static int? BankStartBox
     {
-        get => Preferences.Default.Get(BankStartKey, -1) is var box and >= 0 ? box : null;
-        set
-        {
-            if (value is { } box) Preferences.Default.Set(BankStartKey, box);
-            else Preferences.Default.Remove(BankStartKey);
-        }
+        get => BankBoxDecor.LivingDexStartBox;
+        set => BankBoxDecor.LivingDexStartBox = value;
     }
 
     public static async Task<LivingDexShelf> ReadShelfAsync(IProgress<string>? progress, CancellationToken cancellationToken)
