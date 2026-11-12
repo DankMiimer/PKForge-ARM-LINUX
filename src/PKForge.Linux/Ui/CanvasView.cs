@@ -92,4 +92,11 @@ namespace SkiaSharp.Views.Maui.Controls
         public override void ReleaseSurface() { _touches.Clear(); _owner?.MakeCurrent(); _surface?.Dispose(); _surface = null; _owner = null; _cadence.Reset(); _cacheStale = false; base.ReleaseSurface(); }
     }
 }
-namespace Microsoft.Maui.Controls.Shapes { public sealed class RoundRectangle { public double CornerRadius { get; set; } } }
+namespace Microsoft.Maui.Controls.Shapes
+{
+    public sealed class RoundRectangle
+    {
+        public double CornerRadius { get; set; }
+        public double StrokeThickness { get; set; } = 1;
+    }
+}

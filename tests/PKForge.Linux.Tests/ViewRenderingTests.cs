@@ -12,6 +12,37 @@ namespace PKForge.Linux.Tests;
 public sealed class ViewRenderingTests
 {
     [Fact]
+    public void Border_fill_uses_the_native_inset_path_and_a_stroke_can_have_no_fill()
+    {
+        using var device = GraphicsDevice.CreateHeadless(20, 20);
+        var canvas = device.CurrentSurface.Canvas;
+        SKColor At(int x, int y)
+        {
+            using var image = device.CurrentSurface.Snapshot();
+            using var bitmap = SKBitmap.FromImage(image);
+            return bitmap.GetPixel(x, y);
+        }
+        canvas.Clear(SKColors.Transparent);
+        var fill = new Border { BackgroundColor = Color.FromRgb(255, 0, 0), StrokeThickness = 2 };
+        fill.Draw(canvas, new(0, 0, 20, 20), device);
+        Assert.Equal(0, At(0, 10).Alpha);
+        Assert.InRange(At(1, 10).Alpha, 1, 254);
+        Assert.Equal(SKColors.Red, At(2, 10));
+        fill.ReleaseSurface();
+        canvas.Clear(SKColors.Transparent);
+        fill.StrokeShape = new RoundRectangle { StrokeThickness = 0 };
+        fill.Draw(canvas, new(0, 0, 20, 20), device);
+        Assert.Equal(SKColors.Red, At(1, 10));
+        fill.ReleaseSurface();
+        canvas.Clear(SKColors.Transparent);
+        var outline = new Border { Stroke = Color.FromRgb(0, 255, 0), StrokeThickness = 2 };
+        outline.Draw(canvas, new(0, 0, 20, 20), device);
+        Assert.Equal(SKColors.Lime, At(1, 10));
+        Assert.Equal(0, At(10, 10).Alpha);
+        outline.ReleaseSurface();
+    }
+
+    [Fact]
     public void Overlay_presentation_reuses_thirty_fps_scene_frames_and_refreshes_after_direct_rendering()
     {
         using var device = GraphicsDevice.CreateHeadless(80, 80);

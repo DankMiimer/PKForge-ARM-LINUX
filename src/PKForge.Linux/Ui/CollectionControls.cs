@@ -105,7 +105,10 @@ public sealed class CollectionView : View
         for (var i = 0; i < _items.Length; i++)
         {
             _measure.BindingContext = _items[i]; _tops[i] = _contentHeight;
-            _heights[i] = Math.Max(1, _measure.NaturalHeight(Math.Max(1, _width - (float)(_measure.Margin.Left + _measure.Margin.Right)))
+            // Android's native item measures the content in whole physical
+            // pixels before its outer margin is added (52.4px becomes 53px).
+            // Retaining the fraction accumulates drift down a virtualized list.
+            _heights[i] = Math.Max(1, MathF.Ceiling(_measure.NaturalHeight(Math.Max(1, _width - (float)(_measure.Margin.Left + _measure.Margin.Right))))
                 + (float)(_measure.Margin.Top + _measure.Margin.Bottom));
             _contentHeight += _heights[i];
         }

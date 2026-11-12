@@ -179,6 +179,13 @@ foreach (var width in new[] { 640, 720 })
     FrameTo(time + TimeSpan.FromMilliseconds(160));
     device.SaveScreenshot(Path.Combine(output, $"picker-{width}x480.png"));
     File.WriteAllText(Path.Combine(output, $"picker-layout-{width}x480.json"), System.Text.Json.JsonSerializer.Serialize(Layout(host)));
+    // Capture a settled programmatic recenter separately from the opening pop.
+    // Android's first center adjustment uses native visible rectangles while
+    // its window is animating; it is not interchangeable with this later state.
+    router.Dispatch(PadButton.Up); FrameTo(time + TimeSpan.FromMilliseconds(32));
+    router.Dispatch(PadButton.Down); FrameTo(time + TimeSpan.FromMilliseconds(32));
+    device.SaveScreenshot(Path.Combine(output, $"picker-navigated-{width}x480.png"));
+    File.WriteAllText(Path.Combine(output, $"picker-navigated-layout-{width}x480.json"), System.Text.Json.JsonSerializer.Serialize(Layout(host)));
     router.Dispatch(PadButton.B); if (!picker.IsCompletedSuccessfully) throw new InvalidOperationException("Picker retained input.");
     var statPreview = NatureStatMath.Preview(new BaseStats(80, 82, 83, 100, 100, 80), 50,
         [31, 31, 31, 31, 31, 31], [0, 0, 0, 0, 0, 0], 3, "Lv.50 · stored IVs/EVs");
@@ -209,7 +216,7 @@ foreach (var width in new[] { 640, 720 })
     if (!movePicker.IsCompletedSuccessfully || UiDispatcher.Instance.ActiveTimerCount != 0 || UiDispatcher.Instance.Animations.Active) throw new InvalidOperationException("Move picker retained input, timers or motion.");
     host.ReleaseSurface();
 }
-Console.WriteLine("UI PREVIEW PASS: two viewports; 58 dialogue/menu/status/Bank/theme/loading/picker captures; animation and timer cleanup verified.");
+Console.WriteLine("UI PREVIEW PASS: two viewports; 60 dialogue/menu/status/Bank/theme/loading/picker captures; animation and timer cleanup verified.");
 
 // Optional synthetic save input: create a copied, scanned Home fixture with two Ruby
 // saves (one stacked cartridge) and one Sapphire. The supplied source is read only.

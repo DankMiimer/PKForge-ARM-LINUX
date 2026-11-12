@@ -2,11 +2,11 @@
 
 ## 0.3.0 development work — 12 November 2026
 
-The current Linux suites pass **1,986 tests** (861 Domain, 966 Engine,
-71 Park, 88 Linux). The changed Android application compiles with zero warnings
+The current Linux suites pass **1,988 tests** (861 Domain, 966 Engine,
+71 Park, 90 Linux). The changed Android application compiles with zero warnings
 or errors. Twelve real-shell launcher tests cover the PortMaster module/helper/
 cleanup lifecycle, dArkOS exception, overrides and bounded child termination.
-Fifty-eight dialogue/menu/status/Bank/theme/loading/picker frames plus ten summary pages
+Sixty dialogue/menu/status/Bank/theme/loading/picker frames plus ten summary pages
 exercise original shared views, timer/input cleanup and intermediate animation
 states at two viewports. Linux-native raster previews provide the pixel evidence;
 Windows font metrics differ and remain host diagnostics only.
@@ -16,6 +16,13 @@ fallback from the reference emulator, with the upstream OFL notice. Measured
 15px "Lonely" advances total 52px; the 12.5px mixed pixel/Roboto detail is 17px
 high with a 14px baseline. Linux-native component captures verify these metrics;
 the complete matched-state and animation ledger remains pending.
+
+Integer virtualized item extents and MAUI's intrinsic shape-stroke geometry now
+match the measured row layout. Five settled 720px picker row-label anchors differ
+by at most 0.8 physical pixels in position and 0.6 pixels in width. The body crop
+is 91.40% exact pixels with 3,593 changed pixels lacking a nearby reference color
+at radius 1 / tolerance 8. This remains diagnostic: initial opening centering,
+remaining raster differences and the full state/timeline matrix are unresolved.
 
 An exact clean CI archive for merge commit `20c65c255` (branch head `3e68051`)
 was installed separately on RGDS / ROCKNIX 20261001. The user confirmed L/R
@@ -44,7 +51,16 @@ CI jobs, all binary packages and the full source archive passed verification.
 KNULLI Menu+Start failed on that build: Menu was mapped as SDL Guide, which the
 app ignored, and no external keyboard hotkey helper was running. The app now
 handles the mapped Guide+Start chord and forwarded Alt+F4 on KNULLI, clearing
-held state on focus/disconnect reset. Physical verification of that fix is pending.
+held state on focus/disconnect reset. The owner verified Menu+Start from both Home and Park in a clean committed local
+`73a0405` preview (standard ZIP SHA-256
+`129c970d76586f01cef0b3d222f9947767f8387c76a96f4b702e005e36766469`).
+Both launches recorded clean exits; all 1,184 installed userdata entries matched
+after removing the QA entries. The RGDS R2 trial ran for 810 seconds with all
+twelve complete warm park minutes at 29.9-30 FPS, a clean return, and all 1,015
+installed userdata entries unchanged. This is still not the 90-minute mixed soak.
+One uncontrolled KNULLI camera trial measured 22.82 FPS in its complete warm
+minute; a controlled scene/clock comparison remains necessary before making a
+performance claim for that image.
 
 Picker checks cover 1,200 entries with bounded retained rows, filtered IDs, empty
 searches, drag cancellation, two-tap previews, suspend with an outstanding keyboard

@@ -438,9 +438,18 @@ public class Border : View
     public override bool HasActiveAnimations => base.HasActiveAnimations || Content is { IsVisible: true, HasActiveAnimations: true };
     protected override void DrawBackground(SKCanvas canvas)
     {
-        if (BackgroundColor.A == 0 && Background is null) return;
+        if (BackgroundColor.A == 0 && Background is null && (Stroke.A == 0 || StrokeThickness <= 0)) return;
         using var paint = new SKPaint { Color = Background is null ? BackgroundColor.Skia : SKColors.White, IsAntialias = true };
-        var radius = StrokeShape is Microsoft.Maui.Controls.Shapes.RoundRectangle shape ? (float)shape.CornerRadius : 0;
+        var shape = StrokeShape as Microsoft.Maui.Controls.Shapes.RoundRectangle;
+        var radius = (float)(shape?.CornerRadius ?? 0);
+        // MauiDrawable insets the border centerline; Shape.PathForBounds then
+        // applies the shape's own stroke (default 1), scaling its corner radii.
+        // Both affect fill geometry even when the border color is transparent.
+        var shapeStroke = (float)(shape?.StrokeThickness ?? 1);
+        var pathBounds = SKRect.Inflate(Bounds, -((float)StrokeThickness + shapeStroke) / 2, -((float)StrokeThickness + shapeStroke) / 2);
+        var pathWidth = Bounds.Width - (float)StrokeThickness; var pathHeight = Bounds.Height - (float)StrokeThickness;
+        var radiusX = pathWidth > 0 ? radius * Math.Max(0, (pathWidth - shapeStroke) / pathWidth) : 0;
+        var radiusY = pathHeight > 0 ? radius * Math.Max(0, (pathHeight - shapeStroke) / pathHeight) : 0;
         if (Shadow is { } shadow)
         {
             paint.Color = shadow.Color.Skia; var shifted = Bounds; shifted.Offset(shadow.X, shadow.Y);
@@ -451,12 +460,12 @@ public class Border : View
             new(Bounds.Left + (float)brush.End.X * Bounds.Width, Bounds.Top + (float)brush.End.Y * Bounds.Height),
             brush.Stops.Select(s => s.Color.Skia).ToArray(), brush.Stops.Select(s => s.Offset).ToArray(), SKShaderTileMode.Clamp) : null;
         paint.Shader = shader;
-        canvas.DrawRoundRect(Bounds, radius, radius, paint);
+        canvas.DrawRoundRect(pathBounds, radiusX, radiusY, paint);
         paint.Shader = null;
         if (Stroke.A != 0 && StrokeThickness > 0)
         {
             paint.Color = Stroke.Skia; paint.Style = SKPaintStyle.Stroke; paint.StrokeWidth = (float)StrokeThickness;
-            canvas.DrawRoundRect(SKRect.Inflate(Bounds, -(float)StrokeThickness / 2, -(float)StrokeThickness / 2), radius, radius, paint);
+            canvas.DrawRoundRect(pathBounds, radiusX, radiusY, paint);
         }
     }
     protected override void DrawContent(SKCanvas canvas, GraphicsDevice device, View? excluded) => Content?.Draw(canvas,

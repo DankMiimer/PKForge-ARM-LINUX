@@ -16,6 +16,31 @@ namespace PKForge.Linux.Tests;
 public sealed class PickerTests
 {
     [Fact]
+    public void Fractional_picker_strokes_keep_native_pixel_row_extents_when_centered()
+    {
+        using var fixture = new Fixture();
+        var list = new CollectionView
+        {
+            ItemsSource = Enumerable.Range(0, 20),
+            ItemTemplate = new DataTemplate(() => new Border
+            {
+                StrokeThickness = 1.2, Margin = new Thickness(0, 0, 0, 3),
+                Content = new BoxView { HeightRequest = 50 }
+            })
+        };
+        fixture.Host.Children.Add(list); fixture.Draw();
+        var rows = list.RetainedRows.ToArray();
+        // Native reference: 50px content + fractional stroke -> 53px border,
+        // then 3px margin. Every item keeps that extent rather than drifting.
+        Assert.Equal(53, rows[0].Bounds.Height);
+        Assert.Equal(56, rows[1].Bounds.Top - rows[0].Bounds.Top);
+        list.ScrollTo(5, ScrollToPosition.Center); fixture.Draw();
+        var centered = list.RetainedRows.Single(row => Equals(row.BindingContext, 5));
+        Assert.Equal(212, centered.Bounds.Top);
+        Assert.InRange(list.RetainedRowCount, 1, 10);
+    }
+
+    [Fact]
     public async Task Type_pickers_preserve_stellar_and_mark_unavailable_hidden_power_spreads()
     {
         using var fixture = new Fixture();
