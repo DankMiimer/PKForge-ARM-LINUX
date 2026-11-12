@@ -4,7 +4,7 @@ A native ARM64 Linux port of [PKForge](https://github.com/sofianeelhor/PKForge) 
 
 **[Download the Linux preview](https://github.com/DankMiimer/PKForge-ARM-LINUX/releases)** · [Installation and controls](LINUX.md) · [Feature coverage](FEATURE_COVERAGE.md) · [Validation](VALIDATION.md) · [Original project](https://github.com/sofianeelhor/PKForge)
 
-This is a **development preview**, Linux revision **0.2.2-dev**. Broad editor functionality is implemented, but full v3.1.1 parity and every game/format path have not completed acceptance. The feature matrix distinguishes implementation from verified behavior.
+This is a **development preview**, Linux revision **0.2.3-dev**. Broad editor functionality is implemented, but full v3.1.1 parity and every game/format path have not completed acceptance. The feature matrix distinguishes implementation from verified behavior.
 
 ![Native Linux save library on RG34XXSP](docs/screenshots/linux/home.png)
 
@@ -15,11 +15,11 @@ This is a **development preview**, Linux revision **0.2.2-dev**. Broad editor fu
 | Anbernic RGDS | ROCKNIX 20261001 | Main view above; inspector, menus and park journal below; touch and gamepad |
 | Anbernic RG34XXSP | KNULLI Scarab | Single-screen tabs and overlays; gamepad operated |
 
-Other ARM64 ROCKNIX/KNULLI handhelds are experimental. The package bundles .NET 10; the firmware supplies SDL2, SDL2_mixer and the required Linux graphics/system libraries.
+Other ARM64 ROCKNIX/KNULLI handhelds are experimental. The packages bundle .NET 10 and app-local ICU; ARM64 glibc 2.29+ and firmware SDL2 are required. Missing audio is nonfatal; GLES falls back to raster where the SDL backend supports it. KNULLI's Mali backend still needs working firmware EGL. Experimental packages also target muOS, dArkOS and NextUI; see LINUX.md for installation and validation status.
 
 ## Install and update
 
-1. Download `PKForge-v3.1.1-linux-0.2.2-dev-arm64.zip` from this fork's Releases page.
+1. Download `PKForge-v3.1.1-linux-0.2.3-dev-arm64.zip` from this fork's Releases page.
 2. Extract it into `/storage/roms/ports/` on ROCKNIX or `/userdata/roms/ports/` on KNULLI. Keep both launchers beside the `pkforge` folder.
 3. Refresh the Ports list. **PKForge** opens Home; **PKForge Pokepark** opens the park directly.
 
@@ -39,9 +39,14 @@ Revision 0.2.2 corrects Swellow's spinning flight and Donphan's upright Rollout 
 
 ## Verification and current limits
 
-The current desktop suite has **1,898 passing tests**; the shared workflow/animation harness passes **71/71 cases on each reference handheld**. Earlier 31-minute hardware runs met the warm park target of at least 29.5 FPS in each measured park-only minute. Long-session memory stability, broader advanced-editor/format coverage and the remaining acceptance items are still open. These are historical hardware measurements, not guarantees for every device or scene.
+The current desktop suite has **1,989 passing tests**; previous shared workflow/animation harness runs passed **71/71 cases on each reference handheld**. Earlier 31-minute hardware runs met the warm park target of at least 29.5 FPS in each measured park-only minute. Long-session memory stability, broader advanced-editor/format coverage and the remaining acceptance items are still open. These are historical hardware measurements, not guarantees for every device or scene.
 
 See [VALIDATION.md](VALIDATION.md) and [FEATURE_COVERAGE.md](FEATURE_COVERAGE.md) before relying on a particular editor or format. RGDS lid resume was owner-confirmed. The reference RG34XXSP uses shutdown on lid close, so its physical suspend/resume path was not exercised under that setting.
+
+Android visual and animation matching is in progress: [plans, implemented work and remaining acceptance](ANDROID_PARITY_PROGRESS.md).
+
+[Handheld compatibility](HANDHELD_COMPATIBILITY.md) records the portable runtime
+requirements and distinguishes hardware evidence from simulated launcher checks.
 
 ## Build from source
 

@@ -20,7 +20,7 @@ internal static class Sdl
     }
     public const uint InitVideo = 0x20, InitAudio = 0x10, InitController = 0x2000, InitEvents = 0x4000;
     public const uint WindowOpenGl = 2, WindowShown = 4, WindowResizable = 0x20, WindowBorderless = 0x10, WindowFullscreen = 0x1001;
-    public const uint Quit = 0x100, WindowEvent = 0x200, KeyDown = 0x300, KeyUp = 0x301,
+    public const uint Quit = 0x100, DisplayEvent = 0x150, WindowEvent = 0x200, KeyDown = 0x300, KeyUp = 0x301,
         MouseMotion = 0x400, MouseDown = 0x401, MouseUp = 0x402, MouseWheel = 0x403,
         ControllerAxis = 0x650, ControllerDown = 0x651, ControllerUp = 0x652, ControllerAdded = 0x653,
         ControllerRemoved = 0x654, FingerDown = 0x700, FingerUp = 0x701, FingerMotion = 0x702;
@@ -34,6 +34,7 @@ internal static class Sdl
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] private static extern IntPtr SDL_GetError();
     public static string Error => Marshal.PtrToStringUTF8(SDL_GetError()) ?? "SDL error";
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_SetHint([MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string value);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_SetHintWithPriority([MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string value, int priority);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_CreateWindow([MarshalAs(UnmanagedType.LPUTF8Str)] string title, int x, int y, int w, int h, uint flags);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern void SDL_DestroyWindow(IntPtr window);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern void SDL_ShowWindow(IntPtr window);
@@ -42,6 +43,7 @@ internal static class Sdl
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern void SDL_GetWindowSize(IntPtr window, out int width, out int height);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GetNumVideoDisplays();
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GetDisplayBounds(int display, out Rect rect);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GetCurrentDisplayMode(int display, out DisplayMode mode);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_GetCurrentVideoDriver();
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_ShowCursor(int toggle);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GL_SetAttribute(int attribute, int value);
@@ -66,11 +68,17 @@ internal static class Sdl
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_GameControllerOpen(int index);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern void SDL_GameControllerClose(IntPtr controller);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_GameControllerName(IntPtr controller);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_GameControllerMapping(IntPtr controller);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern void SDL_free(IntPtr memory);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern short SDL_GameControllerGetAxis(IntPtr controller, int axis);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern byte SDL_GameControllerGetButton(IntPtr controller, int button);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GameControllerAddMapping([MarshalAs(UnmanagedType.LPUTF8Str)] string mapping);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern JoystickGuid SDL_JoystickGetDeviceGUID(int index);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern void SDL_JoystickGetGUIDString(JoystickGuid guid, byte[] buffer, int length);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_RWFromFile([MarshalAs(UnmanagedType.LPUTF8Str)] string file, [MarshalAs(UnmanagedType.LPUTF8Str)] string mode);
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int X, Y, W, H; }
+    [StructLayout(LayoutKind.Sequential)] public struct DisplayMode { public uint Format; public int Width, Height, RefreshRate; public IntPtr DriverData; }
+    [StructLayout(LayoutKind.Sequential)] public struct JoystickGuid { public ulong A, B; }
     [StructLayout(LayoutKind.Explicit, Size = 56)] public struct Event
     {
         [FieldOffset(0)] public uint Type;
@@ -78,7 +86,10 @@ internal static class Sdl
         [FieldOffset(12)] public byte WindowKind;
         [FieldOffset(13)] public byte KeyRepeat;
         [FieldOffset(20)] public int Key;
+        [FieldOffset(24)] public ushort KeyMod;
         [FieldOffset(12)] public byte Button;
+        [FieldOffset(12)] public byte Axis;
+        [FieldOffset(16)] public short AxisValue;
         [FieldOffset(16)] public int MouseX;
         [FieldOffset(20)] public int MouseY;
         [FieldOffset(8)] public long TouchId;

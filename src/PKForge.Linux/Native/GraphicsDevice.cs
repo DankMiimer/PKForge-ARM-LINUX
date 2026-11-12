@@ -10,6 +10,7 @@ public sealed class GraphicsDevice : IDisposable
     public bool Gpu => _context is not null;
     public int Width { get; private set; }
     public int Height { get; private set; }
+    public int RefreshRate { get; } = 60;
     private readonly IntPtr _gl;
     private readonly GRContext? _context;
     private readonly GRGlInterface? _interface;
@@ -18,11 +19,23 @@ public sealed class GraphicsDevice : IDisposable
     private SKBitmap? _pixels;
     private SKSurface? _screen;
     private GRBackendRenderTarget? _target;
+    private bool _disposed;
     public SKSurface CurrentSurface => _screen ?? throw new InvalidOperationException("Begin a frame before drawing.");
+    internal int CompositionDepth { get; set; }
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void GlGetInteger(uint name, out int value);
+
+    /// <summary>A raster render target for deterministic off-device UI captures; no SDL window.</summary>
+    public static GraphicsDevice CreateHeadless(int width, int height) => new(width, height);
+    private GraphicsDevice(int width, int height)
+    {
+        if (width <= 0 || height <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        Width = width; Height = height;
+        _screen = SKSurface.Create(new SKImageInfo(width, height)) ?? throw new InvalidOperationException("Raster surface unavailable.");
+    }
 
     public GraphicsDevice(string title, int display, bool software, bool fullscreen = true)
     {
+        if (Sdl.SDL_GetCurrentDisplayMode(display, out var mode) == 0 && mode.RefreshRate > 0) RefreshRate = mode.RefreshRate;
         var width = 640; var height = 480;
         if (Sdl.SDL_GetDisplayBounds(display, out var bounds) == 0) { width = bounds.W; height = bounds.H; }
         Sdl.SDL_GL_SetAttribute(21, 4); // SDL_GL_CONTEXT_PROFILE_ES
@@ -61,17 +74,23 @@ public sealed class GraphicsDevice : IDisposable
             if (Window == IntPtr.Zero) throw new InvalidOperationException("SDL window: " + Sdl.Error);
             _renderer = Sdl.SDL_CreateRenderer(Window, -1, 2);
             if (_renderer == IntPtr.Zero) _renderer = Sdl.SDL_CreateRenderer(Window, -1, 1);
-            if (_renderer == IntPtr.Zero) throw new InvalidOperationException("SDL presentation: " + Sdl.Error);
+            if (_renderer == IntPtr.Zero)
+            {
+                Sdl.SDL_DestroyWindow(Window);
+                throw new InvalidOperationException("SDL presentation: " + Sdl.Error);
+            }
         }
         WindowId = Sdl.SDL_GetWindowID(Window);
         Console.WriteLine($"WINDOW {title}: SDL={driver}, Skia={(Gpu ? "GLES" : "raster")}");
     }
     public void MakeCurrent()
     {
+        if (_disposed) return;
         if (_gl != IntPtr.Zero && Sdl.SDL_GL_MakeCurrent(Window, _gl) != 0) throw new InvalidOperationException(Sdl.Error);
     }
     public SKSurface BeginFrame()
     {
+        if (Window == IntPtr.Zero) return CurrentSurface;
         MakeCurrent();
         if (Gpu) Sdl.SDL_GL_GetDrawableSize(Window, out var w, out var h);
         Sdl.SDL_GetWindowSize(Window, out var width, out var height);
@@ -109,6 +128,7 @@ public sealed class GraphicsDevice : IDisposable
     public void Present()
     {
         Flush();
+        if (Window == IntPtr.Zero) return;
         if (_context is not null) { Sdl.SDL_GL_SwapWindow(Window); }
         else
         {
@@ -129,11 +149,14 @@ public sealed class GraphicsDevice : IDisposable
     }
     public void Dispose()
     {
-        MakeCurrent();
+        if (_disposed) return;
+        // A disconnected monitor can already have invalidated its GL context.
+        if (_gl != IntPtr.Zero) Sdl.SDL_GL_MakeCurrent(Window, _gl);
+        _disposed = true;
         _screen?.Dispose(); _target?.Dispose(); _pixels?.Dispose(); _context?.Dispose(); _interface?.Dispose();
         if (_texture != IntPtr.Zero) Sdl.SDL_DestroyTexture(_texture);
         if (_renderer != IntPtr.Zero) Sdl.SDL_DestroyRenderer(_renderer);
         if (_gl != IntPtr.Zero) Sdl.SDL_GL_DeleteContext(_gl);
-        Sdl.SDL_DestroyWindow(Window);
+        if (Window != IntPtr.Zero) Sdl.SDL_DestroyWindow(Window);
     }
 }

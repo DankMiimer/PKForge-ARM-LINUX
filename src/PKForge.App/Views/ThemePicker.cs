@@ -20,19 +20,20 @@ public sealed class ThemePicker : IPadPagingHandler
     private readonly GamepadRouter? _router;
     private readonly SKCanvasView _canvas;
     private readonly FramePacer _pacer;
-    private readonly SKTypeface _face = BoxBrowserPage.PixelTypeface();
+    private readonly SKTypeface _face = PixelFont.Face;
     private readonly IReadOnlyList<ColorTheme> _themes = ColorThemes.All;
     private readonly string _currentId;
     private readonly Spring _scroll = new(0);
     private int _cursor;
+    private bool _closed;
     private int _columns = 4;
     private float _density = 1;
     private readonly List<(SKRect Rect, int Index)> _hits = [];
     private (SKRect Rect, PadButton Button)[] _hintHits = [];
 
-    public static Task<ColorTheme?> ShowAsync(Grid host) => new ThemePicker(host)._result.Task;
+    public static Task<ColorTheme?> ShowAsync(Grid host, Func<TimeSpan>? clock = null) => new ThemePicker(host, clock)._result.Task;
 
-    private ThemePicker(Grid host)
+    private ThemePicker(Grid host, Func<TimeSpan>? clock)
     {
         _host = host;
         _router = IPlatformApplication.Current?.Services.GetService<GamepadRouter>();
@@ -42,9 +43,11 @@ public sealed class ThemePicker : IPadPagingHandler
         _canvas = new SKCanvasView { EnableTouchEvents = true };
         _canvas.PaintSurface += Paint;
         _canvas.Touch += Touch;
-        _pacer = new FramePacer(new FrameInvalidator(_canvas));
+        _pacer = new FramePacer(new FrameInvalidator(_canvas), clock);
         var window = new Border { Content = _canvas, StrokeThickness = 0, BackgroundColor = Colors.Transparent, Margin = new Thickness(40, 16) };
         _overlay = Kit.AttachOverlay(host, window, () => Close(null));
+        _overlay.Unloaded += (_, _) => Close(null);
+        App.Suspended += Suspend;
         _router?.Push(this);
     }
 
@@ -70,10 +73,13 @@ public sealed class ThemePicker : IPadPagingHandler
 
     private void Close(ColorTheme? chosen)
     {
+        if (_closed) return;
+        _closed = true; App.Suspended -= Suspend; _pacer.Continue(false);
         _router?.Remove(this);
         _host.Remove(_overlay);
         _result.TrySetResult(chosen);
     }
+    private void Suspend() => Close(null);
 
     private void Touch(object? sender, SKTouchEventArgs args)
     {

@@ -29,18 +29,7 @@ public sealed partial class SaveCard(IReadOnlyList<DetectedSave> saves) : Observ
 
     /// <summary>The shelf title: the cartridge art already says Pokémon, so a retail
     /// label drops the prefix ("HeartGold"); a name the user typed is shown as typed.</summary>
-    public string ShelfTitle
-    {
-        get
-        {
-            // Labels arrive both precomposed and decomposed ("é" vs "e" + accent).
-            var label = DisplayName.Normalize(System.Text.NormalizationForm.FormC);
-            var typedName = Save.Identity is { } identity && identity.DisplayName != identity.GameLabel;
-            return !typedName && label.StartsWith("Pokémon ", StringComparison.Ordinal)
-                ? label["Pokémon ".Length..]
-                : label;
-        }
-    }
+    public string ShelfTitle => PKForge.Chrome.HomeCardText.Title(Save);
     /// <summary>The game (chosen or detected), for filters and release order - never the custom name.</summary>
     public string GameLabel => Save.Identity?.GameLabel ?? Save.GameLabel;
     public int Generation => Save.Generation;
@@ -49,26 +38,7 @@ public sealed partial class SaveCard(IReadOnlyList<DetectedSave> saves) : Observ
     public string FileName => Save.FileName;
 
     /// <summary>"Ash · 12:34", the file name when the trainer block is unreadable, or the trainers of a shared tile.</summary>
-    public string TrainerLine
-    {
-        get
-        {
-            if (Saves.Count > 1)
-            {
-                var trainers = Saves.Select(s => s.TrainerName).Where(t => !string.IsNullOrEmpty(t)).Distinct().ToArray();
-                return trainers.Length switch
-                {
-                    0 => $"{Saves.Count} saves",
-                    1 => $"{trainers[0]} · {Saves.Count} saves",
-                    2 => $"{trainers[0]}, {trainers[1]}",
-                    _ => $"{trainers[0]}, {trainers[1]} +{trainers.Length - 2}",
-                };
-            }
-            return string.IsNullOrEmpty(Save.TrainerName)
-                ? Save.FileName
-                : string.IsNullOrEmpty(Save.PlayTime) ? Save.TrainerName! : $"{Save.TrainerName} · {Save.PlayTime}";
-        }
-    }
+    public string TrainerLine => PKForge.Chrome.HomeCardText.Trainer(Saves.Count > 0 ? Saves : [Save]);
 
     /// <summary>The tile's last line: emulator and date only; folders live in the chooser and the save menu.</summary>
     public string DetailLine => SaveDescriptions.GroupDetail(Saves.Count > 0 ? Saves : [Save]);
@@ -90,23 +60,9 @@ public static class SaveDescriptions
     }
 
     /// <summary>A tile: its emulators and the latest play date ("melonDS, DraStic · Sep 3, 2026").</summary>
-    public static string GroupDetail(IReadOnlyList<DetectedSave> saves)
-    {
-        var emulators = saves.Select(s => EmulatorName(s.Emulator)).Distinct().ToArray();
-        var parts = new List<string> { emulators.Length <= 2 ? string.Join(", ", emulators) : $"{emulators.Length} emulators" };
-        if (saves.Max(s => s.LastModified) is { } latest) parts.Add(latest.ToLocalTime().ToString("MMM d, yyyy"));
-        return string.Join(" · ", parts);
-    }
+    public static string GroupDetail(IReadOnlyList<DetectedSave> saves) => PKForge.Chrome.HomeCardText.Detail(saves);
 
-    public static string EmulatorName(EmulatorKind kind) => kind switch
-    {
-        EmulatorKind.MelonDS => "melonDS",
-        EmulatorKind.DraStic => "DraStic",
-        EmulatorKind.PizzaBoyGba => "Pizza Boy GBA",
-        EmulatorKind.PizzaBoyGbc => "Pizza Boy GBC",
-        EmulatorKind.CitraMmj => "Citra MMJ",
-        _ => kind.ToString(),
-    };
+    public static string EmulatorName(EmulatorKind kind) => PKForge.Chrome.HomeCardText.Emulator(kind);
 }
 
 public partial class SavePickerViewModel : ObservableObject

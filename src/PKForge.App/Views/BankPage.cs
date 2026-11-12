@@ -21,7 +21,7 @@ namespace PKForge.App.Views;
 /// actions (bulk moves, releases, sorting), and the readout under the grid carries the
 /// mark count. Every write is an index write: the bank never touches a save itself.
 /// </summary>
-public sealed class BankPage : ContentPage, IPadPagingHandler
+public sealed class BankPage : ContentPage, IPadPagingHandler, IBankBoxOverviewActions
 {
     private const int Columns = 6;
     private const int Rows = 5;
@@ -1160,6 +1160,9 @@ public sealed class BankPage : ContentPage, IPadPagingHandler
         ChangeBox(0);
         return true;
     }
+
+    int? IBankBoxOverviewActions.LivingDexStartBox => LivingDexAutopilot.BankStartBox;
+    Task<bool> IBankBoxOverviewActions.ApplyBoxRemapAsync(BankBoxRemap remap) => Task.FromResult(ApplyBoxRemap(remap));
 
     /// <summary>
     /// Deletes a box. An empty one just goes; a full one first moves its Pokémon into free

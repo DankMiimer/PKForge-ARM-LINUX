@@ -11,7 +11,7 @@ namespace PKForge.App.Views;
 /// The thumb is for touch: it shows when a finger touches the list and fades out shortly
 /// after the list stops moving, so pad players never see it.
 /// </summary>
-internal sealed class TouchScroller
+internal sealed class TouchScroller : IDisposable
 {
     private const float FlingFriction = 0.95f; // velocity kept per 16 ms frame
     private const long ShowMs = 900;  // the thumb stays this long after the last movement
@@ -24,6 +24,8 @@ internal sealed class TouchScroller
     private readonly Func<SKRect> _track;
     private readonly float _slop;
     private readonly float _grabWidth;
+    private readonly Func<long> _now;
+    private bool _disposed;
 
     private SKPoint _start;
     private float _startOffset;
@@ -39,7 +41,7 @@ internal sealed class TouchScroller
     /// <param name="slop">How far a finger moves before a press becomes a drag.</param>
     /// <param name="grabWidth">How far left of the track a press still grabs the thumb.</param>
     public TouchScroller(IDispatcher dispatcher, Func<float> offset, Action<float> scrollTo, Func<float> max,
-        Func<float> viewport, Func<SKRect> track, float slop, float grabWidth)
+        Func<float> viewport, Func<SKRect> track, float slop, float grabWidth, Func<long>? clock = null)
     {
         _dispatcher = dispatcher;
         _offset = offset;
@@ -49,6 +51,7 @@ internal sealed class TouchScroller
         _track = track;
         _slop = slop;
         _grabWidth = grabWidth;
+        _now = clock ?? (() => Environment.TickCount64);
     }
 
     /// <summary>True while the thumb is held: the caller draws it wider.</summary>
@@ -60,7 +63,7 @@ internal sealed class TouchScroller
         get
         {
             if (HoldingThumb || _dragging) return 1;
-            var idle = Environment.TickCount64 - _lastActive;
+            var idle = _now() - _lastActive;
             return idle <= ShowMs ? 1 : Math.Clamp(1 - (idle - ShowMs) / (float)FadeMs, 0, 1);
         }
     }
@@ -68,14 +71,14 @@ internal sealed class TouchScroller
     // A touch or a moving list keeps the thumb shown; once it rests, a timer repaints the fade.
     private void Touched()
     {
-        _lastActive = Environment.TickCount64;
+        _lastActive = _now();
         if (_fade is null)
         {
             _fade = _dispatcher.CreateTimer();
             _fade.Interval = TimeSpan.FromMilliseconds(32);
             _fade.Tick += (_, _) =>
             {
-                if (Environment.TickCount64 - _lastActive < ShowMs) return;
+                if (_now() - _lastActive < ShowMs) return;
                 _scrollTo(_offset()); // repaint
                 if (Visibility <= 0) _fade!.Stop();
             };
@@ -97,10 +100,19 @@ internal sealed class TouchScroller
 
     public void Stop() => _fling?.Stop();
 
+    /// <summary>Release hidden input and repaint timers when a host screen leaves.</summary>
+    public void Reset()
+    {
+        Stop(); _fade?.Stop(); HoldingThumb = _dragging = false;
+        _trail.Clear(); _velocity = 0; _lastActive = long.MinValue / 2;
+    }
+    public void Dispose() { Reset(); _disposed = true; }
+
     /// <summary>Feeds one touch event; returns the point of a tap (a press released without dragging).</summary>
     public SKPoint? Handle(SKTouchAction action, SKPoint point)
     {
-        var now = Environment.TickCount64;
+        if (_disposed) return null;
+        var now = _now();
         switch (action)
         {
             case SKTouchAction.Pressed:

@@ -1,4 +1,5 @@
 using PKForge.App.Services;
+using PKForge.App.Views;
 using PKForge.Application;
 using PKForge.Domain;
 using PKForge.Engine;
@@ -82,8 +83,43 @@ public sealed partial class WorkspaceHost
         var detail = Pokemon.Read(target, (s, b, i) => s.ReadEntity(b, i)); var generation = Pokemon.Read(target, (s, _, _) => s.Generation);
         var edit = await Forms.EditAsync<EntityEdit>("Edit Pokémon", detail,
             field => field.ToLowerInvariant() switch { "nature" or "ability" or "ball" => generation >= 3, "helditem" or "friendship" or "gender" => generation >= 2, _ => true }, field => CoreChoices(target, field),
-            field => Pokemon.Read(target, (s, b, i) => field.ToLowerInvariant() switch { "nickname" => GameTextRules.ForPokemon(s, b, i, PokemonNameField.Nickname), "originaltrainer" => GameTextRules.ForPokemon(s, b, i, PokemonNameField.OriginalTrainer), _ => null }));
+            field => Pokemon.Read(target, (s, b, i) => field.ToLowerInvariant() switch { "nickname" => GameTextRules.ForPokemon(s, b, i, PokemonNameField.Nickname), "originaltrainer" => GameTextRules.ForPokemon(s, b, i, PokemonNameField.OriginalTrainer), _ => null }),
+            (field, values) => PickCoreFieldAsync(target, detail, field, values));
         if (edit is not null) await EditMonAsync(target, (s, b, i) => { s.ApplyEdit(b, i, edit); return new(true, "Pokémon updated."); }, "Edit Pokémon");
+    }
+    private async Task<(bool Handled, object? Value)> PickCoreFieldAsync(PokemonTarget target, EntityDetail detail,
+        string field, IReadOnlyDictionary<string, object?> values)
+    {
+        var species = values["Species"] as int? ?? detail.Species;
+        var form = species == detail.Species ? detail.Form : 0;
+        var current = values[field] as int?;
+        PickItem? chosen;
+        switch (field.ToLowerInvariant())
+        {
+            case "nature":
+                var overrides = new StatPreviewOverrides(species, values["Level"] as int?,
+                    values["IVs"] as IReadOnlyList<int>, values["EVs"] as IReadOnlyList<int>);
+                var preview = Pokemon.Read(target, (s, b, i) => Get<IStatPreviewService>().PreviewSlot(s, b, i, overrides));
+                chosen = await NaturePicker.ShowAsync(Dialogs.Host, Data.NatureNames, current, preview); break;
+            case "ability":
+                var abilities = Pokemon.Read(target, (s, _, _) => InfoPickers.AbilityItems(Data, s, species, form));
+                chosen = await PickerMenu.ShowAsync(Dialogs.Host, "Ability", abilities, current); break;
+            case "helditem":
+                var items = Pokemon.Read(target, (s, _, _) => (Names: s.GetItemNames(), Legal: Get<IMonInfoService>().GetHeldItems(s).ToHashSet()));
+                var placeholder = ItemArt.PlaceholderPath();
+                string? Icon(int id)
+                {
+                    if ((uint)id >= (uint)items.Names.Count) return placeholder;
+                    var path = Path.Combine(ParkPlatform.DataDirectory, "items", ItemArt.Slug(items.Names[id]) + ".png");
+                    return File.Exists(path) ? path : placeholder;
+                }
+                chosen = await InfoPickers.ShowHeldItemsAsync(Dialogs.Host, "Held item", items.Names, items.Legal, current, Icon); break;
+            case "move1" or "move2" or "move3" or "move4":
+                var moves = Pokemon.Read(target, (s, b, i) => Get<IMonInfoService>().GetMoveChoices(s, b, i, species, form));
+                chosen = await InfoPickers.ShowMovesAsync(Dialogs.Host, "Move " + field[^1], Data, moves, current); break;
+            default: return (false, null);
+        }
+        return (true, chosen?.Id);
     }
     private async Task EditMetAsync(PokemonTarget target)
     {
@@ -99,7 +135,14 @@ public sealed partial class WorkspaceHost
         var info = Pokemon.Read(target, (s, b, i) => s.GetPotential(b, i));
         var edit = await Forms.EditAsync<PotentialEdit>("Potential / training", info,
             field => field.ToLowerInvariant() switch { "teratype" => info.SupportsTera && !info.TeraLocked, "hypertrained" => info.SupportsHyperTrain, "abilityslot" => info.SupportsAbilitySlot, "awakening" => info.SupportsAwakening, "ganbaru" => info.SupportsGanbaru, _ => false },
-            field => field.ToLowerInvariant() switch { "teratype" => Pokemon.Read(target, (s, _, _) => s.GetTeraTypeChoices()), "abilityslot" => info.AbilitySlots, _ => null });
+            field => field.ToLowerInvariant() switch { "teratype" => Pokemon.Read(target, (s, _, _) => s.GetTeraTypeChoices()), "abilityslot" => info.AbilitySlots, _ => null },
+            picker: async (field, values) =>
+            {
+                if (!field.Equals("TeraType", StringComparison.OrdinalIgnoreCase)) return (false, null);
+                var facts = Pokemon.Read(target, (s, b, i) => (Choices: s.GetTeraTypeChoices(), Types: s.ReadEntity(b, i).Types));
+                var chosen = await InfoPickers.ShowTeraAsync(Dialogs.Host, facts.Choices, values[field] as int? ?? 0, facts.Types ?? []);
+                return (true, chosen?.Id);
+            });
         if (edit is not null) await EditMonAsync(target, (s, b, i) => { s.ApplyPotentialEdit(b, i, edit); return new(true, "Potential updated."); }, "Potential / training");
     }
     private async Task EditMovesAsync(PokemonTarget target)
@@ -173,10 +216,10 @@ public sealed partial class WorkspaceHost
         }
         else if (choice == "Stat nature (mint)")
         {
-            if (Pokemon.Read(target, (s, b, i) => MonFieldService.GetStatNature(s, b, i)) is null) return;
+            if (Pokemon.Read(target, (s, b, i) => MonFieldService.GetStatNature(s, b, i)) is not { } currentNature) return;
             var preview = Pokemon.Read(target, (s, b, i) => MonFieldService.PreviewStatNature(s, b, i));
-            var index = await Dialogs.PickAsync("Stat nature · HP/Atk/Def/SpA/SpD/Spe", Data.NatureNames.Select((name, i) => name + (preview is null ? "" : " · " + string.Join('/', preview.StatsFor(i)))).ToArray());
-            if (index is { } nature) await EditMonAsync(target, (s, b, i) => { MonFieldService.SetStatNature(s, b, i, nature); return new(true, "Stat nature updated."); }, "Mint");
+            var chosen = await NaturePicker.ShowAsync(Dialogs.Host, Data.NatureNames, currentNature, preview, "Stat nature (mint)");
+            if (chosen is { } nature) await EditMonAsync(target, (s, b, i) => { MonFieldService.SetStatNature(s, b, i, nature.Id); return new(true, "Stat nature updated."); }, "Mint");
         }
         else if (choice == "Shiny kind / PID / EC") await PersonalityAsync(target);
         else if (choice == "OT / handling trainer")
@@ -199,8 +242,10 @@ public sealed partial class WorkspaceHost
         {
             var rng = Pokemon.Read(target, (s, b, i) => s.GetRngInfo(b, i));
             if (!rng.NatureRerollSupported) { await Dialogs.MessageAsync("Nature", "This format does not store a nature."); return; }
-            var nature = await Dialogs.PickAsync("Nature", Data.NatureNames);
-            if (nature is { } n) await EditMonAsync(target, (s, b, i) => new(s.RerollNatureKeepShiny(b, i, n), "Nature rerolled with shiny state preserved."), "Nature RNG");
+            var current = Pokemon.Read(target, (s, b, i) => s.ReadEntity(b, i).Nature);
+            var preview = Pokemon.Read(target, (s, b, i) => Get<IStatPreviewService>().PreviewSlot(s, b, i));
+            var nature = await NaturePicker.ShowAsync(Dialogs.Host, Data.NatureNames, current, preview);
+            if (nature is { } chosen) await EditMonAsync(target, (s, b, i) => new(s.RerollNatureKeepShiny(b, i, chosen.Id), "Nature rerolled with shiny state preserved."), "Nature RNG");
         }
         if (choice == "Shiny kind")
         {

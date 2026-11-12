@@ -1,4 +1,120 @@
-# ARM64 port validation — 24 October 2026
+# ARM64 port validation
+
+## 0.3.0 development work — 12 November 2026
+
+The current Linux suites pass **1,989 tests** (861 Domain, 966 Engine,
+71 Park, 91 Linux). The changed Android application compiles with zero warnings
+or errors. Twelve real-shell launcher tests cover the PortMaster module/helper/
+cleanup lifecycle, dArkOS exception, overrides and bounded child termination.
+Sixty dialogue/menu/status/Bank/theme/loading/picker frames plus ten summary pages
+exercise original shared views, timer/input cleanup and intermediate animation
+states at two viewports. Linux-native raster previews provide the pixel evidence;
+Windows font metrics differ and remain host diagnostics only.
+
+Native labels now use NDS12's authored `hdmx` advances and the exact Roboto 3.011
+fallback from the reference emulator, with the upstream OFL notice. Measured
+15px "Lonely" advances total 52px; the 12.5px mixed pixel/Roboto detail is 17px
+high with a 14px baseline. Linux-native component captures verify these metrics;
+the complete matched-state and animation ledger remains pending.
+
+Integer virtualized item extents and MAUI's intrinsic shape-stroke geometry now
+match the measured row layout. Five settled 720px picker row-label anchors differ
+by at most 0.8 physical pixels in position and 0.6 pixels in width. The body crop
+is 91.40% exact pixels with 3,593 changed pixels lacking a nearby reference color
+at radius 1 / tolerance 8. This remains diagnostic: initial opening centering,
+remaining raster differences and the full state/timeline matrix are unresolved.
+
+An exact clean CI archive for merge commit `20c65c255` (branch head `3e68051`)
+was installed separately on RGDS / ROCKNIX 20261001. The user confirmed L/R
+camera travel, D-pad zoom, L2+D-pad pan and normal behavior after release,
+touch on both screens, and lid/resume. Both entry points launched through Ports
+and recorded clean exits. All 1,015 existing userdata entries remained unchanged.
+The six-minute park trial included interaction and lid testing; its minute
+windows are not a controlled performance acceptance or the required soak.
+
+The same archive launched Home on RG34XXSP / KNULLI 20260511, ARM64/glibc 2.40,
+through firmware SDL 2.32.8 and GLES. Physical testing exposed swapped A/B and
+X/Y in KNULLI's default Ports mapping. An isolated probe using that same SDL
+library confirmed that a later AddMapping call returns success without replacing
+the higher-priority frontend mapping. A pre-initialization hint applies it.
+The app now merges explicit userdata overrides before SDL initialization and
+recognizes KNULLI's reversed default relative to the matching frontend GUID/name.
+The new app path still needs final-package physical acceptance.
+The QA launcher prototype's pre-start mapping passed the user's A/B/X/Y check;
+the RG34XXSP park camera, zoom, pan/release, options/back and lid close/reopen
+checks also passed. The owner then requested **R2+D-pad** instead of L2+D-pad.
+Linux source, hints and regression checks now use R2; the earlier physical
+results apply to the old L2 chord. A subsequent exact CI archive, merge commit
+`4acf5d2d7` / head `56abc5f`, passed automatic A/B/X/Y mapping without QA overrides
+and R2+D-pad pan/release on RG34XXSP; R2 pan/release also passed on RGDS. All four
+CI jobs, all binary packages and the full source archive passed verification.
+KNULLI Menu+Start failed on that build: Menu was mapped as SDL Guide, which the
+app ignored, and no external keyboard hotkey helper was running. The app now
+handles the mapped Guide+Start chord and forwarded Alt+F4 on KNULLI, clearing
+held state on focus/disconnect reset. The owner verified Menu+Start from both Home and Park in a clean committed local
+`73a0405` preview (standard ZIP SHA-256
+`129c970d76586f01cef0b3d222f9947767f8387c76a96f4b702e005e36766469`).
+Both launches recorded clean exits; all 1,184 installed userdata entries matched
+after removing the QA entries. The RGDS R2 trial ran for 810 seconds with all
+twelve complete warm park minutes at 29.9-30 FPS, a clean return, and all 1,015
+installed userdata entries unchanged. This is still not the 90-minute mixed soak.
+One uncontrolled KNULLI camera trial measured 22.82 FPS in its complete warm
+minute; a controlled scene/clock comparison remains necessary before making a
+performance claim for that image.
+
+Picker checks cover 1,200 entries with bounded retained rows, filtered IDs, empty
+searches, drag cancellation, two-tap previews, suspend with an outstanding keyboard
+request and nature previews using staged editor values. These checks establish
+host behavior and read-only selection, not full matched Android state acceptance.
+Information-rich picker tests also preserve game-specific held-item IDs, captured
+move facts, legal ordering and filtering, Stellar type IDs and unavailable Hidden
+Power spread labels. The shared overloads accept captured facts so a chooser
+cannot outlive the temporary Bank session that supplied them.
+
+Single-screen park overlays now present at UI cadence over a cached 30 FPS park
+surface. Tests cover irregular frame spacing, cache/direct transitions and surface
+recreation. An eight-second Linux SDL dummy/raster run opened and closed options
+twice, composed 270 `Park UI` frames and 105 `Park` frames, and exited cleanly with
+SDL2_mixer unavailable. Its aggregate 46.96 FPS mixes both cadences and is not a
+park benchmark. Final RGDS GPU/input, motion timing and long-session checks remain
+required.
+
+All four development ZIPs pass the strengthened channel/provenance, exact checksum
+set, embedded version/build information, asset/native ABI and source-layout checks.
+They contain 6,901 assets and 19 ARM64 binaries each; complete source contains
+15,753 entries. These are explicitly dirty candidate builds, not release assets.
+
+Candidate ZIP SHA-256
+`bf6df03c1afe2b6624be18bdcc360d07be92b5583000c16a0f12dddbf5aa8237`
+was extracted into a separate RGDS installation and launched through the normal
+EmulationStation Ports entry. Logs confirm both 640×480 Wayland/GLES windows,
+controller discovery, independent touch-panel discovery and SDL2_mixer initialization.
+The 35-second Home run measured 57.57 FPS overall with 8.75 ms mean drawing and
+12.67 ms drawing p95, then exited cleanly and returned to the frontend. This is
+a short UI measurement, not proof of physical controls. A separate 185-second
+night/storm park run measured 29.62 FPS overall and 30 FPS in both measured warm
+minutes. Both entry points returned through the frontend. All 1,015 installed
+userdata entries matched their original hashes; the temporary Ports entries
+were removed and normal volume was restored. These trials used an earlier
+candidate, before the newest Bank/loading changes, and do not establish the
+90-minute stability or final-byte gates. A first compositor capture
+attempt selected the compositor's pre-start environment rather than the frontend's
+complete environment and failed; that attempt does not establish screen capture.
+
+The pinned original Android build runs in an isolated 720×480/160-dpi emulator.
+A separate diagnostic APK adds a command entry hook and fixture driver; all 98
+view-source files match the pinned baseline after LF normalization. It captures
+common overlays at 720×480 single and two 640×480 logical displays, with measured
+MAUI bounds. Capture metadata distinguishes that harness from the unmodified
+reference APK and records the installed APK hash. Neither emulator captures nor
+headless Linux previews establish physical handheld acceptance.
+Its source-derived inventory has 98 reference units with acceptance still pending.
+See `PARITY_ACCEPTANCE.json`, `ANDROID_PARITY_PROGRESS.md` and
+`HANDHELD_COMPATIBILITY.md`. Final RGDS physical/parity/data safety acceptance and
+the 90-minute mixed soak remain open. KNULLI is previously tested, awaiting the
+final version; other firmware packages remain experimental/hardware unverified.
+
+## Historical validation — 25 October 2026
 
 This is an **experimental preview**, pinned to PKForge v3.1.1 at
 `799dfc310c94bb978962dcd31ddf7d39e6d8cba3`. Both named handhelds have run the
@@ -6,6 +122,68 @@ actual self-contained ARM64 binary. This does not establish compatibility with
 every ROCKNIX or KNULLI device, or complete every release acceptance condition.
 
 ## Automated checks
+
+### Linux 0.2.3 UI and firmware compatibility
+
+The normal Linux solution command passes **1,953 tests**, none failed or skipped:
+861 Domain, 966 Engine, 71 park/application and 55 Linux UI/compatibility cases.
+New coverage includes framebuffer sprite scaling, oversized sprite fitting,
+L2 trigger hysteresis, either modifier press order, modal/disconnect reset,
+display selection, saved opt-out, secondary-window failure and NextUI save-root
+discovery. Event-gallery tests now serialize their process-wide PKHeX cache
+mutations; a parallel run exposed their previous test isolation race. Android
+compilation passes after the shared changes, with no warnings or errors.
+
+All nine real-shell launcher scenarios pass under Linux: spaces, split muOS
+paths, second-card override, both entry points/exit status, absent PortMaster,
+preserved controller overrides, ignored global firmware mods, NextUI shared data,
+old libc/32-bit refusal, runtime failure reporting and explicit SDL backend.
+The standard Ports ZIP and three NextUI ZIPs pass asset/native hashes, executable
+permissions, LF launchers, ICU configuration, ARM64/glibc ABI and userdata-exclusion
+checks. Native requirements are glibc 2.29 and at most GLIBCXX 3.4.22; ICU 72.1.0.3
+is bundled with its notices. Complete source includes both pinned submodules.
+
+Home, storage and summary were captured at 640×480, 720×480, 720×720, 1024×768
+and 1280×720. Render inspection confirms the removed title strip, retained status
+row and pixel-aligned summary sprites. These captures use a disposable fixture.
+
+The actual ARM64 candidate ran on RGDS / ROCKNIX 20261001 from a separate test
+installation, using tmpfs logs and disposable userdata. Native Home/storage/summary
+captures, SDL dummy/raster with unavailable audio, both graphical launchers,
+automatic dual screens, persisted opt-out and swapped screens passed. A fresh
+185-second, 24-resident night/storm GLES run measured **30.00 FPS in both complete
+warm park-only minutes** (29.60 FPS overall). Warm draw averages were 12.13 and
+11.64 ms. Publication pins the upstream build's timestamp-based revision metadata
+to source commits so the packaged binaries can be matched to runtime evidence.
+The trial's copied save remained byte-identical. The installed application binary
+and every existing userdata file were verified unchanged before restoring the
+original running application; the userdata recovery snapshot remains separate.
+
+The same packaged binary ran on RG34XXSP / KNULLI Scarab (20260511, ARM64,
+glibc 2.40) in a separate test installation. Both launchers, firmware Mali/GLES,
+Home/storage/summary captures, raster rendering with unavailable audio, saved
+opt-out and forced-dual/swap fallback to its single 720×480 display passed.
+Framebuffer captures confirm the reclaimed Home space and crisp summary sprite.
+Automatic SDL backend selection also chose Mali without an explicit override.
+Deliberately unavailable EGL produced a readable failure and restored the frontend:
+this firmware exposes only SDL's Mali backend, which requires EGL even for raster
+windows. Working firmware EGL remains required on KNULLI; the RGDS dummy-driver
+trial verifies automatic GLES-to-raster fallback where SDL supports raster windows.
+The 185-second night/storm park trial measured **30.00 FPS in both complete warm
+minutes**, 29.75 FPS overall, with warm draw averages of 21.83 and 21.89 ms.
+A separate rollback archive preserves the prior application, launchers and data;
+all 35,922 installed files and the disposable save verified byte-identical after
+the trial. EmulationStation was restored and verified running.
+
+Physical L2/D-pad and touch acceptance, hotplug/lid behavior and a new long soak
+remain owner checks. The short run does not establish memory stability; the
+existing long-session gate below remains open. muOS, dArkOS/R36S and NextUI
+remain **experimental and untested on hardware**, with separate platform wrappers
+and documented dependencies.
+
+Development packages live under `dist/candidate`, explicitly record uncommitted
+provenance and require `-AllowCandidate` for verification. They are not published
+releases or claims that every named firmware/device has passed acceptance.
 
 ### Linux 0.2.2 travel animation fix
 

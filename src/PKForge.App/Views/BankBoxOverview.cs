@@ -12,7 +12,7 @@ namespace PKForge.App.Views;
 /// Pick a box up and carry it (Y, or a long press), and the others slide aside to show where
 /// it lands; switch to swap to trade two boxes instead. Rename, wallpaper, insert and delete
 /// from the box menu (X). Every change is one Bank write through
-/// <see cref="BankPage.ApplyBoxRemap"/>, so names, wallpapers, marks and the living dex region
+/// <see cref="IBankBoxOverviewActions.ApplyBoxRemapAsync"/>, so names, wallpapers, marks and the living dex region
 /// always follow their box.
 /// </summary>
 public sealed class BankBoxOverview : IPadPagingHandler
@@ -24,7 +24,7 @@ public sealed class BankBoxOverview : IPadPagingHandler
     private enum Carry { None, Move, Swap }
 
     private readonly TaskCompletionSource<int?> _result = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly BankPage _page;
+    private readonly IBankBoxOverviewActions _page;
     private readonly Grid _host;
     private readonly Grid _overlay;
     private readonly IBankService _bank;
@@ -33,7 +33,7 @@ public sealed class BankBoxOverview : IPadPagingHandler
     private readonly SKCanvasView _canvas;
     private readonly FrameInvalidator _frame;
     private readonly FramePacer _pacer;
-    private readonly SKTypeface _face = BoxBrowserPage.PixelTypeface();
+    private readonly SKTypeface _face = PixelFont.Face;
 
     // Per box (by current index): where its card is drawn, in grid cells, and how "present" it is.
     private readonly List<(Spring X, Spring Y, Spring Appear)> _cards = [];
@@ -47,6 +47,7 @@ public sealed class BankBoxOverview : IPadPagingHandler
     private int? _held;
     private Carry _carry;
     private bool _busy;
+    private bool _closing, _closed;
     private int _columns = 6;
     private int _visibleRows = 2;
     private float _density = 1;
@@ -59,10 +60,10 @@ public sealed class BankBoxOverview : IPadPagingHandler
     private float _scrollStart;
     private IDispatcherTimer? _longPress;
 
-    public static Task<int?> ShowAsync(BankPage page, Grid host, IBankService bank, ISpriteService sprites, int currentBox) =>
-        new BankBoxOverview(page, host, bank, sprites, currentBox)._result.Task;
+    public static Task<int?> ShowAsync(IBankBoxOverviewActions page, Grid host, IBankService bank, ISpriteService sprites, int currentBox, Func<TimeSpan>? clock = null) =>
+        new BankBoxOverview(page, host, bank, sprites, currentBox, clock)._result.Task;
 
-    private BankBoxOverview(BankPage page, Grid host, IBankService bank, ISpriteService sprites, int currentBox)
+    private BankBoxOverview(IBankBoxOverviewActions page, Grid host, IBankService bank, ISpriteService sprites, int currentBox, Func<TimeSpan>? clock)
     {
         _page = page;
         _host = host;
@@ -73,7 +74,7 @@ public sealed class BankBoxOverview : IPadPagingHandler
         _canvas.PaintSurface += Paint;
         _canvas.Touch += Touch;
         _frame = new FrameInvalidator(_canvas);
-        _pacer = new FramePacer(_frame);
+        _pacer = new FramePacer(_frame, clock);
 
         var window = new Border
         {
@@ -90,6 +91,8 @@ public sealed class BankBoxOverview : IPadPagingHandler
             if (_held is not null) CancelCarry();
             else Close(null);
         });
+        _overlay.Unloaded += (_, _) => Close(null);
+        App.Suspended += Suspend;
 
         Reload();
         _cursor = Math.Clamp(currentBox, 0, _boxes.Length - 1);
@@ -147,6 +150,7 @@ public sealed class BankBoxOverview : IPadPagingHandler
 
     private void Retarget()
     {
+        if (_closed) return;
         for (var box = 0; box < _cards.Count; box++)
         {
             var position = _carry == Carry.Swap && _held is { } held
@@ -212,12 +216,12 @@ public sealed class BankBoxOverview : IPadPagingHandler
             case PadButton.L: MoveCursor(-_columns * Math.Max(1, _visibleRows - 1)); return true;
             case PadButton.R: MoveCursor(_columns * Math.Max(1, _visibleRows - 1)); return true;
             case PadButton.A:
-                if (_held is not null) Drop();
+                if (_held is not null) _ = DropAsync();
                 else Close(_cursor);
                 return true;
             case PadButton.Y:
                 if (_held is null) PickUp(_cursor);
-                else Drop();
+                else _ = DropAsync();
                 return true;
             case PadButton.X:
                 if (_held is not null) ToggleCarryMode();
@@ -266,7 +270,7 @@ public sealed class BankBoxOverview : IPadPagingHandler
         Retarget();
     }
 
-    private void Drop()
+    private async Task DropAsync()
     {
         if (_held is not { } held) return;
         var remap = _carry == Carry.Swap
@@ -275,7 +279,7 @@ public sealed class BankBoxOverview : IPadPagingHandler
         _held = null;
         _carry = Carry.None;
         _dragging = false;
-        if (_page.ApplyBoxRemap(remap)) Reload(remap);
+        await RunAsync(() => _page.ApplyBoxRemapAsync(remap), remap);
         Retarget();
     }
 
@@ -301,7 +305,9 @@ public sealed class BankBoxOverview : IPadPagingHandler
             choice = await PadMenu.ShowAsync(_host, BankBoxDecor.Label(box),
                 count == 0 ? "Empty box." : $"{count} / {Slots} Pokémon.", [.. options]);
         }
-        finally { _busy = false; }
+        finally { _busy = false; if (_closing) Close(null); }
+
+        if (_closed) return;
 
         switch (choice)
         {
@@ -339,33 +345,43 @@ public sealed class BankBoxOverview : IPadPagingHandler
         try
         {
             var changed = await action();
+            if (_closing) return changed;
             if (changed) Reload(remap);
             _frame.Request();
             return changed;
         }
-        finally { _busy = false; }
+        catch (Exception error)
+        {
+            if (_closing) { Console.Error.WriteLine(error); return false; }
+            await PadMenu.ShowAsync(_host, "Operation stopped", error.Message, "OK");
+            return false;
+        }
+        finally { _busy = false; if (_closing) Close(null); }
     }
 
-    private Task AddBoxAsync(int at)
+    private async Task AddBoxAsync(int at)
     {
         var remap = BankBoxRemap.Insert(_boxes.Length, at);
-        if (_page.ApplyBoxRemap(remap))
+        if (await RunAsync(() => _page.ApplyBoxRemapAsync(remap), remap))
         {
-            Reload(remap);
             _cursor = at;
         }
         Retarget();
-        return Task.CompletedTask;
     }
 
     private void Close(int? box)
     {
+        if (_closed) return;
+        if (_busy) { _closing = true; return; }
+        _closed = true; App.Suspended -= Suspend;
+        _pacer.Continue(false);
         _longPress?.Stop();
         ClearCardCache();
         _router?.Remove(this);
         _host.Remove(_overlay);
         _result.TrySetResult(box);
     }
+    private void Suspend() => Close(null);
 
     // ── Touch ──────────────────────────────────────────────────────────────
 
@@ -407,10 +423,10 @@ public sealed class BankBoxOverview : IPadPagingHandler
             case SKTouchAction.Released:
             case SKTouchAction.Cancelled:
                 _longPress?.Stop();
-                if (_dragging) Drop();
+                if (_dragging) _ = DropAsync();
                 else if (!_scrolling && _pressAt is not null && args.ActionType == SKTouchAction.Released && BoxAt(point) is { } box)
                 {
-                    if (_held is not null) { _cursor = box; Drop(); }
+                    if (_held is not null) { _cursor = box; _ = DropAsync(); }
                     else if (box == _cursor) Close(box); // a second tap opens it
                     else { _cursor = box; Retarget(); }
                 }
@@ -422,8 +438,7 @@ public sealed class BankBoxOverview : IPadPagingHandler
 
     private void StartLongPress()
     {
-        _longPress ??= Microsoft.Maui.Controls.Application.Current?.Dispatcher.CreateTimer();
-        if (_longPress is null) return;
+        _longPress ??= _host.Dispatcher.CreateTimer();
         _longPress.Stop();
         _longPress.Interval = TimeSpan.FromMilliseconds(380);
         _longPress.IsRepeating = false;
@@ -664,7 +679,7 @@ public sealed class BankBoxOverview : IPadPagingHandler
         {
             canvas.DrawRoundRect(clip, border);
         }
-        if (LivingDexAutopilot.BankStartBox == box)
+        if (_page.LivingDexStartBox == box)
             PksmPaint.CenterText(canvas, "Living dex ▸", rect.Left + 8 * _density, rect.Bottom - 10 * _density, font, Pksm.ShinyGold, SKColors.Black);
 
         return complete && BankBoxArt.IsReady(box);

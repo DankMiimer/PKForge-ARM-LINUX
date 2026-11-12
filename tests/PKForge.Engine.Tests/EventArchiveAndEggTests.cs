@@ -5,6 +5,12 @@ using Xunit;
 
 namespace PKForge.Engine.Tests;
 
+// PKHeX's gallery and the metadata index are process-wide. Tests replacing
+// either must also run apart from tests reading the normal event database.
+[CollectionDefinition(nameof(EventGalleryCollection), DisableParallelization = true)]
+public sealed class EventGalleryCollection;
+
+[Collection(nameof(EventGalleryCollection))]
 public sealed class EventArchiveAndEggTests
 {
     [Fact]

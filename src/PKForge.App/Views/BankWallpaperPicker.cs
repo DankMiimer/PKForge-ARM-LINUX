@@ -24,21 +24,22 @@ public sealed class BankWallpaperPicker : IPadPagingHandler
     private readonly SKCanvasView _canvas;
     private readonly FrameInvalidator _frame;
     private readonly FramePacer _pacer;
-    private readonly SKTypeface _face = BoxBrowserPage.PixelTypeface();
+    private readonly SKTypeface _face = PixelFont.Face;
     private readonly string _title;
     private readonly List<Section> _sections;
     private readonly List<(int Section, int Index)> _flat = [];
     private readonly Spring _scroll = new(0);
     private int _cursor;
+    private bool _closed;
     private int _columns = 6;
     private float _density = 1;
     private readonly List<(SKRect Rect, int Flat)> _hits = [];
     private (SKRect Rect, PadButton Button)[] _hintHits = [];
 
-    public static Task<BankWallpaper?> ShowAsync(Grid host, string title, BankWallpaper current) =>
-        new BankWallpaperPicker(host, title, current)._result.Task;
+    public static Task<BankWallpaper?> ShowAsync(Grid host, string title, BankWallpaper current, Func<TimeSpan>? clock = null) =>
+        new BankWallpaperPicker(host, title, current, clock)._result.Task;
 
-    private BankWallpaperPicker(Grid host, string title, BankWallpaper current)
+    private BankWallpaperPicker(Grid host, string title, BankWallpaper current, Func<TimeSpan>? clock)
     {
         _host = host;
         _title = title;
@@ -59,9 +60,11 @@ public sealed class BankWallpaperPicker : IPadPagingHandler
         _canvas.PaintSurface += Paint;
         _canvas.Touch += Touch;
         _frame = new FrameInvalidator(_canvas);
-        _pacer = new FramePacer(_frame);
+        _pacer = new FramePacer(_frame, clock);
         var window = new Border { Content = _canvas, StrokeThickness = 0, BackgroundColor = Colors.Transparent, Margin = new Thickness(40, 16) };
         _overlay = Kit.AttachOverlay(host, window, () => Close(null));
+        _overlay.Unloaded += (_, _) => Close(null);
+        App.Suspended += Suspend;
         _router?.Push(this);
     }
 
@@ -103,10 +106,13 @@ public sealed class BankWallpaperPicker : IPadPagingHandler
 
     private void Close(BankWallpaper? chosen)
     {
+        if (_closed) return;
+        _closed = true; App.Suspended -= Suspend; _pacer.Continue(false);
         _router?.Remove(this);
         _host.Remove(_overlay);
         _result.TrySetResult(chosen);
     }
+    private void Suspend() => Close(null);
 
     private void Touch(object? sender, SKTouchEventArgs args)
     {

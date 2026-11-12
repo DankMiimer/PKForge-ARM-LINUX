@@ -13,5 +13,6 @@
     <Project Path="tests/PKForge.Domain.Tests/PKForge.Domain.Tests.csproj" />
     <Project Path="tests/PKForge.Engine.Tests/PKForge.Engine.Tests.csproj" />
     <Project Path="tests/PKForge.Park.Tests/PKForge.Park.Tests.csproj" />
+    <Project Path="tests/PKForge.Linux.Tests/PKForge.Linux.Tests.csproj" />
   </Folder>
 </Solution>

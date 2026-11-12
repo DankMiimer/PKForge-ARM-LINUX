@@ -92,7 +92,7 @@ try
     collection.AddSingleton<IEmulatorDetectionService>(sp => sp.GetRequiredService<LocalEmulatorScanner>());
     collection.AddSingleton<SaveCatalogue>(sp => new(sp.GetRequiredService<IWatchedRootStore>(), sp.GetRequiredService<IIncrementalEmulatorDetectionService>(), sp.GetRequiredService<ISaveIdentityStore>(), Path.Combine(ParkPlatform.DataDirectory, "cache", "save-catalogue-v1.json")));
     collection.AddSingleton<ISaveCatalogue>(sp => sp.GetRequiredService<SaveCatalogue>());
-    collection.AddSingleton<WorkspaceHost>(sp => new(sp, !arguments.Headless && (arguments.DisplayMode == "dual" || arguments.DisplayMode == "auto" && Sdl.SDL_GetNumVideoDisplays() >= 2 && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") is not null)));
+    collection.AddSingleton<WorkspaceHost>(sp => new(sp, false));
     collection.AddSingleton<IFileDialogService>(sp => sp.GetRequiredService<WorkspaceHost>().Files);
     collection.AddSingleton<IFolderPicker>(sp => sp.GetRequiredService<WorkspaceHost>().Files);
     collection.AddSingleton<SaveMutationService>();
@@ -126,6 +126,11 @@ try
         foreach (var root in FirmwareSaveRoots.Discover()) roots.AddRoot(root);
         Preferences.Default.Set("linux.root-discovery.v1", true);
     }
+    if (!Preferences.Default.Get("linux.root-discovery.v2", false))
+    {
+        foreach (var root in FirmwareSaveRoots.DiscoverPortable()) roots.AddRoot(root);
+        Preferences.Default.Set("linux.root-discovery.v2", true);
+    }
     var library = services.GetRequiredService<ParkLibrary>();
     if (arguments.Demo) DemoRoster.Install();
     var startupSave = arguments.SavePath ?? (arguments.Demo ? "" : Preferences.Default.Get("linux.last-save", ""));
@@ -139,25 +144,58 @@ try
     }
     // Complete font tasks before entering the UI loop; no event-loop continuation is required.
     Task.WhenAll(PixelFont.WarmAsync(), PixelFont.WarmFallbackAsync()).GetAwaiter().GetResult();
+    _ = NativeLabelFonts.AndroidFallback;
     if (arguments.Headless)
     {
         if (arguments.StartPage == "home" && !arguments.Demo)
         {
             var workspace = services.GetRequiredService<WorkspaceHost>();
             workspace.OpenHome();
-            if (arguments.HeadlessScreen is "boxes" or "summary" or "summary-overview") workspace.OpenStorage(false);
+            if (arguments.HeadlessScreen is "boxes" or "party" or "summary" or "summary-overview") workspace.OpenStorage(false);
+            if (arguments.HeadlessScreen == "party") workspace.Screens.OnPadButton(PadButton.L);
             if (arguments.HeadlessScreen == "bank") workspace.OpenStorage(true);
             if (arguments.HeadlessScreen is "summary" or "summary-overview") workspace.SummaryAsync(new(0, 0)).GetAwaiter().GetResult();
             if (arguments.HeadlessScreen == "summary-overview") workspace.Screens.OnPadButton(PadButton.Select);
             if (arguments.HeadlessScreen == "collection") workspace.Screens.Push(new CollectionScreen(workspace, services.GetRequiredService<CollectionWorkflow>().ReadAsync().GetAwaiter().GetResult(), services.GetRequiredService<IGameDataService>().SpeciesNames, services.GetRequiredService<ISaveSessionService>().CurrentSession?.MaxSpeciesId ?? 1025, null));
-            if (arguments.HeadlessScreen == "home-preview") workspace.Screens.OnPadButton(PadButton.Down);
-            using var home = SKSurface.Create(new SKImageInfo(640, 480));
-            workspace.Screens.Current!.Paint(home.Canvas, new(0, 0, 640, 480), arguments.HeadlessScreen == "home-preview");
-            Task.Delay(200).GetAwaiter().GetResult(); // Let bundled sprite decodes complete, then capture the stable frame.
-            workspace.Screens.Current!.Paint(home.Canvas, new(0, 0, 640, 480), arguments.HeadlessScreen == "home-preview");
+            if (arguments.HeadlessScreen == "home-preview") workspace.Screens.OnPadButton(PadButton.Right);
+            using var captureDevice = GraphicsDevice.CreateHeadless(arguments.CaptureWidth, arguments.CaptureHeight);
+            var home = captureDevice.CurrentSurface;
+            var captureBounds = new SKRect(0, 0, arguments.CaptureWidth, arguments.CaptureHeight);
+            if (arguments.HeadlessInput.Count > 0)
+            {
+                // Scripted presses on the real screen, at 30 FPS, as the main loop delivers them;
+                // each step waits for the save writes it started before the next press.
+                SynchronizationContext.SetSynchronizationContext(UiDispatcher.Instance);
+                var router = services.GetRequiredService<GamepadRouter>();
+                void Frames(int count)
+                {
+                    for (var frame = 0; frame < count; frame++)
+                    {
+                        UiDispatcher.Instance.Pump();
+                        workspace.Screens.DrawScreen(home.Canvas, captureBounds, arguments.HeadlessScreen == "home-preview", captureDevice);
+                        Thread.Sleep(33);
+                    }
+                }
+                Frames(6);
+                foreach (var (button, press, release) in arguments.HeadlessInput)
+                {
+                    if (press) router.Dispatch(button);
+                    if (release) router.DispatchRelease(button);
+                    Frames(6);
+                    for (var wait = 0; wait < 300 && workspace.Screens.Current is StorageScreen { PendingWrite.IsCompleted: false }; wait++) Frames(1);
+                }
+                Frames(24);
+                Console.WriteLine("HEADLESS INPUT: " + services.GetRequiredService<SaveOperations>().Status);
+            }
+            for (var pass = 0; pass < 3; pass++)
+            {
+                UiDispatcher.Instance.Pump();
+                workspace.Screens.DrawScreen(home.Canvas, captureBounds, arguments.HeadlessScreen == "home-preview", captureDevice);
+                if (pass < 2) Task.Delay(100).GetAwaiter().GetResult(); // Let sprite decodes dispatch their canvas invalidations.
+            }
             using var screenshot = home.Snapshot(); using var png = screenshot.Encode(SKEncodedImageFormat.Png, 100);
             File.WriteAllBytes(Path.Combine(ParkPlatform.DataDirectory, "headless-home.png"), png.ToArray());
-            Console.WriteLine("HEADLESS HOME PASS: " + workspace.Screens.Current.GetType().Name); return 0;
+            Console.WriteLine("HEADLESS HOME PASS: " + workspace.Screens.Current!.GetType().Name); return 0;
         }
         var scene = new PokeparkScene(services.GetRequiredService<ISpriteService>(), services.GetRequiredService<PokeparkSpriteService>())
         { Residents = services.GetRequiredService<PokeparkService>().LoadRoster(), PhaseOverride = arguments.Phase, WeatherOverride = arguments.Weather };
@@ -174,38 +212,67 @@ try
     SynchronizationContext.SetSynchronizationContext(UiDispatcher.Instance);
     Sdl.SDL_SetHint("SDL_TOUCH_MOUSE_EVENTS", "0");
     Sdl.SDL_SetHint("SDL_MOUSE_TOUCH_EVENTS", "0");
+    InputRouter.PrepareMappings();
     if (Sdl.SDL_Init(Sdl.InitVideo | Sdl.InitController | Sdl.InitEvents) != 0) throw new InvalidOperationException(Sdl.Error);
     Sdl.SDL_ShowCursor(0);
     try
     {
         Console.WriteLine($"PKForge {Arguments.UpstreamVersion} ARM64 port; CLR={Environment.Version}; OS={RuntimeInformation.OSDescription}; SDL={Marshal.PtrToStringUTF8(Sdl.SDL_GetCurrentVideoDriver())}");
-        var dualAvailable = arguments.DisplayMode == "dual" || arguments.DisplayMode == "auto" && Sdl.SDL_GetNumVideoDisplays() >= 2 && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") is not null;
-        var dual = dualAvailable && SecondScreenMode.Allowed;
-        // On this RGDS firmware DSI-2 is physically top; [w2]/DSI-1 is bottom.
-        var controlsDisplay = dualAvailable ? (arguments.SwapScreens ? 0 : 1) : 0;
-        var parkIndex = arguments.SwapScreens ? 1 : 0;
-        using var controls = new GraphicsDevice(dualAvailable && controlsDisplay == 1 ? "[w2] PKForge Controls" : "PKForge Controls", controlsDisplay, arguments.Software || !ParkCanvas.UsesGpu, !arguments.Windowed);
-        using var parkDisplay = dualAvailable ? new GraphicsDevice(parkIndex == 1 ? "[w2] PKForge Park" : "PKForge Park", parkIndex, arguments.Software || !ParkCanvas.UsesGpu, !arguments.Windowed) : null;
-        if (dualAvailable && !dual) Sdl.SDL_HideWindow(controls.Window);
+        using var displays = new DisplaySession<GraphicsDevice>(() =>
+        {
+            var targets = new List<DisplayTarget>();
+            for (var i = 0; i < Sdl.SDL_GetNumVideoDisplays(); i++)
+                if (Sdl.SDL_GetDisplayBounds(i, out var area) == 0) targets.Add(new(i, area.W, area.H));
+            return targets;
+        }, (index, secondary) =>
+        {
+            var title = (index == 1 ? "[w2] " : "") + (secondary ? "PKForge Controls" : "PKForge Park");
+            var device = new GraphicsDevice(title, index, arguments.Software || !ParkCanvas.UsesGpu, !arguments.Windowed);
+            try { device.BeginFrame(); return device; }
+            catch { device.Dispose(); throw; }
+        }, arguments.DisplayMode, arguments.SwapScreens, Console.WriteLine);
+        displays.Refresh(SecondScreenMode.Allowed);
+        var dual = displays.Dual;
+        var controls = displays.Secondary ?? displays.Primary;
+        var parkDisplay = displays.Secondary is not null ? displays.Primary : null;
         controls.MakeCurrent();
         using var input = new InputRouter(services.GetRequiredService<GamepadRouter>(), () => library.QuitRequested = true);
+        StartupDiagnostics.Write(ParkPlatform.DataDirectory, displays.Available, dual, displays.Primary.Gpu);
         var page = services.GetRequiredService<PokeparkPage>();
         library.Attach(page, services);
         var workspace = services.GetRequiredService<WorkspaceHost>();
+        workspace.DualAvailable = displays.Available;
+        workspace.Screens.SetDual(dual);
         HostNavigation.Current = workspace;
         workspace.QuitRequested = () => library.QuitRequested = true;
+        using var journal = new JournalSurface();
+        void RefreshDisplays()
+        {
+            displays.Refresh(SecondScreenMode.Allowed, () =>
+            {
+                input.ClearHeld();
+                if (workspace.Screens.Active) workspace.Screens.Current?.Leave();
+                (parkDisplay ?? controls).MakeCurrent(); workspace.Screens.Primary.ReleaseSurface(); page.ParkView.ReleaseSurface();
+                controls.MakeCurrent(); journal.ReleaseSurface(); workspace.Screens.ControlRoot.ReleaseSurface(); page.ControlRoot.ReleaseSurface();
+            });
+            dual = displays.Dual;
+            controls = displays.Secondary ?? displays.Primary;
+            parkDisplay = displays.Secondary is not null ? displays.Primary : null;
+            workspace.DualAvailable = displays.Available;
+            workspace.Screens.SetDual(dual); page.ControlRoot.ExcludedInput = dual ? page.ParkView : null;
+            controls.MakeCurrent();
+            if (workspace.Screens.Active) workspace.Screens.Current?.Enter();
+        }
         workspace.SecondScreenRequested = enabled =>
         {
-            SecondScreenMode.SetUserOff(!enabled); dual = dualAvailable && enabled;
-            workspace.Screens.SetDual(dual); page.ControlRoot.ExcludedInput = dual ? page.ParkView : null;
-            if (dualAvailable) { if (dual) Sdl.SDL_ShowWindow(controls.Window); else Sdl.SDL_HideWindow(controls.Window); }
+            SecondScreenMode.SetUserOff(!enabled); RefreshDisplays();
         };
         workspace.ParkRequested = () => { workspace.Screens.Deactivate(); page.RefreshRoster(); page.Appear(); };
         page.PrepareBenchmark(arguments.Phase, arguments.Weather, arguments.Seconds > 0);
-        if (arguments.StartPage == "park" || arguments.Demo) page.Appear(); else workspace.OpenHome();
+        if (arguments.StartPage == "park" || arguments.Demo) page.Appear(); else workspace.OpenHome(welcome: true);
         Console.WriteLine($"WORKSPACE active={workspace.Screens.Active}, screen={workspace.Screens.Current?.GetType().Name}");
         page.ControlRoot.ExcludedInput = dual ? page.ParkView : null;
-        using var touchPanels = RgdsTouch.TryCreate(dualAvailable);
+        using var touchPanels = RgdsTouch.TryCreate(displays.Available);
         using var lid = new LidMonitor();
         using var terminate = OperatingSystem.IsLinux() ? PosixSignalRegistration.Create(PosixSignal.SIGTERM, context => { context.Cancel = true; library.QuitRequested = true; }) : null;
         using var pause = OperatingSystem.IsLinux() ? PosixSignalRegistration.Create((PosixSignal)10, context => { context.Cancel = true; UiDispatcher.Instance.Dispatch(App.Suspend); }) : null;
@@ -215,13 +282,18 @@ try
             page.Disappear(); workspace.OpenHome();
             UiDispatcher.Instance.Dispatch(() => _ = workspace.Screens.RunAsync(workspace.RecoveryAsync));
         }
-        using var journal = new JournalSurface();
         services.GetRequiredService<SdlMusicPlayer>().Initialize();
+        var gamepadRouter = services.GetRequiredService<GamepadRouter>();
         var timer = Stopwatch.StartNew();
         var performance = new FrameStatistics();
-        double nextFrame = 0, lastControl = -1000;
-        workspace.Screens.Changed = () => { lastControl = -1000; if (workspace.Screens.Active) { page.Disappear(); services.GetRequiredService<IMusicPlayer>().EnterPlace(MusicPlace.Menus); } };
+        var primaryClock = new PresentationClock();
+        var secondaryClock = new PresentationClock();
+        var controlsPending = false;
+        var lastMotion = timer.Elapsed.TotalSeconds;
+        workspace.Screens.Changed = () => { primaryClock.Reset(); secondaryClock.Reset(); if (workspace.Screens.Active) { page.Disappear(); services.GetRequiredService<IMusicPlayer>().EnterPlace(MusicPlace.Menus); } };
         var mouseHeld = false;
+        var refreshDisplays = false;
+        var wasSuspended = App.IsSuspended;
         while (!library.QuitRequested && (arguments.Seconds <= 0 || timer.Elapsed.TotalSeconds < arguments.Seconds))
         {
             controls.MakeCurrent();
@@ -229,9 +301,10 @@ try
             while (Sdl.SDL_PollEvent(out var e) != 0)
             {
                 if (e.Type == Sdl.Quit) { library.QuitRequested = true; break; }
+                if (e.Type == Sdl.DisplayEvent) { refreshDisplays = true; continue; }
                 if (e.Type == Sdl.WindowEvent && e.WindowKind == 14) { library.QuitRequested = true; break; }
                 if (e.Type == 0x103) App.Suspend();
-                if (e.Type == 0x106) App.Resume();
+                if (e.Type == 0x106) { App.Resume(); refreshDisplays = true; }
                 if (input.Handle(e)) continue;
                 var finger = e.Type is Sdl.FingerDown or Sdl.FingerUp or Sdl.FingerMotion;
                 if (finger && touchPanels is not null) continue;
@@ -263,8 +336,15 @@ try
                     else page.ControlRoot.HandleTouch(touch);
                 }
             }
-            input.Update();
             lid.Pump();
+            if (wasSuspended && !App.IsSuspended) refreshDisplays = true;
+            wasSuspended = App.IsSuspended;
+            if (refreshDisplays && !App.IsSuspended)
+            {
+                RefreshDisplays(); refreshDisplays = false; mouseHeld = false;
+                primaryClock.Reset(); secondaryClock.Reset();
+            }
+            input.Update();
             touchPanels?.Pump(controls.Width, controls.Height, (top, touch) =>
             {
                 if (!dual && !top) return;
@@ -277,28 +357,37 @@ try
                     if (services.GetRequiredService<GamepadRouter>().IsTop(page)) page.ParkView.HandleTouch(touch);
                 }
                 else page.ControlRoot.HandleTouch(touch);
-            });
+            }, arguments.SwapScreens && displays.Available);
             services.GetRequiredService<SdlMusicPlayer>().Tick();
             if (App.IsSuspended) { Thread.Sleep(20); continue; }
             var now = timer.Elapsed.TotalMilliseconds;
-            if (now >= nextFrame)
+            var motionNow = timer.Elapsed.TotalSeconds;
+            workspace.Screens.Tick((float)Math.Clamp(motionNow - lastMotion, 0, .05));
+            lastMotion = motionNow;
+            var activeControls = workspace.Screens.Active || page.MenuOpen || library.IsShowing || !gamepadRouter.IsTop(page) || page.ControlRoot.HasActiveAnimations;
+            var singleParkUi = !workspace.Screens.Active && !dual && activeControls;
+            // A park overlay follows UI cadence while the expensive scene is cached at 30 FPS.
+            page.ParkPaintInterval = singleParkUi ? TimeSpan.FromSeconds(1.0 / 30) : TimeSpan.Zero;
+            var primaryInterval = workspace.Screens.Active || singleParkUi ? PresentationClock.UiInterval((parkDisplay ?? controls).RefreshRate) : 1000.0 / 30;
+            if (primaryClock.Due(now, primaryInterval))
             {
                 var start = Stopwatch.GetTimestamp();
                 var display = parkDisplay ?? controls;
                 var surface = display.BeginFrame(); surface.Canvas.Clear(SKColors.Black);
                 if (workspace.Screens.Active)
                 {
-                    if (dual) workspace.Screens.DrawPrimary(surface.Canvas, new(0, 0, display.Width, display.Height));
+                    if (dual) workspace.Screens.DrawPrimary(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                     else workspace.Screens.DrawControls(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                 }
                 else if (dual) page.ParkView.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                 else page.ControlRoot.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                 display.Present();
-                performance.Add(Stopwatch.GetElapsedTime(start).TotalMilliseconds, now, workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : "Park");
-                nextFrame += 1000.0 / 30;
-                if (now - nextFrame > 100) nextFrame = now + 1000.0 / 30;
+                performance.Add(Stopwatch.GetElapsedTime(start).TotalMilliseconds, now, workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : singleParkUi ? "Park UI" : "Park");
             }
-            if (dual && now - lastControl >= (workspace.Screens.Active || page.MenuOpen || library.IsShowing ? 33 : 200))
+            // Keep one fast presentation pending after motion/menu activity ends, so the
+            // final transparent frame (or closed menu) does not wait for the idle interval.
+            controlsPending |= activeControls;
+            if (dual && secondaryClock.Due(now, controlsPending ? PresentationClock.UiInterval(controls.RefreshRate) : 200))
             {
                 var surface = controls.BeginFrame(); surface.Canvas.Clear(new SKColor(15, 25, 38));
                 if (workspace.Screens.Active) workspace.Screens.DrawControls(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls);
@@ -307,7 +396,7 @@ try
                     journal.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height - 70), controls);
                     page.ControlRoot.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls, page.ParkView);
                 }
-                controls.Present(); lastControl = now;
+                controls.Present(); controlsPending = activeControls;
             }
             if (arguments.InputScript is { } script) library.RunScript(script, timer.Elapsed.TotalSeconds);
             Thread.Sleep(1);
@@ -319,7 +408,7 @@ try
             var frame = display.BeginFrame(); frame.Canvas.Clear(SKColors.Black);
             if (workspace.Screens.Active)
             {
-                if (dual) workspace.Screens.DrawPrimary(frame.Canvas, new(0, 0, display.Width, display.Height));
+                if (dual) workspace.Screens.DrawPrimary(frame.Canvas, new(0, 0, display.Width, display.Height), display);
                 else workspace.Screens.DrawControls(frame.Canvas, new(0, 0, display.Width, display.Height), display);
             }
             else if (dual) page.ParkView.Draw(frame.Canvas, new(0, 0, display.Width, display.Height), display);
@@ -362,10 +451,12 @@ catch (Exception error)
 internal sealed record Arguments
 {
     public const string UpstreamVersion = "3.1.1";
-    public const string PortRevision = "0.2.2-dev";
-    public const string HelpText = "PKForge 3.1.1\n--data-dir PATH --start-page home|park --display-mode auto|single|dual --swap-screens --software --windowed\n--save PATH --demo --headless --seconds N --screenshot\n--phase Morning|Day|Evening|Night --weather Sunny|Cloudy|Rain|Storm\n--input-script PATH (timed controller actions for integration testing)";
+    public const string PortRevision = "0.2.3-dev";
+    public const string HelpText = "PKForge 3.1.1\n--data-dir PATH --start-page home|park --display-mode auto|single|dual --swap-screens --software --windowed\n--save PATH --demo --headless --seconds N --screenshot\n--headless-width N --headless-height N (Home/workspace capture size)\n--headless-input \"A Right A\" (pad presses before the capture; hold:A / release:A split one)\n--phase Morning|Day|Evening|Night --weather Sunny|Cloudy|Rain|Storm\n--input-script PATH (timed controller actions for integration testing)";
     public string StartPage { get; init; } = "home";
     public string HeadlessScreen { get; init; } = "home";
+    public int CaptureWidth { get; init; } = 640;
+    public int CaptureHeight { get; init; } = 480;
     public string DataDirectory { get; init; } = Path.Combine(AppContext.BaseDirectory, "userdata");
     public string DisplayMode { get; init; } = "auto";
     public bool Help { get; init; }
@@ -378,6 +469,8 @@ internal sealed record Arguments
     public int Seconds { get; init; }
     public string? SavePath { get; init; }
     public string? InputScript { get; init; }
+    /// <summary>--headless-input "A Right A": pad buttons pressed and released in order; "hold:A" and "release:A" split one.</summary>
+    public IReadOnlyList<(PadButton Button, bool Press, bool Release)> HeadlessInput { get; init; } = [];
     public ParkDayPhase? Phase { get; init; }
     public ParkWeather? Weather { get; init; }
     public static Arguments Parse(string[] args)
@@ -396,7 +489,10 @@ internal sealed record Arguments
                 "--save" => value with { SavePath = Next() }, "--seconds" => value with { Seconds = int.Parse(Next(), CultureInfo.InvariantCulture) },
                 "--start-page" => value with { StartPage = Next() },
                 "--headless-screen" => value with { HeadlessScreen = Next() },
+                "--headless-width" => value with { CaptureWidth = int.Parse(Next(), CultureInfo.InvariantCulture) },
+                "--headless-height" => value with { CaptureHeight = int.Parse(Next(), CultureInfo.InvariantCulture) },
                 "--input-script" => value with { InputScript = Next() },
+                "--headless-input" => value with { HeadlessInput = Next().Split([' ', ','], StringSplitOptions.RemoveEmptyEntries).Select(ParsePress).ToArray() },
                 "--phase" => value with { Phase = Enum.Parse<ParkDayPhase>(Next(), true) },
                 "--weather" => value with { Weather = Enum.Parse<ParkWeather>(Next(), true) },
                 _ => throw new ArgumentException("Unknown option: " + args[i])
@@ -404,9 +500,17 @@ internal sealed record Arguments
         }
         if (value.DisplayMode is not ("auto" or "single" or "dual")) throw new ArgumentException("Invalid display mode.");
         if (value.StartPage is not ("home" or "park")) throw new ArgumentException("Invalid start page.");
-        if (value.HeadlessScreen is not ("home" or "home-preview" or "boxes" or "summary" or "summary-overview" or "collection" or "bank")) throw new ArgumentException("Invalid headless screen.");
+        if (value.CaptureWidth is < 320 or > 3840 || value.CaptureHeight is < 240 or > 2160) throw new ArgumentException("Headless dimensions must be 320–3840 × 240–2160.");
+        if (value.HeadlessScreen is not ("home" or "home-preview" or "boxes" or "party" or "summary" or "summary-overview" or "collection" or "bank")) throw new ArgumentException("Invalid headless screen.");
         if (value.Demo && !args.Contains("--data-dir")) throw new ArgumentException("--demo requires an explicit --data-dir to keep test residents separate.");
+        if (value.HeadlessInput.Count > 0 && !value.Headless) throw new ArgumentException("--headless-input needs --headless.");
         return value;
+    }
+    private static (PadButton, bool, bool) ParsePress(string token)
+    {
+        var (press, release, name) = token.StartsWith("hold:", StringComparison.OrdinalIgnoreCase) ? (true, false, token[5..])
+            : token.StartsWith("release:", StringComparison.OrdinalIgnoreCase) ? (false, true, token[8..]) : (true, true, token);
+        return Enum.TryParse<PadButton>(name, true, out var button) ? (button, press, release) : throw new ArgumentException("Unknown pad button: " + name);
     }
 }
 
@@ -451,6 +555,7 @@ internal sealed class FrameStatistics
         var result = new { frames = _times.Count, seconds = (_last - _first) / 1000, fps = (_times.Count - 1) * 1000 / Math.Max(1, _last - _first),
             drawAverageMs = _times.Count == 0 ? 0 : _times.Average(), drawP95Ms = sorted.Length == 0 ? 0 : sorted[(int)((sorted.Length - 1) * .95)],
             rssMiB = Process.GetCurrentProcess().WorkingSet64 / 1048576.0, gpu, dual, upstream = Arguments.UpstreamVersion, portRevision = Arguments.PortRevision, module = typeof(Arguments).Module.ModuleVersionId,
+            viewFrames = _windows.Values.SelectMany(window => window.Views).GroupBy(pair => pair.Key).ToDictionary(group => group.Key, group => group.Sum(pair => pair.Value)),
             minuteWindows = _windows.Where(p => p.Key < (int)(_last / 60000)).OrderBy(p => p.Key).Select(p => new { startSeconds = p.Key * 60, seconds = 60, warmup = p.Key == 0, frames = p.Value.Frames, fps = p.Value.Frames / 60.0, drawAverageMs = p.Value.DrawTotal / p.Value.Frames, rssMiB = p.Value.RssMiB, managedMiB = p.Value.ManagedMiB, allocatedMiB = p.Value.AllocatedMiB, collections = p.Value.Collections, views = p.Value.Views }).ToArray() };
         File.WriteAllText(path, JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine("PERFORMANCE " + JsonSerializer.Serialize(result));
@@ -461,5 +566,6 @@ internal sealed class JournalSurface : IDisposable
 {
     private readonly PokeparkJournalView _view = new();
     public void Draw(SKCanvas canvas, SKRect rect, GraphicsDevice device) => _view.Draw(canvas, rect, device);
+    public void ReleaseSurface() => _view.ReleaseSurface();
     public void Dispose() { _view.Detach(); _view.ReleaseSurface(); }
 }

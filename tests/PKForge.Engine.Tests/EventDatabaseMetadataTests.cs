@@ -5,6 +5,7 @@ using Xunit;
 
 namespace PKForge.Engine.Tests;
 
+[Collection(nameof(EventGalleryCollection))]
 public sealed class EventDatabaseMetadataTests
 {
     [Fact]

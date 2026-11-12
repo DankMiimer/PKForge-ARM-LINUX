@@ -14,12 +14,19 @@ rendering, art and save engine are reused from that release.
   Mystery Dungeon sprites are by CHUNSOFT. These downloads remain separate from the GPL code.
 - Smogon / Pokémon Showdown sprite project artists: event and fallback sprites.
 - PokeAPI: species facts, sprite references and evolution lines.
-- SkiaSharp / Skia, SDL2 / SDL2_mixer, .NET and CommunityToolkit.Mvvm:
+- SkiaSharp / Skia, SDL2 / SDL2_mixer, .NET, Microsoft ICU and CommunityToolkit.Mvvm:
   their respective upstream licenses apply. These components are not relicensed as PKForge code.
 - NDS12 by Caveras (CC BY-NC-SA 3.0) and M PLUS Rounded 1c by The Rounded M+ Project
   Authors (SIL OFL 1.1): bundled font notices are in `app/assets/notices`.
   The Rounded M+ notice comes from
   https://github.com/google/fonts/blob/main/ofl/roundedmplus1c/OFL.txt.
+- Roboto 3.011 by The Roboto Project Authors (SIL OFL 1.1), used for native-label
+  symbols missing from NDS12. The unmodified `android/Roboto[ital,wdth,wght].ttf`
+  from https://github.com/googlefonts/roboto-3-classic/releases/tag/v3.011 is
+  packaged as `Roboto-Regular.ttf`; SHA-256
+  `9e157d5ff70ae52cc8c527b36e89d9b3c69c6c814da79fa6237a0bf0895abc7c`.
+  It matches the reference emulator's system font. Its original license is in
+  `app/assets/notices/Roboto-OFL.txt`. Shared painters retain M PLUS Rounded 1c.
 - Pokémon names and artwork: Nintendo, Creatures Inc. and GAME FREAK.
 
 Full source, including changes, must accompany redistribution under the applicable

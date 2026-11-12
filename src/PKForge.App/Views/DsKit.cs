@@ -207,25 +207,7 @@ public sealed class DsFolderButton : Grid
         canvas.Save();
         canvas.Scale(d);
         var r = new SKRect(0.5f, 0.5f, info.Width / d - 0.5f, info.Height / d - 0.5f);
-        // At rest, a dark band with a quiet edge; selected, the section chip's look (its blue
-        // gradient and a cyan rim), the same as a focused editor field.
-        using var fill = new SKPaint
-        {
-            IsAntialias = true,
-            Shader = selected
-                ? SKShader.CreateLinearGradient(new SKPoint(0, r.Top), new SKPoint(0, r.Bottom), [EditorPaint.ChipTop, EditorPaint.ChipBottom], SKShaderTileMode.Clamp)
-                : null,
-            Color = EditorPaint.Band.WithAlpha(200),
-        };
-        canvas.DrawRoundRect(r, 6, 6, fill);
-        using var rim = new SKPaint
-        {
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = selected ? 2f : 1.2f,
-            Color = selected ? EditorPaint.Cyan : StoragePaint.WellEdge,
-        };
-        canvas.DrawRoundRect(SKRect.Inflate(r, -0.6f, -0.6f), 6, 6, rim);
+        MenuPaint.Row(canvas, r, selected);
         canvas.Restore();
     }
 }

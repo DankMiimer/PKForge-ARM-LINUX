@@ -18,18 +18,10 @@ public sealed class NativeDialogs(Grid host, GamepadRouter router)
     public Task<string?> MenuAsync(string title, string message, params string[] options) => PadMenu.ShowAsync(host, title, message, options);
     public async Task<int?> PickAsync(string title, IReadOnlyList<string> labels, int start = 0)
     {
-        var query = "";
-        while (true)
-        {
-            var filtered = labels.Select((label, index) => (label, index)).Where(p => p.label.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
-            var actions = new[] { "Search…", "Clear search" }.Concat(filtered.Select(p => $"{p.index + 1}. {p.label}")).ToArray();
-            var choice = await PadMenu.ShowAtAsync(host, title, query.Length == 0 ? $"{labels.Count} entries" : "Search: " + query,
-                Math.Clamp(start + 2, 0, actions.Length - 1), actions.Select(s => new PadOption(s)).ToArray());
-            if (choice is null) return null;
-            if (choice == actions[0]) { query = await TextAsync("Search", query) ?? query; continue; }
-            if (choice == actions[1]) { query = ""; continue; }
-            return filtered[Array.IndexOf(actions, choice) - 2].index;
-        }
+        var choice = await PickerMenu.ShowAsync(host, title,
+            labels.Select((label, index) => new PickItem(index, label)).ToArray(),
+            labels.Count == 0 ? null : Math.Clamp(start, 0, labels.Count - 1));
+        return choice?.Id;
     }
     public Task<string?> TextAsync(string title, string initial = "", string? alphabet = null, GameTextRule? rule = null) => new Keyboard(host, router, title, initial, alphabet, rule)._result.Task;
     public async Task<long?> NumberAsync(string title, long initial, long minimum = 0, long maximum = int.MaxValue)

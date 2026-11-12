@@ -1,4 +1,5 @@
 using PKForge.App.Services;
+using PKForge.App.Views;
 using PKForge.Application;
 using PKForge.Domain;
 using PKForge.Engine;
@@ -22,10 +23,11 @@ public sealed partial class WorkspaceHost
         if (choice == "Nature / stats calculator")
         {
             var settings = (StatPreviewOverrides?)await Forms.RecordAsync("Preview assumptions", typeof(StatPreviewOverrides), new StatPreviewOverrides(mon.Species, mon.Level, mon.IVs, mon.EVs));
+            if (settings is null) return;
             var preview = Pokemon.Read(target, (s, b, i) => Get<IStatPreviewService>().PreviewSlot(s, b, i, settings));
             if (preview is null) return;
-            var index = await Dialogs.PickAsync("Nature stat preview · HP/Atk/Def/SpA/SpD/Spe", Data.NatureNames.Select((n, i) => n + ": " + string.Join('/', preview.StatsFor(i)) + " · Δ " + string.Join('/', preview.DeltaFor(i))).ToArray());
-            if (index is { } nature) await InspectAsync("Nature " + Data.NatureNames[nature], new { preview.Basis, preview.StatNatureLock, Stats = preview.StatsFor(nature), Delta = preview.DeltaFor(nature) });
+            var chosen = await NaturePicker.ShowAsync(Dialogs.Host, Data.NatureNames, mon.Nature, preview, "Nature / stats calculator");
+            if (chosen is { } nature) await InspectAsync("Nature " + Data.NatureNames[nature.Id], new { preview.Basis, preview.StatNatureLock, Stats = preview.StatsFor(nature.Id), Delta = preview.DeltaFor(nature.Id) });
         }
         if (choice == "Move encyclopedia")
         {
@@ -36,10 +38,10 @@ public sealed partial class WorkspaceHost
         }
         if (choice == "Hidden Power / IV solver")
         {
-            var current = Pokemon.Read(target, (s, _, _) => info.GetHiddenPowerType(s, mon.IVs));
-            var types = new[] { "Normal", "Fighting", "Flying", "Poison", "Ground", "Rock", "Bug", "Ghost", "Steel", "Fire", "Water", "Grass", "Electric", "Psychic", "Ice", "Dragon", "Dark", "Fairy" };
-            var type = await Dialogs.PickAsync("Hidden Power · current " + (current is { } id && id < types.Length ? types[id] : "unknown"), types); if (type is null) return;
-            var ivs = Pokemon.Read(target, (s, _, _) => info.GetIVsForHiddenPower(s, mon.IVs, type.Value));
+            var facts = Pokemon.Read(target, (s, _, _) => (Current: info.GetHiddenPowerType(s, mon.IVs),
+                Spreads: Enumerable.Range(1, 16).ToDictionary(type => type, type => info.GetIVsForHiddenPower(s, mon.IVs, type))));
+            var chosen = await InfoPickers.ShowHiddenPowerAsync(Dialogs.Host, facts.Current, type => facts.Spreads[type]); if (chosen is null) return;
+            var ivs = facts.Spreads[chosen.Id];
             if (ivs is null) { await Dialogs.MessageAsync("Hidden Power", "This type is unavailable for the stored format."); return; }
             await InspectAsync("Suggested IVs · HP/Atk/Def/SpA/SpD/Spe", ivs);
             await EditMonAsync(target, (s, b, i) => { s.ApplyEdit(b, i, new EntityEdit(IVs: ivs)); return new(true, "Hidden Power IVs updated."); }, "Apply Hidden Power IVs");

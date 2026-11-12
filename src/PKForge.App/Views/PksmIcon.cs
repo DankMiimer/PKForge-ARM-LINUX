@@ -88,6 +88,7 @@ public static class PksmIcons
         }
     }
 
+#if !LINUX
     /// <summary>A tinted icon as a MAUI image source.</summary>
     public static ImageSource Source(string name, string tint = Indigo)
         => ImageSource.FromStream(() => new MemoryStream(GetPng(name, tint)));
@@ -103,4 +104,5 @@ public static class PksmIcons
             VerticalOptions = LayoutOptions.Center,
             InputTransparent = true,
         };
+#endif
 }

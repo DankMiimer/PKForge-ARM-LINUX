@@ -11,7 +11,7 @@ namespace PKForge.Linux.Workspace;
 
 public sealed partial class WorkspaceHost
 {
-    private async Task SaveToolsAsync()
+    internal async Task SaveToolsAsync()
     {
         var labels = new List<string> { "Trainer card", "Trainer statistics", "Trainer profiles", "Trainer records", "Bag", "Pokédex", "Mystery Gift inbox", "Restore points", "Save identity" };
         if (SupportedWorldTools().Length > 0 || Session.SupportsRTCRepair) labels.Insert(7, "World / game-specific tools");

@@ -1,5 +1,6 @@
 using System.Text;
 using PKForge.App.Services;
+using PKForge.App.Views;
 using PKForge.Application;
 using PKForge.Domain;
 using PKForge.Engine;
@@ -29,6 +30,13 @@ public sealed partial class WorkspaceHost
             {
                 "nature" => Names(Data.NatureNames), "ability" => HaXMode.IsOn ? Names(Data.AbilityNames) : context.GetAbilityChoices(species, form.Value).Select(id => new NamedChoice(id, Data.AbilityNames[id])).ToArray(), "ball" => Names(Data.BallNames),
                 "moves" => new[] { new NamedChoice(0, "Automatic / none") }.Concat(moves.Select(m => new NamedChoice(m.Id, Data.MoveNames[m.Id] + " · " + m.Learn.Kind))).ToArray(), _ => null
+            },
+            picker: async (field, values) =>
+            {
+                if (!field.Equals("Nature", StringComparison.OrdinalIgnoreCase)) return (false, null);
+                var preview = unsupported ? null : Get<IStatPreviewService>().PreviewSpecies(context, species, form.Value, values["Level"] as int? ?? 50);
+                var chosen = await NaturePicker.ShowAsync(Dialogs.Host, Data.NatureNames, values["Nature"] as int?, preview);
+                return (true, chosen?.Id);
             });
         if (request is null) return;
         var stats = unsupported ? null : Get<IStatPreviewService>().PreviewSpecies(context, request.Species, request.Form, request.Level ?? 50);
@@ -205,15 +213,12 @@ public sealed partial class WorkspaceHost
     }
     private async Task<T> CancellableAsync<T>(string title, Func<CancellationToken, Task<T>> operation)
     {
-        using var cancellation = new CancellationTokenSource();
-        var cancel = Dialogs.MenuAsync(title, "Cached content is retained. Cancel stops before any Bank import.", "Cancel");
+        var overlay = LoadingOverlay.Show(Screens.ControlRoot, title, "Cached content is retained. Cancel stops before any Bank import.");
         try
         {
-            var job = operation(cancellation.Token);
-            if (await Task.WhenAny(cancel, job) == cancel) cancellation.Cancel();
-            return await job;
+            return await operation(overlay.Cancellation.Token);
         }
-        finally { if (!cancel.IsCompleted) Get<GamepadRouter>().Dispatch(PadButton.B); await cancel; }
+        finally { overlay.Close(); }
     }
     private async Task TrainerProfilesAsync()
     {

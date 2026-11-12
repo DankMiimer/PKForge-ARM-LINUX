@@ -4,10 +4,34 @@ $script:PinnedModules = [ordered]@{
     'external/PKHeX' = '91e9c88667a6a191a000db68e2db19505eb87561'
     'external/PKHeX-Plugins' = '23ab1fc73f7be6ad427fbc900f9b99111cd2d560'
 }
-function Read-SourceProvenance([string]$Root) {
+function Get-ReleaseIdentity([string]$Revision, [switch]$Candidate) {
+    if ($Revision -notmatch '\A(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?\z') {
+        throw "Invalid Linux release revision: $Revision"
+    }
+    $preview = $Revision.Contains('-')
+    $channel = if ($Candidate) { 'candidate' } elseif ($preview) { 'preview' } else { 'stable' }
+    [pscustomobject]@{
+        channel = $channel
+        status = if ($Candidate) { 'candidate' } elseif ($preview) { 'prerelease' } else { 'stable' }
+        prerelease = $preview
+        tag = "linux-v$Revision"
+        title = "PKForge 3.1.1 — Linux port $Revision" + $(if ($preview) { ' Preview' })
+    }
+}
+function Test-ReleaseProvenance($Info, [switch]$AllowCandidate, [string]$ExpectedCommit, [string]$ExpectedTag) {
+    if ($Info.portCommit -notmatch '^[a-f0-9]{40}$' -or $Info.rid -ne 'linux-arm64' -or
+        ($Info.dirty -and -not $Info.candidate) -or ($Info.candidate -and -not $AllowCandidate)) {
+        throw 'Invalid release provenance; dirty builds must be explicit candidates and require -AllowCandidate.'
+    }
+    $identity = Get-ReleaseIdentity $Info.linux -Candidate:$Info.candidate
+    if ($Info.channel -ne $identity.channel) { throw 'Release channel does not match its revision/candidate status.' }
+    if ($ExpectedCommit -and $Info.portCommit -ne $ExpectedCommit) { throw 'Release commit does not match the requested source.' }
+    if ($ExpectedTag -and $identity.tag -ne $ExpectedTag) { throw 'Release tag does not match the packaged revision.' }
+}
+function Read-SourceProvenance([string]$Root, [switch]$AllowDirty) {
     if (Test-Path -LiteralPath (Join-Path $Root '.git')) {
         $status = git -C $Root status --porcelain
-        if ($LASTEXITCODE -or $status) { throw 'Build from a clean, committed checkout; generated artifacts must be ignored.' }
+        if ($LASTEXITCODE -or ($status -and -not $AllowDirty)) { throw 'Build releases from a clean checkout; use -Candidate for an explicitly uncommitted development package.' }
         git -C $Root merge-base --is-ancestor $script:UpstreamCommit HEAD
         if ($LASTEXITCODE) { throw 'The pinned PKForge v3.1.1 base is required.' }
         foreach ($module in $script:PinnedModules.Keys) {
@@ -21,12 +45,13 @@ function Read-SourceProvenance([string]$Root) {
         if ($LASTEXITCODE) { throw 'Could not read the port commit.' }
         return [pscustomobject][ordered]@{
             upstream = '3.1.1'; upstreamCommit = $script:UpstreamCommit; portCommit = $commit
-            submodules = [pscustomobject]$script:PinnedModules; dirty = $false
+            submodules = [pscustomobject]$script:PinnedModules; dirty = [bool]$status
         }
     }
     $manifestPath = Join-Path $Root 'SOURCE-MANIFEST.json'
     if (-not (Test-Path -LiteralPath $manifestPath)) { throw 'Use a recursive Git clone or the complete source release archive.' }
     $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+    if ($manifest.provenance.dirty -and -not $AllowDirty) { throw 'This is candidate source; rebuild with -Candidate.' }
     if ($manifest.schema -ne 1 -or -not $manifest.files -or $manifest.provenance.upstreamCommit -ne $script:UpstreamCommit) { throw 'Unsupported source manifest.' }
     foreach ($module in $script:PinnedModules.Keys) {
         if ($manifest.provenance.submodules.$module -ne $script:PinnedModules[$module]) { throw "Source submodule mismatch: $module" }
@@ -55,6 +80,24 @@ function Export-CompleteSource([string]$Root, [string]$Destination, $Provenance)
             New-Item -ItemType Directory -Force -Path $outputRoot | Out-Null
             try { [IO.Compression.ZipFile]::ExtractToDirectory($temporaryZip, $outputRoot) }
             finally { Remove-Item -LiteralPath $temporaryZip -Force }
+            if ($Provenance.dirty) {
+                # Overlay only changed/new source on the fast archive export.
+                # Never stage or commit the user's work to create a candidate.
+                $paths = @(git -c core.quotepath=false -C $tree.root diff --name-only HEAD)
+                if ($LASTEXITCODE) { throw 'Could not enumerate changed source.' }
+                $paths += @(git -c core.quotepath=false -C $tree.root ls-files --others --exclude-standard)
+                if ($LASTEXITCODE) { throw 'Could not enumerate new source.' }
+                foreach ($relative in ($paths | Sort-Object -Unique)) {
+                    $inputPath = Join-Path $tree.root $relative
+                    $outputPath = [IO.Path]::GetFullPath((Join-Path $outputRoot $relative))
+                    if (-not $outputPath.StartsWith($outputRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe source overlay path.' }
+                    if (Test-Path -LiteralPath $inputPath -PathType Leaf) {
+                        [IO.Directory]::CreateDirectory((Split-Path $outputPath -Parent)) | Out-Null
+                        [IO.File]::Copy($inputPath, $outputPath, $true)
+                    }
+                    elseif (Test-Path -LiteralPath $outputPath -PathType Leaf) { Remove-Item -LiteralPath $outputPath -Force }
+                }
+            }
         }
     }
     else {

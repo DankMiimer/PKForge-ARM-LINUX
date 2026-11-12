@@ -13,6 +13,7 @@ public sealed class LoadingOverlay
     private readonly Label _progress;
     private readonly ProgressBar _bar;
     private PadOverlay? _pad;
+    private bool _closed;
 
     public CancellationTokenSource Cancellation { get; } = new();
 
@@ -52,24 +53,36 @@ public sealed class LoadingOverlay
         var window = Kit.OverlayWindow(host, content, preferredMaxWidth: 440, padding: 18);
         _overlay = Kit.AttachOverlay(host, window, () => Cancellation.Cancel());
         _pad = new PadOverlay(() => Cancellation.Cancel(), () => Cancellation.Cancel());
+        _overlay.Unloaded += Unloaded;
+        App.Suspended += Suspend;
     }
+
+    private void Unloaded(object? sender, EventArgs args) => Suspend();
+    private void Suspend() { if (_closed) return; Cancellation.Cancel(); Close(); }
 
     public void Report(int done, int total) => MainThread.BeginInvokeOnMainThread(() =>
     {
+        if (_closed) return;
         _progress.Text = $"{done} / {total}";
-        _bar.Progress = total == 0 ? 0 : (double)done / total;
+        _bar.Progress = total <= 0 ? 0 : Math.Clamp((double)done / total, 0, 1);
     });
 
     /// <summary>Free-form progress ("Downloading 12 / 240 MB") with a 0-1 bar.</summary>
     public void Report(string text, double fraction) => MainThread.BeginInvokeOnMainThread(() =>
     {
+        if (_closed) return;
         _progress.Text = text;
         _bar.Progress = Math.Clamp(fraction, 0, 1);
     });
 
     public void Close() => MainThread.BeginInvokeOnMainThread(() =>
     {
+        if (_closed) return;
+        _closed = true;
+        App.Suspended -= Suspend;
+        _overlay.Unloaded -= Unloaded;
         _host.Remove(_overlay);
         _pad?.Dispose();
+        _pad = null;
     });
 }

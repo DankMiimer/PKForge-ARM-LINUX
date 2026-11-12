@@ -10,6 +10,7 @@ public sealed partial class PokeparkPage
     public Grid ControlRoot => _host;
     public PokeparkScene Scene => _scene;
     public bool MenuOpen => _menuOpen;
+    public TimeSpan ParkPaintInterval { get => _canvas.PaintInterval; set => _canvas.PaintInterval = value; }
     public void RefreshRoster() => Reload();
     public void PrepareBenchmark(ParkDayPhase? phase, ParkWeather? weather, bool showPerformance)
     {

@@ -24,7 +24,7 @@ public sealed partial class WorkspaceHost : INavigation
     public Action? ParkRequested { get; set; }
     public Action? QuitRequested { get; set; }
     public Action<bool>? SecondScreenRequested { get; set; }
-    public bool DualAvailable { get; }
+    public bool DualAvailable { get; set; }
     public string Status { get; private set; } = "Choose a game, open a save, or browse your Bank.";
     private T Get<T>() where T : notnull => _services.GetRequiredService<T>();
     public WorkspaceHost(IServiceProvider services, bool dual)
@@ -34,9 +34,38 @@ public sealed partial class WorkspaceHost : INavigation
         Operations.ConfirmHackRisk = message => Dialogs.ConfirmAsync("Suspected ROM hack", message, "Edit at my own risk");
         var cachedCount = Get<ISaveCatalogue>().Saves.Count;
         if (cachedCount > 0) Status = $"Library restored · {cachedCount} saves. Scan linked folders to refresh.";
-        Screens.Push(new NativeListScreen(Screens, "PKForge · Game library", HomeItems, () => Status, PaintHomePreview, ClearHomeArt));
+        Screens.Push(new HomeScreen(this));
     }
-    public void OpenHome() { Screens.Home(); Screens.Activate(); }
+    public void OpenHome(bool welcome = false)
+    {
+        Screens.Home(); Screens.Activate();
+        if (welcome && !Preferences.Default.Get("linux.welcome.v1", false) && LibraryGroups.Count == 0)
+        {
+            Preferences.Default.Set("linux.welcome.v1", true);
+            UiDispatcher.Instance.Dispatch(() => _ = Screens.RunAsync(WelcomeAsync));
+        }
+    }
+    private async Task WelcomeAsync()
+    {
+        await DialogueBox.ShowSequenceAsync(Screens.ControlRoot,
+            "Hello! Welcome to PKForge!",
+            "This is a place where your Pokémon from every game can live together, safely.",
+            "I can edit them, keep them in the Bank, and make sure each one is legal.",
+            "And every change is backed up before it is written, so nothing is ever lost.",
+            "Now then... let's find your games!");
+        if (PKForge.App.App.IsSuspended) return;
+        var choice = await PadMenu.ShowAsync(Screens.ControlRoot, "Get started", null,
+            new PadOption("Link an emulator", IconPath: "link", Detail: "Pick the emulator folder where your games keep their saves."),
+            new PadOption("Open a single save file", IconPath: "file", Detail: "Pick one save file instead of a whole emulator folder."),
+            new PadOption("Download the sprite pack (" + SpritePackDownloader.SizeHint + ")", IconPath: "download", Detail: "Animated sprites, HOME pictures and item icons, to use offline."),
+            new PadOption("Maybe later", IconPath: "close"));
+        switch (choice)
+        {
+            case "Link an emulator": await LinkFolderAsync(); break;
+            case "Open a single save file": await OpenFileAsync(); break;
+            case { } download when download.StartsWith("Download the sprite pack", StringComparison.Ordinal): await DownloadSpritesAsync(); break;
+        }
+    }
     public Task PushAsync(ContentPage page) { OpenHome(); return Task.CompletedTask; }
     public Task<ContentPage?> PopAsync() { OpenHome(); return Task.FromResult<ContentPage?>(null); }
     private SaveSession? _homeSession;
@@ -134,15 +163,10 @@ public sealed partial class WorkspaceHost : INavigation
     private async Task ScanAsync()
     {
         Status = "Scanning linked save folders…"; Screens.Invalidate();
-        using var cancellation = new CancellationTokenSource();
-        var progress = Dialogs.MenuAsync("Finding saves", "Scanning linked folders. Cancel stops this scan.", "Cancel");
-        var scan = Task.Run(() => Get<ISaveCatalogue>().ScanAsync(cancellation.Token));
-        var first = await Task.WhenAny(progress, scan);
-        if (first == progress) cancellation.Cancel();
-        else Get<GamepadRouter>().Dispatch(PadButton.B);
-        try { await scan; Status = $"Found {Get<ISaveCatalogue>().Saves.Count} saves."; }
+        var overlay = LoadingOverlay.Show(Screens.ControlRoot, "Finding saves", "Scanning linked folders. Cancel stops this scan.");
+        try { await Task.Run(() => Get<ISaveCatalogue>().ScanAsync(overlay.Cancellation.Token)); Status = $"Found {Get<ISaveCatalogue>().Saves.Count} saves."; }
         catch (OperationCanceledException) { Status = "Scan cancelled; discovered saves are available."; }
-        await progress;
+        finally { overlay.Close(); }
     }
     private async Task<bool> CommitAsync(Func<ISaveEngineSession, GenerationOutcome> action, string description, SaveAction kind = SaveAction.EditMon, WriteScope? scope = null)
     {

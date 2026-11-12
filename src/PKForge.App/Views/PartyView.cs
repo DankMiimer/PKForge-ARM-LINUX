@@ -45,7 +45,7 @@ public static class PartyView
     private static SKColor Ghost => Rim.WithAlpha(0x70);
 
     public static void Paint(SKCanvas canvas, SKImageInfo info, ISpriteService sprites, ISaveEngineSession? session, int selectedSlot, Action invalidate, (int Box, int Slot)? carrySource = null, float pulsePhase = 0f,
-        Func<int, bool>? isMarked = null, Func<int, bool?>? rangeMark = null)
+        Func<int, bool>? isMarked = null, Func<int, bool?>? rangeMark = null, IReadOnlyList<EntityDetail?>? snapshot = null)
     {
         NodeGrid(canvas, info);
         DrawTrace(canvas, info);
@@ -56,7 +56,7 @@ public static class PartyView
         {
             var rect = SlotRect(info, i);
             EntityDetail? detail = null;
-            try { detail = session?.ReadEntity(-1, i); } catch { /* engine validates coordinates */ }
+            try { detail = snapshot is not null ? i < snapshot.Count ? snapshot[i] : null : session?.ReadEntity(-1, i); } catch { /* engine validates coordinates */ }
             // The carried Pokémon stays on its own card, lifted and breathing, until the
             // second A drops it; the cursor alone shows where it will go.
             var heldHere = carrySource is { Box: -1, Slot: var src } && src == i && detail is { IsEmpty: false };

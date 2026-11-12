@@ -184,15 +184,12 @@ public static class UiTokens
 /// <summary>The 18 Pokémon type colors (PKHeX type IDs 0–17), adaptive-theme source.</summary>
 public static class TypePalette
 {
-    private static readonly string[] Colors =
-    [
-        "#A8A77A", "#C22E28", "#A98FF3", "#A33EA1", "#E2BF65", "#B6A136",
-        "#A6B91A", "#735797", "#B7B7CE", "#EE8130", "#6390F0", "#7AC74C",
-        "#F7D02C", "#F95587", "#96D9D6", "#6F35FC", "#705746", "#D685AD",
-    ];
-
-    public static Color ForType(int typeId) =>
-        (uint)typeId < (uint)Colors.Length ? Color.FromArgb(Colors[typeId]) : UiTokens.DefaultAccent;
+    public static Color ForType(int typeId)
+    {
+        if ((uint)typeId >= 18) return UiTokens.DefaultAccent;
+        var color = PokemonTypeColors.ForType(typeId);
+        return Color.FromRgb(color.Red, color.Green, color.Blue);
+    }
 
     public static Color ForegroundForType(int typeId)
     {

@@ -248,10 +248,10 @@ public static class InfoKit
     // ---------- Numbers ----------
 
     /// <summary>"90", or an em dash for moves without fixed power.</summary>
-    public static string Power(int power) => power > 0 ? power.ToString() : "—";
+    public static string Power(int power) => Chrome.MoveNumbers.Power(power);
 
     /// <summary>"100", or an em dash for moves that never miss.</summary>
-    public static string Accuracy(int accuracy) => accuracy > 0 ? accuracy.ToString() : "—";
+    public static string Accuracy(int accuracy) => Chrome.MoveNumbers.Accuracy(accuracy);
 
     /// <summary>The compact move numbers line every move surface uses.</summary>
     public static string MoveNumbers(MoveChoice move) =>

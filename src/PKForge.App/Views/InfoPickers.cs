@@ -34,13 +34,20 @@ public static class InfoPickers
             try { choices = await Task.Run(() => info.GetMoveChoices(session, box, slot, species, form)); }
             catch (Exception e) when (e is ArgumentException or InvalidOperationException) { }
         }
+        return await ShowMovesAsync(host, title, data, choices, current, includeNone);
+    }
+
+    /// <summary>Render immutable facts captured while a platform-owned session was open.</summary>
+    public static Task<PickItem?> ShowMovesAsync(Grid host, string title, IGameDataService data,
+        IReadOnlyList<MoveChoice> choices, int? current, bool includeNone = true)
+    {
         if (choices.Count == 0)
         {
             // No facts for this session (none open, or a romhack's own move table): the plain list.
             var plain = Enumerable.Range(includeNone ? 0 : 1, Math.Max(0, data.MoveNames.Count - (includeNone ? 0 : 1)))
                 .Where(i => i == 0 || data.MoveNames[i].Length > 0)
                 .Select(i => new PickItem(i, i == 0 ? "(none)" : data.MoveNames[i])).ToList();
-            return await PickerMenu.ShowAsync(host, title, plain, current);
+            return PickerMenu.ShowAsync(host, title, plain, current);
         }
 
         var hasLearnData = choices.Any(c => c.Learn.IsLegal);
@@ -54,7 +61,7 @@ public static class InfoPickers
         var filter = hasLearnData
             ? new PickerFilter("Legal", "Show all", item => item.Id == 0 || !item.Muted, StartOn: !Services.HaXMode.IsOn)
             : null;
-        return await PickerMenu.ShowAsync(host, title, items, current, MovePreview(byId, hasLearnData), filter);
+        return PickerMenu.ShowAsync(host, title, items, current, MovePreview(byId, hasLearnData), filter);
     }
 
     /// <summary>
@@ -203,7 +210,13 @@ public static class InfoPickers
         var modern = data.ItemNames;
         var names = session?.GetItemNames() is { Count: > 0 } n ? n : modern;
         var legal = session is not null ? Info?.GetHeldItems(session).ToHashSet() ?? [] : [];
+        return ShowHeldItemsAsync(host, title, names, legal, current, iconFor);
+    }
 
+    /// <summary>Render the game's own item IDs and a captured holdable set without retaining its session.</summary>
+    public static Task<PickItem?> ShowHeldItemsAsync(Grid host, string title, IReadOnlyList<string> names,
+        IReadOnlySet<int> legal, int? current, Func<int, string?> iconFor)
+    {
         var items = new List<PickItem>(names.Count) { new(0, "(none)", Detail: "Holds nothing.") };
         var rows = new List<PickItem>();
         for (var id = 1; id < names.Count; id++)

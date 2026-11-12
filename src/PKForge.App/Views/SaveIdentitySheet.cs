@@ -140,21 +140,10 @@ public static class SaveIdentitySheet
 /// <summary>The curated cartridge palette: saturated enough to read on the grey housing, never neon.</summary>
 public static class SaveColors
 {
-    private static readonly Dictionary<string, Color> Palette = new(StringComparer.Ordinal)
-    {
-        ["navy"] = Color.FromArgb("#34509A"),
-        ["sky"] = Color.FromArgb("#4FB6DB"),
-        ["teal"] = Color.FromArgb("#2FA39A"),
-        ["leaf"] = Color.FromArgb("#5DAE4A"),
-        ["gold"] = Color.FromArgb("#E2B53A"),
-        ["amber"] = Color.FromArgb("#EE9A4A"),
-        ["coral"] = Color.FromArgb("#E4675A"),
-        ["berry"] = Color.FromArgb("#C0457A"),
-        ["violet"] = Color.FromArgb("#8B6AD8"),
-        ["slate"] = Color.FromArgb("#5E6B7A"),
-    };
-
     /// <summary>The save's chosen color, or its console era color.</summary>
-    public static Color For(string? key, int generation) =>
-        key is not null && Palette.TryGetValue(key, out var color) ? color : Kit.EraColor(generation);
+    public static Color For(string? key, int generation)
+    {
+        var color = PKForge.Chrome.HomePaint.SaveColor(key, generation);
+        return Color.FromRgb(color.Red, color.Green, color.Blue);
+    }
 }
