@@ -4,6 +4,30 @@ $script:PinnedModules = [ordered]@{
     'external/PKHeX' = '91e9c88667a6a191a000db68e2db19505eb87561'
     'external/PKHeX-Plugins' = '23ab1fc73f7be6ad427fbc900f9b99111cd2d560'
 }
+function Get-ReleaseIdentity([string]$Revision, [switch]$Candidate) {
+    if ($Revision -notmatch '\A(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?\z') {
+        throw "Invalid Linux release revision: $Revision"
+    }
+    $preview = $Revision.Contains('-')
+    $channel = if ($Candidate) { 'candidate' } elseif ($preview) { 'preview' } else { 'stable' }
+    [pscustomobject]@{
+        channel = $channel
+        status = if ($Candidate) { 'candidate' } elseif ($preview) { 'prerelease' } else { 'stable' }
+        prerelease = $preview
+        tag = "linux-v$Revision"
+        title = "PKForge 3.1.1 — Linux port $Revision" + $(if ($preview) { ' Preview' })
+    }
+}
+function Test-ReleaseProvenance($Info, [switch]$AllowCandidate, [string]$ExpectedCommit, [string]$ExpectedTag) {
+    if ($Info.portCommit -notmatch '^[a-f0-9]{40}$' -or $Info.rid -ne 'linux-arm64' -or
+        ($Info.dirty -and -not $Info.candidate) -or ($Info.candidate -and -not $AllowCandidate)) {
+        throw 'Invalid release provenance; dirty builds must be explicit candidates and require -AllowCandidate.'
+    }
+    $identity = Get-ReleaseIdentity $Info.linux -Candidate:$Info.candidate
+    if ($Info.channel -ne $identity.channel) { throw 'Release channel does not match its revision/candidate status.' }
+    if ($ExpectedCommit -and $Info.portCommit -ne $ExpectedCommit) { throw 'Release commit does not match the requested source.' }
+    if ($ExpectedTag -and $identity.tag -ne $ExpectedTag) { throw 'Release tag does not match the packaged revision.' }
+}
 function Read-SourceProvenance([string]$Root, [switch]$AllowDirty) {
     if (Test-Path -LiteralPath (Join-Path $Root '.git')) {
         $status = git -C $Root status --porcelain

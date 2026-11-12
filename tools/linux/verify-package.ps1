@@ -1,22 +1,37 @@
-param([string]$Directory = (Join-Path $PSScriptRoot '..\..\dist'), [switch]$AllowCandidate)
+param([string]$Directory = (Join-Path $PSScriptRoot '..\..\dist'), [switch]$AllowCandidate,
+    [string]$ExpectedCommit, [string]$ExpectedTag)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $root = [IO.Path]::GetFullPath($Directory)
 $info = Get-Content -LiteralPath (Join-Path $root 'BUILDINFO.json') -Raw | ConvertFrom-Json
-if (($info.dirty -and -not $AllowCandidate) -or ($info.candidate -and -not $AllowCandidate) -or $info.portCommit -notmatch '^[a-f0-9]{40}$' -or $info.rid -ne 'linux-arm64') { throw 'Invalid release provenance; candidates require -AllowCandidate.' }
+. (Join-Path $PSScriptRoot 'source.ps1')
+Test-ReleaseProvenance $info -AllowCandidate:$AllowCandidate -ExpectedCommit $ExpectedCommit -ExpectedTag $ExpectedTag
+$stem = "PKForge-v3.1.1-linux-$($info.linux)"
+$expected = @("$stem-arm64.zip", "$stem-full-source.zip", 'BUILDINFO.json')
+$expected += @('tg5040', 'tg5050', 'h700' | ForEach-Object { "$stem-nextui-$_-arm64.zip" })
+$listed = @()
 foreach ($line in (Get-Content -LiteralPath (Join-Path $root 'SHA256SUMS.txt'))) {
     if ($line -notmatch '^([a-f0-9]{64})  ([^/\\]+)$') { throw 'Malformed checksum line.' }
+    $listed += $Matches[2]
     if ((Get-FileHash -LiteralPath (Join-Path $root $Matches[2]) -Algorithm SHA256).Hash -ne $Matches[1]) { throw 'Release checksum mismatch.' }
 }
+if ($listed.Count -ne $expected.Count -or (Compare-Object ($listed | Sort-Object) ($expected | Sort-Object))) { throw 'Checksum list must cover exactly all four binary packages, complete source and build information.' }
 function Test-BinaryPackage([string]$binary, [string]$prefix, [string[]]$launchers) {
 $zip = [IO.Compression.ZipFile]::OpenRead($binary)
 try {
     $names = @($zip.Entries.FullName)
     if ($names -match '(^|/)(userdata|pkforge-full-test|\.git|TestResults|bin|obj)(/|$)' -or $names -match '\.(sav|srm|apk|pdb|log|key|p12)$') { throw 'Binary contains personal, test or development data.' }
-    $requiredFiles = @('app/pkforge', 'app/launch.sh', 'app/libSkiaSharp.so', 'app/libicuuc.so.72.1.0.3', 'app/libicui18n.so.72.1.0.3', 'app/libicudata.so.72.1.0.3', 'app/asset-manifest.json', 'app/native-dependencies.json', 'LICENSE', 'ATTRIBUTION.md', 'BUILDINFO.json') | ForEach-Object { $prefix + $_ }
+    $requiredFiles = @('app/pkforge', 'app/launch.sh', 'app/port-version.json', 'app/libSkiaSharp.so', 'app/libicuuc.so.72.1.0.3', 'app/libicui18n.so.72.1.0.3', 'app/libicudata.so.72.1.0.3', 'app/asset-manifest.json', 'app/native-dependencies.json', 'LICENSE', 'ATTRIBUTION.md', 'BUILDINFO.json') | ForEach-Object { $prefix + $_ }
     foreach ($required in @($launchers) + @($requiredFiles)) {
         if (-not $zip.GetEntry($required)) { throw "Missing binary entry: $required" }
     }
+    $reader = [IO.StreamReader]::new($zip.GetEntry($prefix + 'BUILDINFO.json').Open())
+    try { $embedded = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
+    if (($embedded | ConvertTo-Json -Depth 8 -Compress) -cne ($info | ConvertTo-Json -Depth 8 -Compress)) { throw 'Packaged build information differs from release provenance.' }
+    $reader = [IO.StreamReader]::new($zip.GetEntry($prefix + 'app/port-version.json').Open())
+    try { $version = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
+    $identity = Get-ReleaseIdentity $info.linux -Candidate:$info.candidate
+    if ($version.linux -ne $info.linux -or $version.portCommit -ne $info.portCommit -or $version.status -ne $identity.status) { throw 'Packaged version/status differs from release provenance.' }
     $reader = [IO.StreamReader]::new($zip.GetEntry($prefix + 'app/asset-manifest.json').Open())
     try { $assets = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
     $sha = [Security.Cryptography.SHA256]::Create()
@@ -39,6 +54,7 @@ try {
     $sha = [Security.Cryptography.SHA256]::Create()
     try {
         foreach ($file in $native.files) {
+            if ($file.path -match '^lib(SDL2|c\.so|stdc\+\+|gcc_s|pthread|rt\.so|GL|EGL|GLES|glapi|vulkan|drm|gbm)') { throw "Firmware library must not be bundled: $($file.path)" }
             if ($file.path -match '[/\\]' -or $file.machine -ne 'aarch64' -or ($file.glibc -and [version]$file.glibc -gt [version]'2.29')) { throw 'Invalid native ABI.' }
             $entry = $zip.GetEntry($prefix + 'app/' + $file.path)
             if (-not $entry -or $entry.Length -ne $file.bytes) { throw 'Missing native binary.' }

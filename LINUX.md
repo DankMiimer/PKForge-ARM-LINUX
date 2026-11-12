@@ -6,6 +6,9 @@ scene, interaction handlers, overlays, game rules, save engines and Bank format.
 It is an experimental preview; see `VALIDATION.md` for measured results and open
 release checks.
 
+[Handheld compatibility](HANDHELD_COMPATIBILITY.md) separates verified hardware,
+previous trials, simulated firmware checks and unsupported userspaces.
+
 Linux revision `0.2.3-dev` extends the park preview with a native Home library,
 Pokémon and save editors, Bank organization, durable transfers/recovery, generation,
 offline events, collection tools, Showdown/QR and game-specific tools. This is a

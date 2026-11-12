@@ -49,6 +49,7 @@ Push-Location $repoRoot
 try {
     . (Join-Path $PSScriptRoot 'source.ps1')
     . (Join-Path $PSScriptRoot 'native.ps1')
+    $identity = Get-ReleaseIdentity $portRevision -Candidate:$Candidate
     $provenance = Read-SourceProvenance $repoRoot -AllowDirty:$Candidate
     if (Test-Path -LiteralPath $publishDirectory) {
         $safePublish = [IO.Path]::GetFullPath($publishDirectory)
@@ -69,7 +70,7 @@ try {
     Copy-Item -LiteralPath 'packaging/linux/launch.sh' -Destination $appDirectory
     Copy-Item -LiteralPath 'packaging\linux\PKForge.sh','packaging\linux\PKForge Pokepark.sh' -Destination $packageDirectory
     Copy-Item -LiteralPath 'packaging\linux\port.json' -Destination (Join-Path $packageDirectory 'pkforge')
-    Copy-Item -LiteralPath 'LINUX.md','VALIDATION.md','FEATURE_COVERAGE.md','ACTION_INVENTORY.md','packaging\linux\ATTRIBUTION.md','LICENSE' -Destination (Join-Path $packageDirectory 'pkforge')
+    Copy-Item -LiteralPath 'LINUX.md','VALIDATION.md','FEATURE_COVERAGE.md','ACTION_INVENTORY.md','HANDHELD_COMPATIBILITY.md','packaging\linux\ATTRIBUTION.md','LICENSE' -Destination (Join-Path $packageDirectory 'pkforge')
     $assets = Get-Content 'src\PKForge.Linux\obj\project.assets.json' -Raw | ConvertFrom-Json
     Write-NativeManifest $appDirectory $assets
     $packageCache = $assets.packageFolders.PSObject.Properties.Name | Select-Object -First 1
@@ -89,11 +90,11 @@ try {
         [ordered]@{ path=$_.FullName.Substring($manifestRoot.Length+1).Replace('\','/'); bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
     })
     [IO.File]::WriteAllText((Join-Path $appDirectory 'asset-manifest.json'), (ConvertTo-Json -InputObject $assetManifest -Depth 4))
-    $buildInfo = [ordered]@{ upstream='3.1.1'; upstreamCommit=$provenance.upstreamCommit; linux=$portRevision; portCommit=$provenance.portCommit; submodules=$provenance.submodules; dirty=$provenance.dirty; candidate=[bool]$Candidate; minimumGlibc='2.29'; sdk=(dotnet --version); runtime=$runtimeVersion; rid='linux-arm64'; configuration=$Configuration }
+    $buildInfo = [ordered]@{ upstream='3.1.1'; upstreamCommit=$provenance.upstreamCommit; linux=$portRevision; channel=$identity.channel; portCommit=$provenance.portCommit; submodules=$provenance.submodules; dirty=$provenance.dirty; candidate=[bool]$Candidate; minimumGlibc='2.29'; sdk=(dotnet --version); runtime=$runtimeVersion; rid='linux-arm64'; configuration=$Configuration }
     $buildJson = ConvertTo-Json -Depth 5 -InputObject $buildInfo
     [IO.File]::WriteAllText((Join-Path $distributionDirectory 'BUILDINFO.json'), $buildJson)
     [IO.File]::WriteAllText((Join-Path $packageDirectory 'pkforge\BUILDINFO.json'), $buildJson)
-    [IO.File]::WriteAllText((Join-Path $appDirectory 'port-version.json'), (ConvertTo-Json -Compress -InputObject ([ordered]@{ upstream='3.1.1'; commit=$provenance.upstreamCommit; portCommit=$provenance.portCommit; linux=$portRevision; status='prerelease' })))
+    [IO.File]::WriteAllText((Join-Path $appDirectory 'port-version.json'), (ConvertTo-Json -Compress -InputObject ([ordered]@{ upstream='3.1.1'; commit=$provenance.upstreamCommit; portCommit=$provenance.portCommit; linux=$portRevision; status=$identity.status })))
     $archive = Join-Path $distributionDirectory "PKForge-v3.1.1-linux-$portRevision-arm64.zip"
     if (Test-Path -LiteralPath $archive) { Remove-Item -LiteralPath $archive }
     New-PortableArchive $packageDirectory $archive
