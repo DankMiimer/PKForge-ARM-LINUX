@@ -28,6 +28,29 @@ Shell tests are separate from installed, frontend-launched, rendered and physica
 verified behavior. Package filenames do not claim every device using a firmware
 has been tested.
 
+## Firmware assessment — 12 November 2026
+
+These are compatibility assessments of the named upstream sources, not additional
+hardware passes. A newer development branch does not identify the firmware on an
+installed handheld. Verify the actual AArch64 loader, `getconf GNU_LIBC_VERSION`,
+SDL window creation, frontend mappings and writable data location before use.
+
+| Firmware | Assessed combination and evidence | Exclusions / remaining validation |
+| --- | --- | --- |
+| ROCKNIX | Native AArch64 images. The installed RGDS reports glibc 2.41; the [inspected development recipe](https://github.com/ROCKNIX/distribution/blob/bb80e85f983296aab3d3b714c25487c860f60a68/packages/devel/glibc/package.mk) now specifies 2.44. Both exceed the package floor. | The installed RGDS still needs final-package acceptance. Source versions do not validate other devices or images. |
+| KNULLI | The [H700 configuration](https://github.com/knulli-cfw/distribution/blob/ab3a6809286b3cff1648fb8c96a0200bc869beb6/configs/knulli-h700_defconfig) uses glibc; the previously tested RG34XXSP image met the ARM64 requirements. | ARM32 builds are excluded. Final 0.3.0 testing is pending; firmware EGL must remain available even when Skia uses raster rendering. |
+| muOS / MustardOS | [Native ARM64 / ARM64_A53 targets](https://github.com/MustardOS/frontend/blob/9c54494454c8a2f1d815c22f33c461d2378d6b38/common.mk) include H700 and A133P. Use the selected image's PortMaster environment. | The source also supports ARM32, x86 and RISC-V targets, which this package cannot run on. The exact image's glibc and SDL backend remain unverified. |
+| dArkOS | The [official image description](https://github.com/christianhaitian/dArkOS/wiki) identifies Debian Trixie and mixed 64/32-bit userspace; [Trixie arm64 libc](https://packages.debian.org/trixie/libc6) is 2.41. The native AArch64 path is a plausible ABI match. | Hardware unverified. Do not launch through its 32-bit library path. Retain the narrow app-local graphics-link exception described below. |
+| ArkOS | The [archived official description](https://github.com/christianhaitian/arkos/wiki) identifies Ubuntu 19.10 and mixed 64/32-bit userspace. Assess the native AArch64 path on each installed image. | Legacy/community images require an actual libc probe; the historical OS name is insufficient evidence. ARM32-only combinations and libc below 2.29 are excluded. Hardware unverified. |
+| AmberELEC | The [inspected glibc recipe](https://github.com/AmberELEC/AmberELEC/blob/108db43ddd6d4e3c6f9d68da8ed03b49ef151aa0/packages/devel/glibc/package.mk) specifies 2.38. Native AArch64 images are ABI candidates. | Check the installed image/profile, firmware SDL/EGL and frontend return. Hardware unverified; a 32-bit compatibility layer does not run this package. |
+| SpruceOS | The [Flip profile](https://github.com/spruceUI/spruceOS/blob/dfc2148725348419b1595e518c3bfc02b445975e/spruce/scripts/platform/tina-stock/Flip.cfg) explicitly selects AArch64. Spruce runs over different stock/BaseOS userlands, so validate the selected base's libc and graphics libraries. | The [A30 profile](https://github.com/spruceUI/spruceOS/blob/dfc2148725348419b1595e518c3bfc02b445975e/spruce/scripts/platform/tina-stock/A30.cfg) selects armhf and is excluded. Do not generalize a Flip result to other Spruce devices. Hardware unverified. |
+| NextUI | Separate packages match the upstream [tg5040](https://github.com/LoveRetro/NextUI/blob/b6ec1343c0a2636ddaf2502fde52cff237c67377/workspace/tg5040/platform/makefile.env), [tg5050](https://github.com/LoveRetro/NextUI/blob/b6ec1343c0a2636ddaf2502fde52cff237c67377/workspace/tg5050/platform/makefile.env) and [h700](https://github.com/LoveRetro/NextUI/blob/b6ec1343c0a2636ddaf2502fde52cff237c67377/workspace/h700/platform/makefile.env) SDL2/GLES platforms. H700 explicitly selects its own patched SDL instead of TrimUI SDL. | All three remain experimental. Toolchain flags do not prove the installed libc floor or graphics compatibility. Never substitute one platform's SDL/graphics libraries for another's. |
+
+PortMaster's device catalogue can help discover profiles and paths. Its stored
+libc versions are observations from particular images and may lag current
+firmware; they are not a release-wide compatibility guarantee. No firmware name
+overrides this release's ARM64, glibc 2.29+ and firmware-library requirements.
+
 ## Firmware integration
 
 Keep the application folder beside both Ports launchers. A split installation can
