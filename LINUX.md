@@ -99,7 +99,7 @@ set `PKFORGE_CONTROLLER_LAYOUT=sdl` to retain SDL's original face-button semanti
 | D-pad left / right | Select residents |
 | D-pad up / down | Zoom |
 | Left stick | Pan the camera, when available |
-| Hold L2 + D-pad | Pan without sticks; normal D-pad actions resume on release |
+| Hold R2 + D-pad | Pan without sticks; normal D-pad actions resume on release |
 | Right stick | Zoom, when available |
 | Start | Options |
 | Select | Spectate |
@@ -118,16 +118,17 @@ Display changes and resume trigger a recheck. The saved second-screen toggle
 and `--display-mode auto|single|dual` / `--swap-screens` overrides remain.
 Where SDL has no mapping, the port imports the existing EmulationStation input
 configuration, then tries identified NextUI device profiles. A user
-`userdata/gamecontrollerdb.txt` takes precedence. L2 button and analog-trigger
+`userdata/gamecontrollerdb.txt` takes precedence. R2 button and analog-trigger
 bindings both work; the desktop keyboard uses E. Camera input clears when menus
 open, focus is lost, controllers disconnect or the app suspends.
 
 PKForge follows the firmware's configured lid and power behavior. Its lid monitor
 only pauses/resumes application activity and saves park state; it does not change
 OS power settings, inhibit shutdown or force system suspend. With shutdown on lid
-close, the next session starts by launching PKForge again. The owner's RGDS lid
-resume check passed; RG34XXSP suspend/resume was not exercised because its chosen
-lid action is shutdown. That setting remains untouched.
+close, the next session starts by launching PKForge again. The owner reported
+successful lid close/reopen checks on both reference handhelds during the latest
+interim trial. This does not certify a particular firmware suspend mode; each device's
+power policy remains unchanged.
 
 ## Persistent files and updates
 

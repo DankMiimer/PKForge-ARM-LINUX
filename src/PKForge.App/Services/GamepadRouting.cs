@@ -1,6 +1,6 @@
 namespace PKForge.App.Services;
 
-public enum PadButton { A, B, X, Y, Start, L, R, Up, Down, Left, Right, Select, L2 }
+public enum PadButton { A, B, X, Y, Start, L, R, Up, Down, Left, Right, Select, L2, R2 }
 
 /// <summary>A screen that owns the gamepad while visible. Return false to let the system handle the press.</summary>
 public interface IPadHandler
@@ -38,6 +38,11 @@ public interface IPadPagingHandler : IPadHandler
 /// </summary>
 public sealed class GamepadRouter
 {
+#if PKFORGE_LINUX
+    private const PadButton PanModifier = PadButton.R2;
+#else
+    private const PadButton PanModifier = PadButton.L2;
+#endif
     private readonly List<IPadHandler> _stack = [];
     private readonly HashSet<PadButton> _directions = [];
     private bool _pan;
@@ -80,7 +85,7 @@ public sealed class GamepadRouter
 
     public bool Dispatch(PadButton button)
     {
-        if (button == PadButton.L2)
+        if (button == PanModifier)
         {
             _pan = _stack.LastOrDefault() is IPadStickHandler;
             RefreshStick(); return true;
@@ -102,7 +107,7 @@ public sealed class GamepadRouter
     /// <summary>Tells the top-most screen a button was released, when it listens for that.</summary>
     public void DispatchRelease(PadButton button)
     {
-        if (button == PadButton.L2) { _pan = false; RefreshStick(); }
+        if (button == PanModifier) { _pan = false; RefreshStick(); }
         if (IsDirection(button)) { _directions.Remove(button); if (_pan) RefreshStick(); }
         if (_stack.Count > 0 && _stack[^1] is IPadReleaseHandler handler)
             handler.OnPadReleased(button);

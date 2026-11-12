@@ -156,9 +156,9 @@ internal sealed class InputRouter : IDisposable
         // Focus loss may swallow key-up; no held key may keep navigating after it.
         if (e.Type == Sdl.WindowEvent && e.WindowKind == 13) { ClearHeld(); return false; }
         if (PKForge.App.App.IsSuspended) { ClearHeld(); return false; }
-        if (e.Type == Sdl.ControllerAxis && e.Axis == 4)
+        if (e.Type == Sdl.ControllerAxis && e.Axis == 5)
         {
-            if (!_needsNeutral) SetButton(PadButton.L2, TriggerPressed(e.AxisValue, _held.ContainsKey(PadButton.L2)));
+            if (!_needsNeutral) SetButton(PadButton.R2, TriggerPressed(e.AxisValue, _held.ContainsKey(PadButton.R2)));
             return true;
         }
         PadButton? button = null;
@@ -179,7 +179,7 @@ internal sealed class InputRouter : IDisposable
             button = e.Key switch
             {
                 13 or 122 => PadButton.A, 27 or 120 => PadButton.B, 115 or 99 => PadButton.X, 97 or 118 => PadButton.Y,
-                113 => PadButton.L, 119 => PadButton.R, 101 => PadButton.L2, 9 => PadButton.Start, 8 or 1073742053 => PadButton.Select,
+                113 => PadButton.L, 119 => PadButton.R, 101 => PadButton.R2, 9 => PadButton.Start, 8 or 1073742053 => PadButton.Select,
                 1073741906 => PadButton.Up, 1073741905 => PadButton.Down,
                 1073741904 => PadButton.Left, 1073741903 => PadButton.Right, _ => null
             };
@@ -212,7 +212,7 @@ internal sealed class InputRouter : IDisposable
         var y = controller == IntPtr.Zero ? 0 : Axis(Sdl.SDL_GameControllerGetAxis(controller, 1));
         var rx = controller == IntPtr.Zero ? 0 : Axis(Sdl.SDL_GameControllerGetAxis(controller, 2));
         var ry = controller == IntPtr.Zero ? 0 : Axis(Sdl.SDL_GameControllerGetAxis(controller, 3));
-        var trigger = controller != IntPtr.Zero && TriggerPressed(Sdl.SDL_GameControllerGetAxis(controller, 4), _held.ContainsKey(PadButton.L2));
+        var trigger = controller != IntPtr.Zero && TriggerPressed(Sdl.SDL_GameControllerGetAxis(controller, 5), _held.ContainsKey(PadButton.R2));
         if (_needsNeutral)
         {
             if (x == 0 && y == 0 && rx == 0 && ry == 0 && !trigger) _needsNeutral = false;

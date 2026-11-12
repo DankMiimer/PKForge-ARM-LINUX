@@ -35,22 +35,22 @@ public sealed class CompatibilityTests
     {
         var router = new GamepadRouter(); var camera = new Camera(); router.Push(camera);
         if (directionFirst) router.Dispatch(PadButton.Right);
-        router.Dispatch(PadButton.L2); router.Dispatch(PadButton.Right); router.DispatchStick(0, 0, 0, 0);
+        router.Dispatch(PadButton.R2); router.Dispatch(PadButton.Right); router.DispatchStick(0, 0, 0, 0);
         Assert.Equal((1f, 0f), camera.Pan);
         Assert.Equal(directionFirst ? 1 : 0, camera.Buttons.Count);
         router.DispatchRelease(PadButton.Right); Assert.Equal((0f, 0f), camera.Pan);
         router.Dispatch(PadButton.Left); Assert.Equal((-1f, 0f), camera.Pan);
-        router.DispatchRelease(PadButton.L2); Assert.Equal((0f, 0f), camera.Pan);
+        router.DispatchRelease(PadButton.R2); Assert.Equal((0f, 0f), camera.Pan);
         router.Dispatch(PadButton.Down); Assert.Contains(PadButton.Down, camera.Buttons);
     }
     [Fact]
     public void Modal_and_disconnect_reset_do_not_resume_a_held_camera_chord()
     {
         var router = new GamepadRouter(); var camera = new Camera(); router.Push(camera);
-        router.Dispatch(PadButton.L2); router.Dispatch(PadButton.Up);
+        router.Dispatch(PadButton.R2); router.Dispatch(PadButton.Up);
         var modal = new Camera(); router.Push(modal); Assert.Equal((0f, 0f), camera.Pan);
         router.Remove(modal); router.DispatchStick(0, 0, 0, 0); Assert.Equal((0f, 0f), camera.Pan);
-        router.Dispatch(PadButton.L2); router.Dispatch(PadButton.Left); router.ResetInput();
+        router.Dispatch(PadButton.R2); router.Dispatch(PadButton.Left); router.ResetInput();
         router.DispatchStick(0, 0, 0, 0); Assert.Equal((0f, 0f), camera.Pan);
     }
     [Theory]

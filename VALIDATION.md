@@ -33,6 +33,11 @@ the higher-priority frontend mapping. A pre-initialization hint applies it.
 The app now merges explicit userdata overrides before SDL initialization and
 recognizes KNULLI's reversed default relative to the matching frontend GUID/name.
 The new app path still needs final-package physical acceptance.
+The QA launcher prototype's pre-start mapping passed the user's A/B/X/Y check;
+the RG34XXSP park camera, zoom, pan/release, options/back and lid close/reopen
+checks also passed. The owner then requested **R2+D-pad** instead of L2+D-pad.
+Linux source, hints and regression checks now use R2; the earlier physical
+results apply to the old L2 chord until the new package is retested.
 
 Picker checks cover 1,200 entries with bounded retained rows, filtered IDs, empty
 searches, drag cancellation, two-tap previews, suspend with an outstanding keyboard
