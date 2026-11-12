@@ -281,6 +281,7 @@ try
             UiDispatcher.Instance.Dispatch(() => _ = workspace.Screens.RunAsync(workspace.RecoveryAsync));
         }
         services.GetRequiredService<SdlMusicPlayer>().Initialize();
+        var gamepadRouter = services.GetRequiredService<GamepadRouter>();
         var timer = Stopwatch.StartNew();
         var performance = new FrameStatistics();
         var primaryClock = new PresentationClock();
@@ -361,7 +362,11 @@ try
             var motionNow = timer.Elapsed.TotalSeconds;
             workspace.Screens.Tick((float)Math.Clamp(motionNow - lastMotion, 0, .05));
             lastMotion = motionNow;
-            var primaryInterval = workspace.Screens.Active ? PresentationClock.UiInterval((parkDisplay ?? controls).RefreshRate) : 1000.0 / 30;
+            var activeControls = workspace.Screens.Active || page.MenuOpen || library.IsShowing || !gamepadRouter.IsTop(page) || page.ControlRoot.HasActiveAnimations;
+            var singleParkUi = !workspace.Screens.Active && !dual && activeControls;
+            // A park overlay follows UI cadence while the expensive scene is cached at 30 FPS.
+            page.ParkPaintInterval = singleParkUi ? TimeSpan.FromSeconds(1.0 / 30) : TimeSpan.Zero;
+            var primaryInterval = workspace.Screens.Active || singleParkUi ? PresentationClock.UiInterval((parkDisplay ?? controls).RefreshRate) : 1000.0 / 30;
             if (primaryClock.Due(now, primaryInterval))
             {
                 var start = Stopwatch.GetTimestamp();
@@ -375,9 +380,8 @@ try
                 else if (dual) page.ParkView.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                 else page.ControlRoot.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                 display.Present();
-                performance.Add(Stopwatch.GetElapsedTime(start).TotalMilliseconds, now, workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : "Park");
+                performance.Add(Stopwatch.GetElapsedTime(start).TotalMilliseconds, now, workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : singleParkUi ? "Park UI" : "Park");
             }
-            var activeControls = workspace.Screens.Active || page.MenuOpen || library.IsShowing || page.ControlRoot.HasActiveAnimations;
             // Keep one fast presentation pending after motion/menu activity ends, so the
             // final transparent frame (or closed menu) does not wait for the idle interval.
             controlsPending |= activeControls;
@@ -549,6 +553,7 @@ internal sealed class FrameStatistics
         var result = new { frames = _times.Count, seconds = (_last - _first) / 1000, fps = (_times.Count - 1) * 1000 / Math.Max(1, _last - _first),
             drawAverageMs = _times.Count == 0 ? 0 : _times.Average(), drawP95Ms = sorted.Length == 0 ? 0 : sorted[(int)((sorted.Length - 1) * .95)],
             rssMiB = Process.GetCurrentProcess().WorkingSet64 / 1048576.0, gpu, dual, upstream = Arguments.UpstreamVersion, portRevision = Arguments.PortRevision, module = typeof(Arguments).Module.ModuleVersionId,
+            viewFrames = _windows.Values.SelectMany(window => window.Views).GroupBy(pair => pair.Key).ToDictionary(group => group.Key, group => group.Sum(pair => pair.Value)),
             minuteWindows = _windows.Where(p => p.Key < (int)(_last / 60000)).OrderBy(p => p.Key).Select(p => new { startSeconds = p.Key * 60, seconds = 60, warmup = p.Key == 0, frames = p.Value.Frames, fps = p.Value.Frames / 60.0, drawAverageMs = p.Value.DrawTotal / p.Value.Frames, rssMiB = p.Value.RssMiB, managedMiB = p.Value.ManagedMiB, allocatedMiB = p.Value.AllocatedMiB, collections = p.Value.Collections, views = p.Value.Views }).ToArray() };
         File.WriteAllText(path, JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine("PERFORMANCE " + JsonSerializer.Serialize(result));

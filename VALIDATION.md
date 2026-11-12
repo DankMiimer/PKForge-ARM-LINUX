@@ -2,8 +2,8 @@
 
 ## 0.3.0 development work — 12 November 2026
 
-The current Linux suites pass **1,977 tests** (861 Domain, 966 Engine,
-71 Park, 79 Linux). The changed Android application compiles with zero warnings
+The current Linux suites pass **1,979 tests** (861 Domain, 966 Engine,
+71 Park, 81 Linux). The changed Android application compiles with zero warnings
 or errors. Twelve real-shell launcher tests cover the PortMaster module/helper/
 cleanup lifecycle, dArkOS exception, overrides and bounded child termination.
 Fifty-eight dialogue/menu/status/Bank/theme/loading/picker frames plus ten summary pages
@@ -19,6 +19,14 @@ Information-rich picker tests also preserve game-specific held-item IDs, capture
 move facts, legal ordering and filtering, Stellar type IDs and unavailable Hidden
 Power spread labels. The shared overloads accept captured facts so a chooser
 cannot outlive the temporary Bank session that supplied them.
+
+Single-screen park overlays now present at UI cadence over a cached 30 FPS park
+surface. Tests cover irregular frame spacing, cache/direct transitions and surface
+recreation. An eight-second Linux SDL dummy/raster run opened and closed options
+twice, composed 270 `Park UI` frames and 105 `Park` frames, and exited cleanly with
+SDL2_mixer unavailable. Its aggregate 46.96 FPS mixes both cadences and is not a
+park benchmark. Final RGDS GPU/input, motion timing and long-session checks remain
+required.
 
 All four development ZIPs pass the strengthened channel/provenance, exact checksum
 set, embedded version/build information, asset/native ABI and source-layout checks.

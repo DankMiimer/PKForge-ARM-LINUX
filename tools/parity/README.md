@@ -29,6 +29,23 @@ different advances and rasterization; use the Linux-native output for Linux
 pixel comparisons. Neither headless backend establishes SDL/graphics-driver,
 physical input or handheld presentation timing acceptance.
 
+For a short real-event-loop check, run the published Linux `pkforge` with
+`SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy`, `--software --windowed
+--display-mode single --demo --start-page park --seconds 8`, a fresh disposable
+`--data-dir` and this `--input-script`:
+
+```text
+0.5 Start
+3 B
+4 Start
+6 B
+```
+
+The log should show two options-menu open/close pairs and a clean exit.
+`performance.json` separates `Park UI` from `Park` in `viewFrames`; the aggregate
+FPS mixes their different presentation cadences. This driver supplies no evidence
+of a handheld's SDL backend, controls or sustained performance.
+
 ## Android baseline and component harness
 
 Build and install the unmodified pinned app into a new, disposable emulator

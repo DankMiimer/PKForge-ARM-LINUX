@@ -12,6 +12,44 @@ namespace PKForge.Linux.Tests;
 public sealed class ViewRenderingTests
 {
     [Fact]
+    public void Overlay_presentation_reuses_thirty_fps_scene_frames_and_refreshes_after_direct_rendering()
+    {
+        using var device = GraphicsDevice.CreateHeadless(80, 80);
+        var time = TimeSpan.Zero; var paints = 0;
+        var scene = new SKCanvasView { DirectDraw = true, PaintInterval = TimeSpan.FromSeconds(1.0 / 30), PaintClock = () => time };
+        scene.PaintSurface += (_, e) => { paints++; e.Surface.Canvas.Clear(paints % 2 == 1 ? SKColors.Red : SKColors.Blue); };
+        void Frame(double milliseconds)
+        {
+            time = TimeSpan.FromMilliseconds(milliseconds); scene.InvalidateSurface();
+            scene.Draw(device.CurrentSurface.Canvas, Area, device);
+        }
+        Frame(0); Assert.Equal(1, paints); Assert.Equal(SKColors.Red, Pixel(device));
+        Frame(16); Assert.Equal(1, paints); Assert.Equal(SKColors.Red, Pixel(device));
+        Frame(34); Assert.Equal(2, paints); Assert.Equal(SKColors.Blue, Pixel(device));
+        Frame(50); Assert.Equal(2, paints);
+        scene.PaintInterval = TimeSpan.Zero; Frame(51); Assert.Equal(3, paints);
+        scene.PaintInterval = TimeSpan.FromSeconds(1.0 / 30);
+        Frame(52); Assert.Equal(4, paints); Assert.Equal(SKColors.Blue, Pixel(device));
+        scene.ReleaseSurface(); Frame(53); Assert.Equal(5, paints); scene.ReleaseSurface();
+    }
+
+    [Fact]
+    public void Irregular_ui_frames_do_not_reduce_the_cached_scenes_average_rate()
+    {
+        using var device = GraphicsDevice.CreateHeadless(80, 80);
+        var time = TimeSpan.Zero; var paints = 0;
+        var scene = new SKCanvasView { DirectDraw = true, PaintInterval = TimeSpan.FromSeconds(1.0 / 30), PaintClock = () => time };
+        scene.PaintSurface += (_, _) => paints++;
+        scene.Draw(device.CurrentSurface.Canvas, Area, device);
+        for (var i = 0; i < 60; i++)
+        {
+            time += TimeSpan.FromMilliseconds(i % 2 == 0 ? 15 : 18); scene.InvalidateSurface();
+            scene.Draw(device.CurrentSurface.Canvas, Area, device);
+        }
+        Assert.InRange(paints, 29, 31); scene.ReleaseSurface();
+    }
+
+    [Fact]
     public void Retained_tree_accepts_new_touch_after_its_display_surface_is_recreated()
     {
         var taps = 0; var button = new BoxView(); var tap = new TapGestureRecognizer();

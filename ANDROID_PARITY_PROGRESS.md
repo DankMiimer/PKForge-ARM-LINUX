@@ -13,9 +13,10 @@ Updated 2026-11-12. Android reference: v3.1.1, `799dfc310c94bb978962dcd31ddf7d39
 - Dispatcher timers support the diagnostic clock and preserve their remaining
   deadlines across suspend. Workspace UI targets the display cadence up to 60 FPS,
   independently of the park's existing 30 FPS presentation. Single-screen park
-  overlays still share the park cadence and remain a motion-acceptance gap.
-- The Linux suites pass **1,977 tests**: 861 Domain, 966 Engine,
-  71 Park and 79 Linux. The changed Android application compiles without warnings
+  overlays now use UI cadence over a cached 30 FPS scene; final motion/presentation
+  acceptance remains pending.
+- The Linux suites pass **1,979 tests**: 861 Domain, 966 Engine,
+  71 Park and 81 Linux. The changed Android application compiles without warnings
   or errors. Component previews render 58 dialogue/menu/status/Bank/theme/loading/picker frames
   and ten summary pages across both viewport sizes.
 - Linux uses the original graphical `BankBoxOverview`, `BankWallpaperPicker`
@@ -51,13 +52,19 @@ Updated 2026-11-12. Android reference: v3.1.1, `799dfc310c94bb978962dcd31ddf7d39
   Asset decoding finishes before a deterministic capture timestamp is selected.
   Pixel-difference reports remain diagnostic; full state/timeline acceptance is
   pending. Windows text metrics must not substitute for Linux pixel evidence.
+- A real Linux SDL dummy-driver run opened/closed park options twice using
+  disposable demo data. It composed 270 overlay frames across 4.5 scripted seconds
+  and 105 park-only frames across 3.5 seconds, then exited cleanly with optional
+  SDL2_mixer absent. Cached painting uses deadlines so irregular UI frames do not
+  lower its average cadence, and returning from direct drawing refreshes the cache.
+  This is host integration evidence; RGDS graphics and soak acceptance remain open.
 - The earlier candidate was launched through the RGDS frontend from a separate
   installation with disposable fixtures. Home ran for 35 seconds; the park ran
   for 185 seconds and both measured warm minutes reached 30 FPS. Both entry points
   returned cleanly, normal volume was restored, and the installed userdata tree
   matched all 1,015 original entries. These are short candidate checks, before the
   newest Bank changes; they do not establish physical input or final soak acceptance.
-- Pushed checkpoint `3cad2e1` passed all Linux, Android, launcher and genuinely
+- Pushed checkpoint `821a546` passed all Linux, Android, launcher and genuinely
   outside-Git source-rebuild CI jobs. Draft PR #1 remains in progress.
 - The pinned original Android application was built separately and captured in
   an isolated 720×480, 160-dpi emulator. These are reference captures, not evidence

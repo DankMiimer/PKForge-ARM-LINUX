@@ -240,6 +240,7 @@ public static class DsChrome
 
 public sealed class ParkCanvas
 {
+    public TimeSpan PaintInterval { get => _view.PaintInterval; set => _view.PaintInterval = value; }
     public const string RendererKey = "pkforge.pokepark.renderer.v1";
     private readonly SKCanvasView _view = new() { EnableTouchEvents = true, DirectDraw = true };
     public event Action<SKCanvas, int, int>? Paint;
