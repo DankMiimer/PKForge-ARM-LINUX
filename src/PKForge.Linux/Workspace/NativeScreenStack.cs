@@ -65,6 +65,7 @@ public sealed class NativeScreenStack : IPadPagingHandler, IPadReleaseHandler
     public NativeScreenStack(GamepadRouter router, bool dual, SecondScreenRoutes? routes = null)
     {
         _router = router; _routes = routes ?? new(); Dual = dual; Dialogs = new(ControlRoot, router); Forms = new(Dialogs);
+        Entry.RequestText = (title, current) => Dialogs.TextAsync(title, current);
         _primary.PaintSurface += (_, e) => DrawScreen(e.Surface.Canvas, new(0, 0, e.Info.Width, e.Info.Height), false, e.Device);
         _secondary.PaintSurface += (_, e) => DrawScreen(e.Surface.Canvas, new(0, 0, e.Info.Width, e.Info.Height), Dual, e.Device);
         _primary.Touch += (_, e) => { if (!Busy && _router.IsTop(this)) Current?.Touch(e, false); e.Handled = true; };

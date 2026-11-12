@@ -86,8 +86,9 @@ public sealed class NativeForms(NativeDialogs dialogs)
         }
         return await RecordAsync(title, type, current);
     }
-    public async Task<T?> EditAsync<T>(string title, object? current, Func<string, bool>? enabled = null, Func<string, IReadOnlyList<NamedChoice>?>? choices = null, Func<string, GameTextRule?>? textRules = null) where T : class
-        => (T?)await RecordAsync(title, typeof(T), current, true, enabled, choices, textRules);
+    public async Task<T?> EditAsync<T>(string title, object? current, Func<string, bool>? enabled = null, Func<string, IReadOnlyList<NamedChoice>?>? choices = null, Func<string, GameTextRule?>? textRules = null,
+        Func<string, IReadOnlyDictionary<string, object?>, Task<(bool Handled, object? Value)>>? picker = null) where T : class
+        => (T?)await RecordAsync(title, typeof(T), current, true, enabled, choices, textRules, picker);
     private async Task<object?> NamedArrayAsync(string title, Type type, object? current, IReadOnlyList<NamedChoice> choices)
     {
         var element = type.IsArray ? type.GetElementType()! : type.GetGenericArguments()[0];
@@ -103,7 +104,8 @@ public sealed class NativeForms(NativeDialogs dialogs)
         }
     }
     public async Task<object?> RecordAsync(string title, Type type, object? current, bool partial = false,
-        Func<string, bool>? enabled = null, Func<string, IReadOnlyList<NamedChoice>?>? choices = null, Func<string, GameTextRule?>? textRules = null)
+        Func<string, bool>? enabled = null, Func<string, IReadOnlyList<NamedChoice>?>? choices = null, Func<string, GameTextRule?>? textRules = null,
+        Func<string, IReadOnlyDictionary<string, object?>, Task<(bool Handled, object? Value)>>? picker = null)
     {
         var constructor = type.GetConstructors().Where(c => c.GetParameters().All(p => p.Name is not null)).OrderByDescending(c => c.GetParameters().Length).FirstOrDefault();
         if (constructor is null) { await dialogs.MessageAsync(title, Describe(current)); return null; }
@@ -139,6 +141,17 @@ public sealed class NativeForms(NativeDialogs dialogs)
                 return constructor.Invoke(arguments);
             }
             var parameter = fields[Array.IndexOf(labels, choice) - 1]; object? changed;
+            if (picker is not null)
+            {
+                // Include staged values in read-only previews; cancellation never becomes an edit.
+                var values = parameters.ToDictionary(p => p.Name!, p => edited.GetValueOrDefault(p.Name!, Read(p)), StringComparer.OrdinalIgnoreCase);
+                var selected = await picker(parameter.Name!, values);
+                if (selected.Handled)
+                {
+                    if (selected.Value is not null) edited[parameter.Name!] = selected.Value;
+                    continue;
+                }
+            }
             if (choices?.Invoke(parameter.Name!) is { } entries)
             {
                 if (parameter.ParameterType != typeof(string) && typeof(IEnumerable).IsAssignableFrom(parameter.ParameterType))

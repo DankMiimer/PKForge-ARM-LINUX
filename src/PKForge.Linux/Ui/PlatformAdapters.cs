@@ -48,7 +48,37 @@ namespace PKForge.App.Theme
         public static Color ShellEdge => As(PKForge.Chrome.Pksm.PaperEdge);
         public static Color Bad => As(PKForge.Chrome.Pksm.Illegal);
         public static Color Green => As(PKForge.Chrome.Pksm.Legal);
+        public static Color RedOrange => As(PKForge.Chrome.Pksm.Illegal);
+        public static Color Blueprint => As(PKForge.Chrome.Pksm.SelectBorder);
+        public static Color PaperShade => As(PKForge.Chrome.Pksm.PaperShade);
+        public static Color Well => PaperShade;
+        public static Color BagCyanEdge => As(PKForge.Chrome.Pksm.BagCyanEdge);
+        public static Color OnAccent => As(PKForge.Chrome.Pksm.LogoVoid);
+        public static Color AccentNeutral => As(PKForge.Chrome.Pksm.HeaderBlue);
+        public static Color ButtonTop => As(PKForge.Chrome.PksmPaint.Lighter(PKForge.Chrome.Pksm.LogoDeck, .04f));
+        public static Color ButtonBottom => As(PKForge.Chrome.PksmPaint.Darker(PKForge.Chrome.Pksm.LogoDeck, .05f));
+        public static Color ButtonEdge => As(PKForge.Chrome.Pksm.LogoGrid);
+        public static Color RowStripe => As(PKForge.Chrome.Pksm.PaperShade.WithAlpha(144));
+        public static Color Rim => As(PKForge.Chrome.Pksm.Ink.WithAlpha(112));
+        public static Color Divider => As(PKForge.Chrome.Pksm.PaperEdge.WithAlpha(112));
+        public static Color SelectFill => As(PKForge.Chrome.Pksm.SelectFill);
+        public static Color SelectInk => As(PKForge.Chrome.Pksm.SelectInk);
+        public static Color TextTone(Color signal) => signal.GetLuminosity() < .62f ? signal.WithLuminosity(.66f) : signal;
         public const double TextBody = 13.5;
+        public const double TextLabel = 14, TextSmall = 12.5, TextTitle = 15, Space1 = 4, ControlRadius = 4, ControlEdge = 1.5;
+    }
+    public static class TypePalette
+    {
+        public static Color ForType(int type)
+        {
+            var color = PKForge.Chrome.PokemonTypeColors.ForType(type);
+            return new(color.Red, color.Green, color.Blue, color.Alpha);
+        }
+        public static Color ForegroundForType(int type)
+        {
+            var color = ForType(type);
+            return .299f * color.R + .587f * color.G + .114f * color.B >= .58f * 255 ? UiTokens.OnAccent : Colors.White;
+        }
     }
 }
 namespace Microsoft.Maui.Controls

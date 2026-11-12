@@ -1139,8 +1139,8 @@
       "sha256": "4a4b45518a0ba17932b86be6dd1db35c6862da8cb9ed6c4aafc84ada04db114a",
       "kind": "component",
       "motionSources": [],
-      "linuxRoute": "",
-      "fixture": "",
+      "linuxRoute": "Shared picker rows and nature preview panels",
+      "fixture": "tools/UiPreview picker-types and nature-preview",
       "states": [
         "normal",
         "focused",
@@ -1156,7 +1156,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Type/category/tag and stat-delta components compile from original source; complete use-site/state coverage remains pending."
     },
     {
       "id": "InfoPickers",
@@ -1219,8 +1219,8 @@
         "FadeToAsync",
         "ScaleToAsync"
       ],
-      "linuxRoute": "",
-      "fixture": "",
+      "linuxRoute": "Shared Kit.Pickers partial plus Linux platform controls",
+      "fixture": "tools/UiPreview picker and nature fixtures",
       "states": [
         "normal",
         "focused",
@@ -1236,7 +1236,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Picker chrome extracted verbatim into Kit.Pickers.cs for both hosts. Host controls supply rendering and input; remaining Kit surfaces and full parity are pending."
     },
     {
       "id": "LegalityAssistUi",
@@ -1553,8 +1553,8 @@
       "sha256": "b1a8cf70aaaa828ad1543533fb8d3be69b36db69cd6d13fa3c2ef67850c3eafe",
       "kind": "component",
       "motionSources": [],
-      "linuxRoute": "",
-      "fixture": "",
+      "linuxRoute": "Pokemon editor nature; Additional fields > Stat nature (mint)",
+      "fixture": "tools/UiPreview nature-preview and nature-preview-highlight at both viewports",
       "states": [
         "normal",
         "focused",
@@ -1570,7 +1570,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Original read-only preview and stat-delta panel shared. Staged values feed preview without writes; full matched Android review pending."
     },
     {
       "id": "PadMenu",
@@ -1678,8 +1678,8 @@
       "sha256": "68b82eec2425784bbbb3746e2060b495299e120c66b672d52991dd83e5189152",
       "kind": "screen",
       "motionSources": [],
-      "linuxRoute": "",
-      "fixture": "",
+      "linuxRoute": "Workspace NativeDialogs.PickAsync; Select/touch search; original filters and type chips",
+      "fixture": "tools/UiPreview picker, picker-types, picker-empty at both viewports",
       "states": [
         "normal",
         "focused",
@@ -1695,7 +1695,7 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Original picker compiled into Linux with virtualized host rows. Input/filter/lifecycle regression tests pass; matched row/state/timing review pending."
     },
     {
       "id": "PixelFont",

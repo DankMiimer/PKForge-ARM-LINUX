@@ -163,15 +163,43 @@ foreach (var width in new[] { 640, 720 })
     FrameTo(waitingAt + TimeSpan.FromSeconds(2));
     device.SaveScreenshot(Path.Combine(output, $"loading-{width}x480-2000ms.png"));
     object Layout(View view) => new { Type = view.GetType().Name, Bounds = new { view.Bounds.Left, view.Bounds.Top, view.Bounds.Width, view.Bounds.Height }, text = (view as Label)?.Text,
-        children = view is Grid grid ? grid.Children.Select(Layout).ToArray() : view is Border { Content: { } content } ? new[] { Layout(content) } : Array.Empty<object>() };
+        font = Metrics(view),
+        desiredWidth = float.IsFinite(view.NaturalWidth(view.Bounds.Width)) ? view.NaturalWidth(view.Bounds.Width) : (float?)null,
+        desiredHeight = float.IsFinite(view.NaturalHeight(view.Bounds.Width)) ? view.NaturalHeight(view.Bounds.Width) : (float?)null,
+        children = view is Grid grid ? grid.Children.Select(Layout).ToArray() : view is Border { Content: { } content } ? new[] { Layout(content) }
+            : view is CollectionView list ? list.RetainedRows.Select(Layout).ToArray() : Array.Empty<object>() };
     File.WriteAllText(Path.Combine(output, $"loading-layout-{width}x480.json"), System.Text.Json.JsonSerializer.Serialize(Layout(host)));
     router.Dispatch(PadButton.B);
     if (!loading.Cancellation.IsCancellationRequested) throw new InvalidOperationException("Loading cancel was not delivered.");
     loading.Close(); UiDispatcher.Instance.Pump();
     if (UiDispatcher.Instance.ActiveTimerCount != 0 || UiDispatcher.Instance.Animations.Active) throw new InvalidOperationException("Loading overlay retained timer/animation work.");
+    var names = new GameDataService().NatureNames;
+    var picker = PickerMenu.ShowAsync(host, "Nature", NaturePicker.Items(names), 3);
+    FrameTo(time + TimeSpan.FromMilliseconds(160));
+    device.SaveScreenshot(Path.Combine(output, $"picker-{width}x480.png"));
+    File.WriteAllText(Path.Combine(output, $"picker-layout-{width}x480.json"), System.Text.Json.JsonSerializer.Serialize(Layout(host)));
+    router.Dispatch(PadButton.B); if (!picker.IsCompletedSuccessfully) throw new InvalidOperationException("Picker retained input.");
+    var statPreview = NatureStatMath.Preview(new BaseStats(80, 82, 83, 100, 100, 80), 50,
+        [31, 31, 31, 31, 31, 31], [0, 0, 0, 0, 0, 0], 3, "Lv.50 · stored IVs/EVs");
+    picker = NaturePicker.ShowAsync(host, names, 3, statPreview);
+    FrameTo(time + TimeSpan.FromMilliseconds(160));
+    device.SaveScreenshot(Path.Combine(output, $"nature-preview-{width}x480.png"));
+    router.Dispatch(PadButton.Down); FrameTo(time + TimeSpan.FromMilliseconds(32));
+    device.SaveScreenshot(Path.Combine(output, $"nature-preview-{width}x480-highlight.png"));
+    router.Dispatch(PadButton.B);
+    picker = PickerMenu.ShowAsync(host, "Moves", [
+        new(1, "A long move name that must stay inside its row", null, "A long description that wraps into at most two lines and must leave space for the next row.") { TypeId = 10, Category = MoveCategory.Special, Tag = "Lv 32" },
+        new(2, "Unavailable in the legal set", null, "Muted entries remain reachable in Show all.") { TypeId = 11, Category = MoveCategory.Physical, Muted = true, Tag = "HIDDEN" },
+    ], filter: new("Legal only", "Show all", item => !item.Muted, StartOn: false));
+    FrameTo(time + TimeSpan.FromMilliseconds(160));
+    device.SaveScreenshot(Path.Combine(output, $"picker-types-{width}x480.png"));
+    Find<Entry>(host).Single().Text = "no matching entries"; FrameTo(time + TimeSpan.FromMilliseconds(32));
+    device.SaveScreenshot(Path.Combine(output, $"picker-empty-{width}x480.png"));
+    router.Dispatch(PadButton.B); UiDispatcher.Instance.Pump();
+    if (!picker.IsCompletedSuccessfully || UiDispatcher.Instance.ActiveTimerCount != 0 || UiDispatcher.Instance.Animations.Active) throw new InvalidOperationException("Picker retained input, timers or motion.");
     host.ReleaseSurface();
 }
-Console.WriteLine("UI PREVIEW PASS: two viewports; 46 dialogue/menu/status/Bank/theme/loading captures; animation and timer cleanup verified.");
+Console.WriteLine("UI PREVIEW PASS: two viewports; 56 dialogue/menu/status/Bank/theme/loading/picker captures; animation and timer cleanup verified.");
 
 // Optional synthetic save input: create a copied, scanned Home fixture with two Ruby
 // saves (one stacked cartridge) and one Sapphire. The supplied source is read only.
@@ -226,6 +254,20 @@ if (args.Length > 1)
         view.ReleaseSurface();
     }
     Console.WriteLine("SUMMARY PREVIEW PASS: original summary component; five pages at two viewports.");
+}
+
+static IEnumerable<T> Find<T>(View view) where T : View
+{
+    if (view is T found) yield return found;
+    var children = view is Grid grid ? grid.Children : view is Border { Content: { } content } ? new[] { content }.AsEnumerable() : [];
+    foreach (var child in children) foreach (var descendant in Find<T>(child)) yield return descendant;
+}
+
+static object? Metrics(View view)
+{
+    if (view is not Label label) return null;
+    using var font = new SKFont(PixelFont.Face, (float)label.FontSize);
+    return new { label.FontSize, font.Metrics.Ascent, font.Metrics.Descent, font.Metrics.Top, font.Metrics.Bottom, font.Metrics.Leading };
 }
 
 sealed class PreviewBankActions(IBankService bank) : IBankBoxOverviewActions

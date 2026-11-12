@@ -1,4 +1,5 @@
 using PKForge.App.Services;
+using PKForge.App.Views;
 using PKForge.Application;
 using PKForge.Domain;
 using PKForge.Engine;
@@ -82,7 +83,16 @@ public sealed partial class WorkspaceHost
         var detail = Pokemon.Read(target, (s, b, i) => s.ReadEntity(b, i)); var generation = Pokemon.Read(target, (s, _, _) => s.Generation);
         var edit = await Forms.EditAsync<EntityEdit>("Edit Pokémon", detail,
             field => field.ToLowerInvariant() switch { "nature" or "ability" or "ball" => generation >= 3, "helditem" or "friendship" or "gender" => generation >= 2, _ => true }, field => CoreChoices(target, field),
-            field => Pokemon.Read(target, (s, b, i) => field.ToLowerInvariant() switch { "nickname" => GameTextRules.ForPokemon(s, b, i, PokemonNameField.Nickname), "originaltrainer" => GameTextRules.ForPokemon(s, b, i, PokemonNameField.OriginalTrainer), _ => null }));
+            field => Pokemon.Read(target, (s, b, i) => field.ToLowerInvariant() switch { "nickname" => GameTextRules.ForPokemon(s, b, i, PokemonNameField.Nickname), "originaltrainer" => GameTextRules.ForPokemon(s, b, i, PokemonNameField.OriginalTrainer), _ => null }),
+            async (field, values) =>
+            {
+                if (!field.Equals("Nature", StringComparison.OrdinalIgnoreCase)) return (false, null);
+                var overrides = new StatPreviewOverrides(values["Species"] as int?, values["Level"] as int?,
+                    values["IVs"] as IReadOnlyList<int>, values["EVs"] as IReadOnlyList<int>);
+                var preview = Pokemon.Read(target, (s, b, i) => Get<IStatPreviewService>().PreviewSlot(s, b, i, overrides));
+                var chosen = await NaturePicker.ShowAsync(Dialogs.Host, Data.NatureNames, values["Nature"] as int?, preview);
+                return (true, chosen?.Id);
+            });
         if (edit is not null) await EditMonAsync(target, (s, b, i) => { s.ApplyEdit(b, i, edit); return new(true, "Pokémon updated."); }, "Edit Pokémon");
     }
     private async Task EditMetAsync(PokemonTarget target)
@@ -173,10 +183,10 @@ public sealed partial class WorkspaceHost
         }
         else if (choice == "Stat nature (mint)")
         {
-            if (Pokemon.Read(target, (s, b, i) => MonFieldService.GetStatNature(s, b, i)) is null) return;
+            if (Pokemon.Read(target, (s, b, i) => MonFieldService.GetStatNature(s, b, i)) is not { } currentNature) return;
             var preview = Pokemon.Read(target, (s, b, i) => MonFieldService.PreviewStatNature(s, b, i));
-            var index = await Dialogs.PickAsync("Stat nature · HP/Atk/Def/SpA/SpD/Spe", Data.NatureNames.Select((name, i) => name + (preview is null ? "" : " · " + string.Join('/', preview.StatsFor(i)))).ToArray());
-            if (index is { } nature) await EditMonAsync(target, (s, b, i) => { MonFieldService.SetStatNature(s, b, i, nature); return new(true, "Stat nature updated."); }, "Mint");
+            var chosen = await NaturePicker.ShowAsync(Dialogs.Host, Data.NatureNames, currentNature, preview, "Stat nature (mint)");
+            if (chosen is { } nature) await EditMonAsync(target, (s, b, i) => { MonFieldService.SetStatNature(s, b, i, nature.Id); return new(true, "Stat nature updated."); }, "Mint");
         }
         else if (choice == "Shiny kind / PID / EC") await PersonalityAsync(target);
         else if (choice == "OT / handling trainer")

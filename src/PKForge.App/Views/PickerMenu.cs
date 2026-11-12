@@ -66,6 +66,10 @@ public sealed class PickerMenu : IPadHandler
     private string _query = "";
     private List<PickItem> _filtered;
     private int _index;
+    private bool _closed;
+#if LINUX
+    private readonly Entry _search;
+#endif
 
     public static Task<PickItem?> ShowAsync(Grid host, string title, IReadOnlyList<PickItem> items, int? currentId = null,
         PickerPreview? preview = null, PickerFilter? filter = null) =>
@@ -86,6 +90,9 @@ public sealed class PickerMenu : IPadHandler
         _router = IPlatformApplication.Current?.Services.GetService<GamepadRouter>();
 
         var search = Kit.TextField();
+#if LINUX
+        _search = search;
+#endif
         search.Placeholder = "Search…";
         search.TextChanged += (_, args) =>
         {
@@ -160,6 +167,9 @@ public sealed class PickerMenu : IPadHandler
             LineBreakMode = LineBreakMode.TailTruncation,
         };
         var hintList = new List<(string, string, Action?)> { ("A", "PICK", livePreview is null ? null : PickHighlighted) };
+#if LINUX
+        hintList.Add(("−", "Search", () => search.Focus()));
+#endif
         if (_hasTypes) hintList.Add(("X", "Type", () => _ = ChooseTypeAsync()));
         if (filter is not null) hintList.Add(("Y", "Filter", ToggleFilter));
         hintList.Add(("B", "Cancel", () => Close(null)));
@@ -212,6 +222,8 @@ public sealed class PickerMenu : IPadHandler
 
         var window = Kit.OverlayWindow(host, content, preferredMaxWidth: side ? 520 + PreviewWidth + 12 : 520, scroll: false);
         _overlay = Kit.AttachOverlay(host, window, () => Close(null));
+        _overlay.Unloaded += (_, _) => Close(null);
+        App.Suspended += Suspend;
         search.Unfocus(); // the pad drives first; touch users tap the box to type
 
         if (currentId is { } id)
@@ -377,6 +389,9 @@ public sealed class PickerMenu : IPadHandler
             case PadButton.Down: Move(1); return true;
             case PadButton.A: PickHighlighted(); return true;
             case PadButton.B: Close(null); return true;
+#if LINUX
+            case PadButton.Select: _search.Focus(); return true;
+#endif
             case PadButton.Y: ToggleFilter(); return true;
             case PadButton.X: _ = ChooseTypeAsync(); return true;
             default: return true; // the picker owns the pad while open
@@ -440,8 +455,11 @@ public sealed class PickerMenu : IPadHandler
 
     private void Close(PickItem? result)
     {
+        if (_closed) return;
+        _closed = true; App.Suspended -= Suspend;
         if (_router is not null) _router.Remove(this);
         _host.Remove(_overlay);
         _result.TrySetResult(result);
     }
+    private void Suspend() => Close(null);
 }

@@ -16,10 +16,13 @@ dotnet publish tools/UiPreview/UiPreview.csproj -c Release -r linux-x64 --self-c
 ```
 
 Run that executable on Linux (or WSL), passing an output directory and the
-synthetic save path. It writes 46 component frames plus ten summary frames at
+synthetic save path. It writes 56 component frames plus ten summary frames at
 640×480 and 720×480. It waits for reference wallpaper decoding before selecting
 the capture timestamp and checks timer/animation/input teardown. Loader layout
-JSON accompanies the images.
+JSON accompanies the loader and picker images, including retained row bounds and
+font metrics. Picker fixtures include nature previews, type/category/tag rows,
+long text, muted entries and empty search results. Linux's Select search hint is
+an explicit handheld-input adaptation.
 
 Windows can run the same project for host diagnostics. Its Skia font backend has
 different advances and rasterization; use the Linux-native output for Linux

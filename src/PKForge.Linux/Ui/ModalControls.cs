@@ -47,6 +47,13 @@ namespace PKForge.App.Views
 {
     public static partial class Kit
     {
+        public static Entry TextField() => new();
+        public static Border Well(View content, double padding = 8) => new()
+        {
+            BackgroundColor = PKForge.App.Theme.UiTokens.Well, StrokeThickness = 0,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = PKForge.App.Theme.UiTokens.ControlRadius },
+            Padding = padding, Content = content,
+        };
         public static Button Capsule(string text, Color accent)
         {
             var color = PksmPaint.Lighter(Pksm.LogoDeck, .04f);
