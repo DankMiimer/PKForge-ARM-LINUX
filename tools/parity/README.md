@@ -91,6 +91,10 @@ insets to settle and writes app-private `reference-layout-ROUTE.json` after the
 normal opening/typewriter interval. Text dumps include native line height, baseline,
 font padding, glyph advances and first-line metrics to distinguish text measurement from outer
 layout differences. Read the dump after it has completed.
+Native handler bounds also record actual window coordinates and measured sizes.
+Use those coordinates for recycled CollectionView rows: their MAUI logical X/Y
+can remain identical even when native rows occupy different screen positions.
+Text dumps include the native typeface style alongside paint flags.
 Linux layout dumps also report advances with linear/subpixel metrics, native/auto
 hinting and embedded-bitmap settings. These are calibration measurements; review
 the actual production capture when assessing a text change.
