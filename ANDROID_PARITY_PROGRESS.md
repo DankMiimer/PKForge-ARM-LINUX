@@ -15,8 +15,8 @@ Updated 2026-11-12. Android reference: v3.1.1, `799dfc310c94bb978962dcd31ddf7d39
   independently of the park's existing 30 FPS presentation. Single-screen park
   overlays now use UI cadence over a cached 30 FPS scene; final motion/presentation
   acceptance remains pending.
-- The Linux suites pass **1,984 tests**: 861 Domain, 966 Engine,
-  71 Park and 86 Linux. The changed Android application compiles without warnings
+- The Linux suites pass **1,986 tests**: 861 Domain, 966 Engine,
+  71 Park and 88 Linux. The changed Android application compiles without warnings
   or errors. Component previews render 58 dialogue/menu/status/Bank/theme/loading/picker frames
   and ten summary pages across both viewport sizes.
 - Linux uses the original graphical `BankBoxOverview`, `BankWallpaperPicker`

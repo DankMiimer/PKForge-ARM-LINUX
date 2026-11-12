@@ -39,7 +39,7 @@ Revision 0.2.2 corrects Swellow's spinning flight and Donphan's upright Rollout 
 
 ## Verification and current limits
 
-The current desktop suite has **1,984 passing tests**; previous shared workflow/animation harness runs passed **71/71 cases on each reference handheld**. Earlier 31-minute hardware runs met the warm park target of at least 29.5 FPS in each measured park-only minute. Long-session memory stability, broader advanced-editor/format coverage and the remaining acceptance items are still open. These are historical hardware measurements, not guarantees for every device or scene.
+The current desktop suite has **1,986 passing tests**; previous shared workflow/animation harness runs passed **71/71 cases on each reference handheld**. Earlier 31-minute hardware runs met the warm park target of at least 29.5 FPS in each measured park-only minute. Long-session memory stability, broader advanced-editor/format coverage and the remaining acceptance items are still open. These are historical hardware measurements, not guarantees for every device or scene.
 
 See [VALIDATION.md](VALIDATION.md) and [FEATURE_COVERAGE.md](FEATURE_COVERAGE.md) before relying on a particular editor or format. RGDS lid resume was owner-confirmed. The reference RG34XXSP uses shutdown on lid close, so its physical suspend/resume path was not exercised under that setting.
 

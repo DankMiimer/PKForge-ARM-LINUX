@@ -2,8 +2,8 @@
 
 ## 0.3.0 development work — 12 November 2026
 
-The current Linux suites pass **1,984 tests** (861 Domain, 966 Engine,
-71 Park, 86 Linux). The changed Android application compiles with zero warnings
+The current Linux suites pass **1,986 tests** (861 Domain, 966 Engine,
+71 Park, 88 Linux). The changed Android application compiles with zero warnings
 or errors. Twelve real-shell launcher tests cover the PortMaster module/helper/
 cleanup lifecycle, dArkOS exception, overrides and bounded child termination.
 Fifty-eight dialogue/menu/status/Bank/theme/loading/picker frames plus ten summary pages
@@ -37,7 +37,14 @@ The QA launcher prototype's pre-start mapping passed the user's A/B/X/Y check;
 the RG34XXSP park camera, zoom, pan/release, options/back and lid close/reopen
 checks also passed. The owner then requested **R2+D-pad** instead of L2+D-pad.
 Linux source, hints and regression checks now use R2; the earlier physical
-results apply to the old L2 chord until the new package is retested.
+results apply to the old L2 chord. A subsequent exact CI archive, merge commit
+`4acf5d2d7` / head `56abc5f`, passed automatic A/B/X/Y mapping without QA overrides
+and R2+D-pad pan/release on RG34XXSP; R2 pan/release also passed on RGDS. All four
+CI jobs, all binary packages and the full source archive passed verification.
+KNULLI Menu+Start failed on that build: Menu was mapped as SDL Guide, which the
+app ignored, and no external keyboard hotkey helper was running. The app now
+handles the mapped Guide+Start chord and forwarded Alt+F4 on KNULLI, clearing
+held state on focus/disconnect reset. Physical verification of that fix is pending.
 
 Picker checks cover 1,200 entries with bounded retained rows, filtered IDs, empty
 searches, drag cancellation, two-tap previews, suspend with an outstanding keyboard

@@ -80,8 +80,9 @@ to the Bank, Dex Autopilot, Poképark, Events and Settings tiles; up returns to 
 shelf. A selects/opens, B edits the selected cartridge's identity, L filters,
 Y links a folder, X opens a save and Start opens settings. On the shelf, touch
 opens a cartridge; hold it for its identity menu or drag to browse. Select opens
-the Linux library-actions list, including scan, continue and quit. Holding
-Start + Select for at least 0.6 seconds exits cleanly from anywhere in the app.
+the Linux library-actions list, including scan, continue and quit. KNULLI's
+firmware exit chord is Menu + Start. The app also provides Start + Select held
+for at least 0.6 seconds as an exit shortcut from anywhere in the app.
 
 On KNULLI, the app matches face-button prompts to the frontend's configured
 A/B/X/Y names when its Ports generator supplies the reversed default SDL layout.

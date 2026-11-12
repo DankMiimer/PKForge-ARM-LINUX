@@ -13,6 +13,7 @@ internal sealed class InputRouter : IDisposable
     private readonly List<IntPtr> _controllers = [];
     private readonly Dictionary<PadButton, (long Since, long Last)> _held = [];
     private readonly HashSet<PadButton> _repeatBlocked = [];
+    private readonly FirmwareExitChord _firmwareExit = new(string.Equals(Firmware(), "knulli", StringComparison.OrdinalIgnoreCase));
     private bool _needsNeutral;
     public InputRouter(GamepadRouter router, Action quit)
     {
@@ -156,6 +157,7 @@ internal sealed class InputRouter : IDisposable
         // Focus loss may swallow key-up; no held key may keep navigating after it.
         if (e.Type == Sdl.WindowEvent && e.WindowKind == 13) { ClearHeld(); return false; }
         if (PKForge.App.App.IsSuspended) { ClearHeld(); return false; }
+        if (_firmwareExit.Handle(e)) { ClearHeld(); _quit(); return true; }
         if (e.Type == Sdl.ControllerAxis && e.Axis == 5)
         {
             if (!_needsNeutral) SetButton(PadButton.R2, TriggerPressed(e.AxisValue, _held.ContainsKey(PadButton.R2)));
@@ -236,6 +238,7 @@ internal sealed class InputRouter : IDisposable
     }
     public void ClearHeld()
     {
+        _firmwareExit.Reset();
         foreach (var button in _held.Keys.ToArray()) _router.DispatchRelease(button);
         _held.Clear(); _repeatBlocked.Clear();
         _router.ResetInput(); _needsNeutral = true;

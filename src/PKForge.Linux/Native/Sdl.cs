@@ -86,6 +86,7 @@ internal static class Sdl
         [FieldOffset(12)] public byte WindowKind;
         [FieldOffset(13)] public byte KeyRepeat;
         [FieldOffset(20)] public int Key;
+        [FieldOffset(24)] public ushort KeyMod;
         [FieldOffset(12)] public byte Button;
         [FieldOffset(12)] public byte Axis;
         [FieldOffset(16)] public short AxisValue;

@@ -17,7 +17,7 @@
   ],
   "approvedAdaptations": {
     "title-strip": "Keep the reclaimed Linux title-strip space while retaining status/page headings.",
-    "platform-input": "Use measured handheld gamepad/touch controls and an app-owned Linux keyboard/file picker.",
+    "platform-input": "Use measured handheld controls, Linux R2+D-pad camera panning, frontend button names, and an app-owned Linux keyboard/file picker.",
     "display-routing": "Route the inspector to the secondary display or the corresponding single-screen surface.",
     "park-corrections": "Retain accepted steady Swellow flight and curled Donphan rolling; deliberate spins remain.",
     "android-services": "Android OS widgets, intents and OS-owned navigation are platform services, not Linux UI surfaces."
