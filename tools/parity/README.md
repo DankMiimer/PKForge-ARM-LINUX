@@ -72,8 +72,11 @@ Start the diagnostic app normally, resolve its activity through
 `picker`, `dialogue`, `choice`, `loading` and `about`. The driver waits for launch
 insets to settle and writes app-private `reference-layout-ROUTE.json` after the
 normal opening/typewriter interval. Text dumps include native line height, baseline,
-font padding and first-line metrics to distinguish text measurement from outer
+font padding, glyph advances and first-line metrics to distinguish text measurement from outer
 layout differences. Read the dump after it has completed.
+Linux layout dumps also report advances with linear/subpixel metrics, native/auto
+hinting and embedded-bitmap settings. These are calibration measurements; review
+the actual production capture when assessing a text change.
 
 Record emulator key events as app input only. They are not physical handheld
 acceptance. Preserve the baseline APK and distinguish harness images in every

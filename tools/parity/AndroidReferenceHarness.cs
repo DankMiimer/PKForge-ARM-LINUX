@@ -62,8 +62,11 @@ internal static class ReferenceHarness
                 if (native is null) return null;
                 using var metrics = native.Paint?.GetFontMetricsInt();
                 var layout = native.Layout;
+                var widths = new float[native.Text?.Length ?? 0];
+                native.Paint?.GetTextWidths(native.Text ?? "", widths);
                 return new { native.TextSize, native.PaddingLeft, native.PaddingRight, native.PaddingTop, native.PaddingBottom,
-                    native.Baseline, native.LineHeight, native.IncludeFontPadding, measuredText = native.Paint?.MeasureText(native.Text ?? ""),
+                    native.Baseline, native.LineHeight, native.IncludeFontPadding, native.LetterSpacing, native.TextScaleX,
+                    paintFlags = native.Paint?.Flags.ToString(), widths, measuredText = native.Paint?.MeasureText(native.Text ?? ""),
                     metrics = metrics is null ? null : new { metrics.Ascent, metrics.Descent, metrics.Top, metrics.Bottom, metrics.Leading },
                     firstLine = layout is { LineCount: > 0 } ? new { top = layout.GetLineTop(0), bottom = layout.GetLineBottom(0),
                         ascent = layout.GetLineAscent(0), descent = layout.GetLineDescent(0), baseline = layout.GetLineBaseline(0) } : null };

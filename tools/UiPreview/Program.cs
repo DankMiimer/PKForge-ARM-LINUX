@@ -276,7 +276,23 @@ static object? Metrics(View view)
 {
     if (view is not Label label) return null;
     using var font = new SKFont(PixelFont.Face, (float)label.FontSize);
-    return new { label.FontSize, font.Metrics.Ascent, font.Metrics.Descent, font.Metrics.Top, font.Metrics.Bottom, font.Metrics.Leading };
+    var defaultEmbeddedBitmaps = font.EmbeddedBitmaps;
+    var measured = font.MeasureText(label.Text);
+    font.LinearMetrics = true; var linear = font.MeasureText(label.Text);
+    font.LinearMetrics = false; font.Subpixel = true; var subpixel = font.MeasureText(label.Text);
+    font.LinearMetrics = true; var linearSubpixel = font.MeasureText(label.Text);
+    font.LinearMetrics = false; font.Subpixel = false;
+    var hinted = Enum.GetValues<SKFontHinting>().Select(hint =>
+    {
+        font.Hinting = hint; font.ForceAutoHinting = false; var normal = font.MeasureText(label.Text);
+        font.ForceAutoHinting = true; var auto = font.MeasureText(label.Text);
+        return new { hint = hint.ToString(), normal, auto };
+    }).ToArray();
+    font.ForceAutoHinting = false; font.Hinting = SKFontHinting.Normal;
+    font.EmbeddedBitmaps = true; var embedded = font.MeasureText(label.Text);
+    font.EmbeddedBitmaps = false; var noEmbedded = font.MeasureText(label.Text);
+    return new { label.FontSize, font.Metrics.Ascent, font.Metrics.Descent, font.Metrics.Top, font.Metrics.Bottom, font.Metrics.Leading,
+        advances = new { measured, linear, subpixel, linearSubpixel, hinted, defaultEmbeddedBitmaps, embedded, noEmbedded } };
 }
 
 sealed class PreviewBankActions(IBankService bank) : IBankBoxOverviewActions
