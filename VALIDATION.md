@@ -10,8 +10,41 @@ The 129-unit reference ledger starts with all parity gates pending.
 
 On the merged source, the host suites pass **3,352 tests** (1,437 Domain,
 1,741 Engine, 77 Park, 97 Linux UI) and the 12 launcher scenarios; the Android
-project compiles (compile target only, no APK built). No 3.2.0 package has been
-built, and nothing in this section was run on a handheld.
+project compiles (compile target only, no APK built). The Linux UI suite has
+since grown to 103 tests.
+
+### Hands-on trial — 13 November 2026
+
+Locally built, verified `0.2.4-dev` packages (commits `425e35b`, `ac694ec`,
+`bcbb1a6`) were installed beside the existing PKForge on the RG34XXSP (KNULLI)
+and RGDS (ROCKNIX) with disposable fixture data, and opened by the owner from
+Ports. This is a development trial, not acceptance of a release package.
+
+Reported working on both: Home, printed face-button hints, painted menus, Item
+Bank, save-to-Bank transfer with the portal, Bank box lock and groups, named
+snapshots, museum, Animations and Interface scale, Pokéwalker, R2 + D-pad pan,
+L/R camera, and exit to Ports. Existing `userdata` on both devices matched its
+pre-install hashes after every install (1,184 and 1,678 entries).
+
+Found and changed during the trial:
+
+- A Pokémon grabbed with A stayed drawn in the hand after a menu transferred
+  it. Storage menus now put the carried Pokémon back first. Covered by a test;
+  not re-checked on hardware.
+- The Pokéwalker shell was drawn at ×1. It now fills its area on handheld
+  screens; reported good on both devices.
+- With the Pokéwalker open the RG34XXSP measured about 48 FPS (first and
+  enlarged builds alike) while the hidden park kept repainting. `bcbb1a6`
+  rests the hidden park on single-screen devices. The last session was too
+  short to record a full minute with the Pokéwalker open, and it was reported
+  as still slightly uneven, so **this remains open and unmeasured**.
+- On the RGDS both screens were reported slower with the Pokéwalker open. The
+  top-screen park recorded its 30 FPS target; the second screen's cadence is
+  not recorded, so **this is unexplained and open**.
+
+Park alone on the RG34XXSP recorded about 27 FPS (28 ms average draw) in the
+first minute of two sessions, below the 29.5 FPS gate. No soak, lid/resume,
+touch or data-safety acceptance was run in this trial.
 
 ## 0.3.0 development work — 12 November 2026
 
