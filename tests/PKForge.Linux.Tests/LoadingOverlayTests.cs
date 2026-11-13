@@ -7,8 +7,11 @@ using Xunit;
 
 namespace PKForge.Linux.Tests;
 
-public sealed class LoadingOverlayTests
+public sealed class LoadingOverlayTests : IDisposable
 {
+    private readonly string _settings = Path.Combine(Path.GetTempPath(), "pkforge-loading-" + Guid.NewGuid().ToString("N"));
+    public LoadingOverlayTests() => PKForge.Park.ParkPlatform.Configure(_settings, Path.Combine(AppContext.BaseDirectory, "assets"));
+    public void Dispose() => Directory.Delete(_settings, true);
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

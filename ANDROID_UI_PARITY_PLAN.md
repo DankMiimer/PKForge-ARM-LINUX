@@ -2,6 +2,12 @@
 
 Status: implementation in progress. Prepared 2026-10-25. See [implementation progress and evidence](ANDROID_PARITY_PROGRESS.md).
 
+Baseline update, 2026-11-13: new development targets Android **v3.2.0**,
+`c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a`, at the user's request.
+`PARITY_ACCEPTANCE.json` lists 129 reference units, all pending. The v3.1.1
+findings and captures below remain historical evidence; repeat them against
+the new baseline. See [3.2.0 integration](UPSTREAM_3_2_0_SUPPORT.md).
+
 Companion: [Animation and interaction parity plan](ANDROID_ANIMATION_PARITY_PLAN.md).
 
 ## Target and baseline

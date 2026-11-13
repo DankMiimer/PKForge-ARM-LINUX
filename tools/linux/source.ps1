@@ -1,8 +1,8 @@
 # Source export/verification shared by Git checkouts and complete source archives.
-$script:UpstreamCommit = '799dfc310c94bb978962dcd31ddf7d39e6d8cba3'
+$script:UpstreamCommit = 'c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a'
 $script:PinnedModules = [ordered]@{
-    'external/PKHeX' = '91e9c88667a6a191a000db68e2db19505eb87561'
-    'external/PKHeX-Plugins' = '23ab1fc73f7be6ad427fbc900f9b99111cd2d560'
+    'external/PKHeX' = '0ef324a7bed90852c58ba77d0470c4b5dd787c56'
+    'external/PKHeX-Plugins' = '8e80759af7e53089b4386b7d50a86aa0d84c15cf'
 }
 function Get-ReleaseIdentity([string]$Revision, [switch]$Candidate) {
     if ($Revision -notmatch '\A(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?\z') {
@@ -15,7 +15,7 @@ function Get-ReleaseIdentity([string]$Revision, [switch]$Candidate) {
         status = if ($Candidate) { 'candidate' } elseif ($preview) { 'prerelease' } else { 'stable' }
         prerelease = $preview
         tag = "linux-v$Revision"
-        title = "PKForge 3.1.1 — Linux port $Revision" + $(if ($preview) { ' Preview' })
+        title = "PKForge 3.2.0 — Linux port $Revision" + $(if ($preview) { ' Preview' })
     }
 }
 function Test-ReleaseProvenance($Info, [switch]$AllowCandidate, [string]$ExpectedCommit, [string]$ExpectedTag) {
@@ -33,7 +33,7 @@ function Read-SourceProvenance([string]$Root, [switch]$AllowDirty) {
         $status = git -C $Root status --porcelain
         if ($LASTEXITCODE -or ($status -and -not $AllowDirty)) { throw 'Build releases from a clean checkout; use -Candidate for an explicitly uncommitted development package.' }
         git -C $Root merge-base --is-ancestor $script:UpstreamCommit HEAD
-        if ($LASTEXITCODE) { throw 'The pinned PKForge v3.1.1 base is required.' }
+        if ($LASTEXITCODE) { throw 'The pinned PKForge v3.2.0 base is required.' }
         foreach ($module in $script:PinnedModules.Keys) {
             $moduleRoot = Join-Path $Root $module
             $actual = git -C $moduleRoot rev-parse HEAD
@@ -44,7 +44,7 @@ function Read-SourceProvenance([string]$Root, [switch]$AllowDirty) {
         $commit = git -C $Root rev-parse HEAD
         if ($LASTEXITCODE) { throw 'Could not read the port commit.' }
         return [pscustomobject][ordered]@{
-            upstream = '3.1.1'; upstreamCommit = $script:UpstreamCommit; portCommit = $commit
+            upstream = '3.2.0'; upstreamCommit = $script:UpstreamCommit; portCommit = $commit
             submodules = [pscustomobject]$script:PinnedModules; dirty = [bool]$status
         }
     }

@@ -31,6 +31,7 @@ public sealed class NativeScreenStack : IPadPagingHandler, IPadReleaseHandler
     private readonly SecondScreenRoutes _routes;
     private SecondScreenClaim? _claim;
     public Grid ControlRoot { get; } = new();
+    internal Grid EffectRoot { get; } = new();
     private readonly SKCanvasView _primary = new() { DirectDraw = true, EnableTouchEvents = true };
     private readonly SKCanvasView _secondary = new() { DirectDraw = true, EnableTouchEvents = true };
     public View Primary => _primary;
@@ -48,8 +49,9 @@ public sealed class NativeScreenStack : IPadPagingHandler, IPadReleaseHandler
     public void DrawPrimary(SKCanvas canvas, SKRect bounds, GraphicsDevice device) => DrawScreen(canvas, bounds, false, device);
     public void DrawScreen(SKCanvas canvas, SKRect bounds, bool secondary, GraphicsDevice device)
     {
+        UiScaleSetting.ApplyToPainters(bounds.Width, bounds.Height);
         var previous = DrawingDevice; DrawingDevice = device;
-        try { Current?.Paint(canvas, bounds, secondary); }
+        try { Current?.Paint(canvas, bounds, secondary); if (!secondary) EffectRoot.Draw(canvas, bounds, device); }
         finally { DrawingDevice = previous; }
     }
     public void DrawControls(SKCanvas canvas, SKRect bounds, GraphicsDevice device)
@@ -59,7 +61,12 @@ public sealed class NativeScreenStack : IPadPagingHandler, IPadReleaseHandler
     }
     public void HandleTouch(SKTouchEventArgs touch, bool primary)
     {
-        if (!_router.IsTop(this)) { if (!primary) ControlRoot.HandleTouch(touch); return; }
+        if (!_router.IsTop(this))
+        {
+            if ((!Dual || primary) && EffectRoot.HandleTouch(touch)) return;
+            if (!primary) ControlRoot.HandleTouch(touch);
+            return;
+        }
         if (!Busy) Current?.Touch(touch, !primary && Dual);
     }
     public NativeScreenStack(GamepadRouter router, bool dual, SecondScreenRoutes? routes = null)
@@ -68,8 +75,8 @@ public sealed class NativeScreenStack : IPadPagingHandler, IPadReleaseHandler
         Entry.RequestText = (title, current) => Dialogs.TextAsync(title, current);
         _primary.PaintSurface += (_, e) => DrawScreen(e.Surface.Canvas, new(0, 0, e.Info.Width, e.Info.Height), false, e.Device);
         _secondary.PaintSurface += (_, e) => DrawScreen(e.Surface.Canvas, new(0, 0, e.Info.Width, e.Info.Height), Dual, e.Device);
-        _primary.Touch += (_, e) => { if (!Busy && _router.IsTop(this)) Current?.Touch(e, false); e.Handled = true; };
-        _secondary.Touch += (_, e) => { if (!Busy && _router.IsTop(this)) Current?.Touch(e, Dual); e.Handled = true; };
+        _primary.Touch += (_, e) => { if (!_router.IsTop(this)) EffectRoot.HandleTouch(e); else if (!Busy) Current?.Touch(e, false); e.Handled = true; };
+        _secondary.Touch += (_, e) => { if (!Dual && !_router.IsTop(this)) EffectRoot.HandleTouch(e); else if (!Busy && _router.IsTop(this)) Current?.Touch(e, Dual); e.Handled = true; };
         ControlRoot.Add(_secondary);
     }
     private void Route() { _claim?.Dispose(); _claim = null; if (Active && Current is { } screen) { _claim = _routes.CreateClaim(screen.Owner); _claim.Activate(); } }

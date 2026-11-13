@@ -34,6 +34,49 @@ public sealed class JsonSettingsStore : ISettingsStore
     }
     public void Set<T>(string key, T value) => Change(values => values[key] = JsonSerializer.SerializeToElement(value));
     public void Remove(string key) => Change(values => values.Remove(key));
+    public IReadOnlyList<PKForge.Domain.PreferenceValue> ExportPreferences()
+    {
+        lock (_gate) return _values.Select(pair =>
+        {
+            var value = pair.Value;
+            var type = value.ValueKind switch
+            {
+                JsonValueKind.String => "string", JsonValueKind.True or JsonValueKind.False => "bool",
+                JsonValueKind.Number when value.TryGetInt32(out _) => "int",
+                JsonValueKind.Number when value.TryGetInt64(out _) => "long", _ => "float"
+            };
+            return new PKForge.Domain.PreferenceValue(pair.Key, type, type == "string" ? value.GetString()! : value.GetRawText());
+        }).ToArray();
+    }
+    public static void ValidatePreferences(IReadOnlyList<PKForge.Domain.PreferenceValue> preferences)
+    {
+        foreach (var preference in PKForge.Domain.DataTransfer.ToApply(preferences))
+            _ = PreferenceElement(preference);
+    }
+    private static JsonElement PreferenceElement(PKForge.Domain.PreferenceValue preference)
+    {
+        try
+        {
+            if (preference.Type == "string") return JsonSerializer.SerializeToElement(preference.Value);
+            var value = JsonSerializer.Deserialize<JsonElement>(preference.Value);
+            var valid = preference.Type switch
+            {
+                "bool" => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
+                "int" => value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out _),
+                "long" => value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out _),
+                "float" => value.ValueKind == JsonValueKind.Number && value.TryGetSingle(out var number) && float.IsFinite(number),
+                _ => false
+            };
+            if (valid) return value;
+        }
+        catch (JsonException) { }
+        throw new PKForge.Domain.DataArchiveException($"The archive contains an invalid {preference.Type} preference: {preference.Key}.");
+    }
+    public void ImportPreferences(IReadOnlyList<PKForge.Domain.PreferenceValue> preferences)
+    {
+        var parsed = PKForge.Domain.DataTransfer.ToApply(preferences).Select(p => (p.Key, Value: PreferenceElement(p))).ToArray();
+        Change(values => { foreach (var (key, value) in parsed) values[key] = value; });
+    }
     private void Change(Action<Dictionary<string, JsonElement>> update)
     {
         lock (_gate)

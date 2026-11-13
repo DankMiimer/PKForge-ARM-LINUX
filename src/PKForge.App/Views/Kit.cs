@@ -13,7 +13,7 @@ namespace PKForge.App.Views;
 /// dark grid fields, layered navy surfaces, cobalt structure, and cyan focus light.
 /// Views take colors from UiTokens (mapped from PKForge.Chrome Pksm), never literals.
 /// </summary>
-public static partial class Kit
+public static class Kit
 {
     /// <summary>
     /// The page housing backdrop: the logo's crisp navy/cobalt grid.
@@ -26,7 +26,7 @@ public static partial class Kit
         var prerenderedSize = new SKSizeI(-1, -1);
         var prerenderedTheme = -1;
 
-        canvasView.PaintSurface += (_, args) =>
+        canvasView.PaintSurface += PaintGuard.Wrap("Kit canvasView", (_, args) =>
         {
             var info = args.Info;
             if (info.Width <= 0 || info.Height <= 0) return;
@@ -38,7 +38,7 @@ public static partial class Kit
                 prerenderedTheme = ColorTheme.Version;
             }
             args.Surface.Canvas.DrawBitmap(prerendered, 0, 0);
-        };
+        });
         canvasView.Unloaded += (_, _) =>
         {
             prerendered?.Dispose();
@@ -137,6 +137,78 @@ public static partial class Kit
         row.Stroke = focused ? UiTokens.Rim : Colors.Transparent;
     }
 
+    /// <summary>A 1 dp cobalt hairline between groups inside a panel.</summary>
+    public static BoxView Divider(double verticalMargin = 4) => new()
+    {
+        Color = UiTokens.Divider,
+        HeightRequest = 1,
+        Margin = new Thickness(0, verticalMargin),
+        InputTransparent = true,
+    };
+
+    // ---------- Text ----------
+
+    private static readonly HashSet<string> KeepCaps = new(StringComparer.Ordinal)
+    {
+        "PK", "PKM", "PKX", "QR", "IV", "EV", "OT", "TID", "SID", "RNG", "HP", "PP", "TM", "TR", "HM", "EXP",
+        "ID", "GB", "GBC", "GBA", "NDS", "DS", "3DS", "NS", "SAV", "PKSM", "HOME", "OK", "ROM", "PC", "NPC",
+        "SAE", "RTC", "USB", "SD", "BST", "JP", "EN", "FR", "DE", "IT", "ES", "KO", "CHS", "CHT", "HGSS", "BW",
+        "B2W2", "XY", "ORAS", "SM", "USUM", "LGPE", "SWSH", "BDSP", "PLA", "SV", "FRLG", "RSE", "CFRU", "DPP",
+        "UI", "GTS", "PID", "EC", "II", "III", "VI", "XD", "URL", "CSV", "JSON", "HEX",
+    };
+
+    private static readonly Dictionary<string, string> Proper = new(StringComparer.Ordinal)
+    {
+        ["PKFORGE"] = "PKForge", ["SHOWDOWN"] = "Showdown", ["POKÉMON"] = "Pokémon", ["POKéMON"] = "Pokémon",
+        ["POKEMON"] = "Pokémon", ["POKÉPARK"] = "Poképark", ["POKéPARK"] = "Poképark", ["POKÉDEX"] = "Pokédex",
+        ["POKéDEX"] = "Pokédex", ["PKHEX"] = "PKHeX", ["NUZLOCKE"] = "Nuzlocke", ["POKÉRUS"] = "Pokérus", ["POKéRUS"] = "Pokérus",
+    };
+
+    /// <summary>
+    /// Normal case for labels that arrive SHOUTED ("SAVE CHANGES" → "Save changes"), keeping
+    /// real acronyms (QR, IVs, .PK, OT, TID...). Text with any lowercase is left untouched.
+    /// Display only: callers keep matching on their original caption strings.
+    /// </summary>
+    public static string Tidy(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return text ?? "";
+        var letters = 0;
+        foreach (var ch in text)
+        {
+            if (char.IsLower(ch)) return text;
+            if (char.IsLetter(ch)) letters++;
+        }
+        if (letters < 3) return text;
+        var sb = new System.Text.StringBuilder(text.Length);
+        var first = true;
+        var i = 0;
+        while (i < text.Length)
+        {
+            if (!char.IsLetterOrDigit(text[i])) { sb.Append(text[i]); i++; continue; }
+            var start = i;
+            while (i < text.Length && (char.IsLetterOrDigit(text[i]) || text[i] == '\'')) i++;
+            var word = text[start..i];
+            string outWord;
+            // "PASTE A SET": the article follows a word; "A USE · B BACK": the button letter follows a separator.
+            var prev = sb.ToString();
+            var trimmed = prev.TrimEnd();
+            var afterWord = trimmed.Length > 0 && trimmed.Length < prev.Length && char.IsLetter(trimmed[^1]);
+            if (word == "A" && afterWord) outWord = "a";
+            else if (KeepCaps.Contains(word) || word.Length == 1) outWord = word;
+            else if (Proper.TryGetValue(word, out var proper)) outWord = proper;
+            else if (word.Length > 2 && word.EndsWith('S') && KeepCaps.Contains(word[..^1])) outWord = word[..^1] + "s";
+            else if (word.Any(char.IsDigit) && word.Length <= 4) outWord = word;
+            else
+            {
+                var lower = word.ToLowerInvariant();
+                outWord = first ? char.ToUpperInvariant(lower[0]) + lower[1..] : lower;
+            }
+            if (word.Any(char.IsLetter)) first = false;
+            sb.Append(outWord);
+        }
+        return sb.ToString();
+    }
+
     /// <summary>Binding converter: shows a bound status line in normal case (see <see cref="Tidy"/>).</summary>
     public static readonly IValueConverter TidyText = new TidyConverter();
 
@@ -202,6 +274,94 @@ public static partial class Kit
         LineBreakMode = LineBreakMode.TailTruncation,
         VerticalTextAlignment = TextAlignment.Center,
     };
+
+    /// <summary>Small friendly species that wander across the status bar.</summary>
+    private static readonly int[] TickerWalkers = [25, 133, 175, 39, 52, 54, 7, 4, 1, 152, 158, 255];
+    private static readonly Random TickerRandom = new();
+
+    /// <summary>
+    /// The strolling-Pokémon easter egg on its own transparent strip: a little mon walks
+    /// the width, bobbing; a different one starts each lap. Place anywhere.
+    /// </summary>
+    public static View WalkerStrip(double height = 24)
+    {
+        var walker = new SKCanvasView { InputTransparent = true, HeightRequest = height };
+        var species = TickerWalkers[TickerRandom.Next(TickerWalkers.Length)];
+        var x = -40f;
+        var tick = 0;
+        Services.ISpriteService? sprites = null;
+        // Cached bitmap wrapper per species — never decode or re-wrap per frame.
+        SKImage? image = null;
+        var imageSpecies = -1;
+
+        void DropImage()
+        {
+            image?.Dispose();
+            image = null;
+            imageSpecies = -1;
+        }
+
+        walker.PaintSurface += PaintGuard.Wrap("Kit walker", (_, args) =>
+        {
+            var canvas = args.Surface.Canvas;
+            canvas.Clear(SKColors.Transparent);
+            sprites ??= IPlatformApplication.Current?.Services.GetService<Services.ISpriteService>();
+            if (imageSpecies != species)
+            {
+                DropImage();
+                var bitmap = sprites?.GetSprite(species, 0, false);
+                if (bitmap is null)
+                {
+                    sprites?.Warm(species, 0, false,
+                        () => MainThread.BeginInvokeOnMainThread(walker.InvalidateSurface));
+                    return;
+                }
+                image = SKImage.FromBitmap(bitmap);
+                imageSpecies = species;
+            }
+            if (image is null) return;
+            var size = args.Info.Height * 0.94f;
+            var scale = Math.Min(size / image.Width, size / image.Height);
+            var w = image.Width * scale;
+            var h = image.Height * scale;
+            var bob = (float)Math.Abs(Math.Sin(tick / 3.0)) * args.Info.Height * 0.08f;
+            var y = (args.Info.Height - h) / 2f - bob;
+            // Sprites face left; the stroll goes right, so mirror around the sprite center.
+            canvas.Save();
+            canvas.Scale(-1, 1, x + w / 2, 0);
+            canvas.DrawImage(image, new SKRect(x, y, x + w, y + h),
+                new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.None));
+            canvas.Restore();
+        });
+
+        // The stroll timer only runs while the strip is actually on screen.
+        IDispatcherTimer? timer = null;
+        walker.Loaded += (_, _) =>
+        {
+            if (timer is not null) return;
+            timer = walker.Dispatcher.CreateTimer();
+            timer.Interval = TimeSpan.FromMilliseconds(90);
+            timer.Tick += (_, _) =>
+            {
+                tick++;
+                x += 2.2f;
+                if (x > (float)walker.CanvasSize.Width + 40f)
+                {
+                    x = -40f;
+                    species = TickerWalkers[TickerRandom.Next(TickerWalkers.Length)];
+                }
+                walker.InvalidateSurface();
+            };
+            timer.Start();
+        };
+        walker.Unloaded += (_, _) =>
+        {
+            timer?.Stop();
+            timer = null;
+            DropImage();
+        };
+        return walker;
+    }
 
     /// <summary>Status readout with the walker strolling a lane beneath the text.</summary>
     public static View Ticker(string textBindingPath)
@@ -302,6 +462,110 @@ public static partial class Kit
         Padding = 0,
     };
 
+    // The designer's drawn keys, by footer glyph; the others keep the drawn disc.
+    private static readonly Dictionary<string, string> KeyArt = new()
+    {
+        ["A"] = "key_a", ["B"] = "key_b", ["X"] = "key_x", ["Y"] = "key_y",
+        ["L"] = "key_l", ["R"] = "key_r", ["LR"] = "key_lr",
+        ["+"] = "key_plus", ["-"] = "key_minus", ["−"] = "key_minus",
+    };
+
+    private static readonly Dictionary<string, SKImage?> KeyImages = new();
+
+    private static SKImage? KeyImage(string name)
+    {
+        if (KeyImages.TryGetValue(name, out var image)) return image;
+        try
+        {
+            using var stream = FileSystem.OpenAppPackageFileAsync($"ui/design/{name}.png").GetAwaiter().GetResult();
+            using var bitmap = SKBitmap.Decode(stream);
+            image = bitmap is null ? null : SKImage.FromBitmap(bitmap);
+        }
+        catch (Exception error) when (error is IOException or FileNotFoundException) { image = null; }
+        KeyImages[name] = image;
+        return image;
+    }
+
+    /// <summary>
+    /// A footer key: the designer's pixel button tinted cyan for the console's buttons, and a
+    /// round cyan disc with the glyph for the rest (TAP, ↑↓ ...).
+    /// </summary>
+    public static Border GlyphKey(string glyph, Action? onTap = null)
+    {
+        View face;
+        if (KeyArt.TryGetValue(glyph, out var art) && KeyImage(art) is { } image)
+        {
+            var canvas = new SKCanvasView { InputTransparent = true };
+            canvas.PaintSurface += PaintGuard.Wrap("Kit canvas", (_, args) =>
+            {
+                var c = args.Surface.Canvas;
+                c.Clear(SKColors.Transparent);
+                using var tint = new SKPaint { ColorFilter = SKColorFilter.CreateBlendMode(UiTokens.BagCyanEdge.ToSKColor(), SKBlendMode.SrcIn) };
+                var side = Math.Min(args.Info.Width, args.Info.Height);
+                var dest = SKRect.Create((args.Info.Width - side) / 2f, (args.Info.Height - side) / 2f, side, side);
+                c.DrawImage(image, dest, new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.None), tint);
+            });
+            face = canvas;
+        }
+        else face = new Label
+        {
+            Text = glyph, FontFamily = DsChrome.PixelFont, TextColor = UiTokens.OnAccent, FontSize = UiTokens.TextLabel,
+            VerticalTextAlignment = TextAlignment.Center, HorizontalTextAlignment = TextAlignment.Center,
+        };
+        var drawn = face is SKCanvasView;
+        var key = new Border
+        {
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = 11 },
+            BackgroundColor = drawn ? Colors.Transparent : UiTokens.BagCyanEdge,
+            Padding = new Thickness(!drawn && glyph.Length > 1 ? 7 : 0, 0),
+            MinimumWidthRequest = 22,
+            WidthRequest = drawn ? 22 : -1,
+            HeightRequest = 22,
+            VerticalOptions = LayoutOptions.Center,
+            Content = face,
+        };
+        if (onTap is not null)
+        {
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += (_, _) => onTap();
+            key.GestureRecognizers.Add(tap);
+        }
+        return key;
+    }
+
+    /// <summary>
+    /// A tab / segment in the menu-button language: resting navy + cobalt edge, active =
+    /// the context accent with the pale rim. Re-point with <see cref="SetTab"/>.
+    /// </summary>
+    public static Border Tab(string text, bool active = false, Color? accent = null)
+    {
+        var tab = new Border
+        {
+            StrokeShape = new RoundRectangle { CornerRadius = UiTokens.ControlRadius },
+            Padding = new Thickness(12, 5),
+            Content = new Label
+            {
+                Text = Tidy(text), FontFamily = DsChrome.PixelFont, FontSize = UiTokens.TextLabel,
+                HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center,
+                LineBreakMode = LineBreakMode.NoWrap,
+            },
+        };
+        SetTab(tab, active, accent);
+        return tab;
+    }
+
+    public static void SetTab(Border tab, bool active, Color? accent = null)
+    {
+        var body = accent ?? UiTokens.AccentNeutral;
+        tab.Background = active
+            ? new LinearGradientBrush([new GradientStop(body.WithLuminosity(Math.Min(1, body.GetLuminosity() + 0.08f)), 0), new GradientStop(body, 1)], new Point(0, 0), new Point(0, 1))
+            : new LinearGradientBrush([new GradientStop(UiTokens.ButtonTop, 0), new GradientStop(UiTokens.ButtonBottom, 1)], new Point(0, 0), new Point(0, 1));
+        tab.Stroke = active ? UiTokens.Rim : UiTokens.ButtonEdge;
+        tab.StrokeThickness = active ? 1.2 : UiTokens.ControlEdge;
+        if (tab.Content is Label label) label.TextColor = active ? UiTokens.Bright : UiTokens.InkSoft;
+    }
+
     /// <summary>A blinky device indicator light (static for now; animation comes later).</summary>
     public static Ellipse StatusLight(Color color, double size = 12) => new()
     {
@@ -369,6 +633,43 @@ public static partial class Kit
     };
 
     /// <summary>
+    /// The hint row inside a window: the same key discs on the window's own panel, set off
+    /// by a hairline - never a second bordered panel nested in the first.
+    /// </summary>
+    public static Border WindowHints(params (string Glyph, string Label, Action? OnTap)[] hints) => new()
+    {
+        BackgroundColor = Colors.Transparent,
+        StrokeThickness = 0,
+        Padding = new Thickness(0, 0, 0, 2),
+        Content = new VerticalStackLayout { Spacing = 7, Children = { Divider(0), HintRow(hints) } },
+    };
+
+    private static HorizontalStackLayout HintRow((string Glyph, string Label, Action? OnTap)[] hints)
+    {
+        var row = new HorizontalStackLayout { Spacing = 22, HorizontalOptions = LayoutOptions.Center };
+        foreach (var (glyph, label, onTap) in hints)
+        {
+            var item = new HorizontalStackLayout
+            {
+                Spacing = 7,
+                Children =
+                {
+                    GlyphKey(glyph),
+                    new Label { Text = Tidy(label), FontFamily = DsChrome.PixelFont, TextColor = UiTokens.Ink0, FontSize = UiTokens.TextTitle, VerticalTextAlignment = TextAlignment.Center },
+                },
+            };
+            if (onTap is not null)
+            {
+                var tap = new TapGestureRecognizer();
+                tap.Tapped += (_, _) => onTap();
+                item.GestureRecognizers.Add(tap);
+            }
+            row.Children.Add(item);
+        }
+        return row;
+    }
+
+    /// <summary>
     /// A labelled fact (was a bordered chip): 12.5 dp caption over the value, no box.
     /// Facts get one each - never merged into a status blob.
     /// </summary>
@@ -425,12 +726,37 @@ public static partial class Kit
         Content = Emphasis(ConsoleCode(generation), EraColor(generation)),
     };
 
+    /// <summary>
+    /// Keeps Android's own focus off <paramref name="view"/>. A screen driven by the pad
+    /// draws its own cursor; a focusable button would take the first d-pad press after a
+    /// touch for itself (Android leaving touch mode) and the screen never saw it.
+    /// </summary>
+    public static void NoNativeFocus(View view)
+    {
+        void Apply()
+        {
+#if ANDROID
+            if (view.Handler?.PlatformView is Android.Views.View platform)
+            {
+                platform.Focusable = false;
+                platform.FocusableInTouchMode = false;
+            }
+#endif
+        }
+        view.HandlerChanged += (_, _) => Apply();
+        Apply();
+    }
+
     /// <summary>Pop-in entrance for floating windows: quick fade + settle.</summary>
     public static void AnimateIn(View window)
     {
+        // Full: fade and settle. Reduced: fade only. Off: the window is simply there.
+        var motion = Services.MotionSetting.Level;
+        if (motion == Services.MotionLevel.Off) return;
         window.Opacity = 0;
-        window.Scale = 0.92;
         _ = window.FadeToAsync(1, 130, Easing.CubicOut);
+        if (motion != Services.MotionLevel.Full) return;
+        window.Scale = 0.92;
         _ = window.ScaleToAsync(1, 160, Easing.SpringOut);
     }
 
@@ -454,22 +780,47 @@ public static partial class Kit
     }
 
     /// <summary>
+    /// A crop of <paramref name="whole"/> that stays valid once <paramref name="whole"/> is
+    /// disposed. Skia answers a crop covering the whole image with the image itself, and
+    /// SkiaSharp hands back the same managed object: <c>using var whole … whole.Subset(…)</c>
+    /// then disposed the result and the next paint crashed natively in sk_image_get_width
+    /// (seen 2026-11-12 on the Bank's actions menu, an icon with no transparent border).
+    /// </summary>
+    public static SKImage SubsetOf(SKImage whole, SKRectI rect)
+    {
+        var cut = whole.Subset(rect);
+        if (cut is not null && !ReferenceEquals(cut, whole)) return cut;
+        using var pixels = whole.PeekPixels();
+        return (pixels is null ? null : SKImage.FromPixelCopy(pixels)) ?? whole.ToRasterImage(true);
+    }
+
+    /// <summary>
+    /// The dimmed layer under a modal window. It always carries a tap recognizer, even when a
+    /// tap does nothing: on Android a view without one lets the touch fall through to the page
+    /// underneath (QA 2026-11-12: an empty spot of the Tools hub's footer opened the box page's
+    /// slot menu, another left the save).
+    /// </summary>
+    public static BoxView Scrim(Action? onTap = null, Color? color = null)
+    {
+        var scrim = new BoxView { Color = color ?? UiTokens.Scrim };
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += (_, _) => onTap?.Invoke();
+        scrim.GestureRecognizers.Add(tap);
+        return scrim;
+    }
+
+    /// <summary>
     /// Layers scrim + window over the whole host grid (spanning every row/column) and
     /// plays the pop-in. Returns the overlay grid so the caller can remove it on close.
     /// </summary>
     public static Grid AttachOverlay(Grid host, View window, Action? onScrimTap = null)
     {
-        var scrim = new BoxView { Color = UiTokens.Scrim };
-        if (onScrimTap is not null)
-        {
-            var tap = new TapGestureRecognizer();
-            tap.Tapped += (_, _) => onScrimTap();
-            scrim.GestureRecognizers.Add(tap);
-        }
+        var scrim = Scrim(onScrimTap);
         var overlay = new Grid { Children = { scrim, window } };
         host.Add(overlay);
         Grid.SetRowSpan(overlay, Math.Max(1, host.RowDefinitions.Count));
         Grid.SetColumnSpan(overlay, Math.Max(1, host.ColumnDefinitions.Count));
+        StatusToast.RaiseIn(host); // a notice stays readable over the menu it announces
         AnimateIn(window);
         return overlay;
     }

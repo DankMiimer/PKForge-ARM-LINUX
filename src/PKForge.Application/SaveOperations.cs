@@ -44,7 +44,7 @@ public sealed class SaveOperations(ISaveSessionService sessions, ISafeSaveWriter
                 writer.ConfirmLayoutRisk(save.Document.DocumentId);
                 receipt = await writer.WriteScopedAsync(save.Document.DocumentId, save.Snapshot, candidate, scope, description ?? outcome.Message);
             }
-            if (receipt.Changed) sessions.MarkWritten(save.Document.DocumentId, candidate);
+            if (receipt.Changed) { sessions.MarkWritten(save.Document.DocumentId, candidate); session.CommitHistory(); }
             sessions.RevertToBaseline();
             Status = receipt.Changed ? outcome.Message + " Restore point created." : "Nothing changed.";
             return true;
@@ -113,6 +113,11 @@ public sealed class MutationPolicy(Func<SaveAction, string?> refusal)
 /// <summary>Bank writes, including legacy park/daycare callers, obey the same challenge-mode policy.</summary>
 public sealed class GuardedBankService(IBankService inner, MutationPolicy policy) : IBankService
 {
+    public int Count => inner.Count;
+    public IReadOnlySet<int> LockedBoxes => inner.LockedBoxes;
+    public IReadOnlyList<BankBoxGroup> BoxGroups => inner.BoxGroups;
+    public void SetBoxLocked(int box, bool locked) { policy.Demand(SaveAction.Move); inner.SetBoxLocked(box, locked); }
+    public void SetBoxGroups(IReadOnlyList<BankBoxGroup> groups) { policy.Demand(SaveAction.Move); inner.SetBoxGroups(groups); }
     public IBankService Inner => inner;
     public IReadOnlyList<BankEntry> GetAll() => inner.GetAll();
     public int BoxCount => inner.BoxCount;

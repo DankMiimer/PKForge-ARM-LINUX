@@ -100,7 +100,7 @@ internal sealed class SummaryScreen(WorkspaceHost host, PokemonTarget target) : 
         {
             var rect = SKRect.Create(12 + i % columns * width, 65 + i / columns * height, width - 4, height - 4);
             using var fill = new SKPaint { Color = ColorTheme.Current.Well }; canvas.DrawRoundRect(rect, 4, 4, fill);
-            if (i == _target.Slot) StoragePaint.CursorPool(canvas, rect, .4f);
+            if (i == _target.Slot) StoragePaint.Pointer(canvas, rect, .4f);
             var slot = Slots.FirstOrDefault(s => s.Slot == i);
             if (slot is { Species: > 0 } && host.Sprite(slot) is { } bitmap)
             {

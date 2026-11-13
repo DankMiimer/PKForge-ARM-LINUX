@@ -128,6 +128,12 @@ public sealed class SpriteService : ISpriteService
     private static readonly SemaphoreSlim DecodeGate = new(Math.Max(2, Environment.ProcessorCount - 1));
     private static readonly SemaphoreSlim NetworkGate = new(4);
 
+    /// <summary>Sprite decodes still in flight (diagnostics: a box is "settled" when none are).</summary>
+    internal int PendingLoads
+    {
+        get { lock (_gate) return _loading.Count; }
+    }
+
     public SKBitmap? GetSprite(SpriteLook look)
     {
         lock (_gate)
@@ -518,8 +524,8 @@ public sealed class SpriteService : ISpriteService
             {
                 await using var stream = await FileSystem.OpenAppPackageFileAsync(ShowdownCatalog.IconSheetPath).ConfigureAwait(false);
                 bitmap = SKBitmap.Decode(stream);
-                // Read-only from here on: SKImage.FromBitmap then shares the sheet's 8 MB of
-                // pixels instead of copying them for every icon drawn on every frame.
+                // Read-only from here on: whatever draws from the sheet shares its pixels
+                // instead of copying all eight megabytes of it.
                 bitmap?.SetImmutable();
             }
             catch (Exception error) when (error is IOException or FileNotFoundException) { }

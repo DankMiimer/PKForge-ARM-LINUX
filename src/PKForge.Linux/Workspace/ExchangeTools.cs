@@ -3,6 +3,7 @@ using PKForge.Application;
 using PKForge.Domain;
 using PKForge.Engine;
 using PKForge.App.Services;
+using PKForge.App.Views;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
 using ZXing;
@@ -18,11 +19,14 @@ public sealed partial class WorkspaceHost
         if (action == "Showdown text") await ExportAsync(Encoding.UTF8.GetBytes(Pokemon.Read(target, (s, b, i) => s.GetShowdownText(b, i))), "pokemon-showdown.txt");
         if (action == "Evolution information")
         {
-            var plan = Pokemon.Read(target, (s, b, i) => Get<IEvolutionService>().Plan(s, b, i, HaXMode.IsOn));
-            var options = plan.Options;
-            var index = await Dialogs.PickAsync("Evolution", options.Select(NativeForms.Display).ToArray()); if (index is null) return;
-            var request = (EvolutionRequest?)await Forms.RecordAsync("Evolution request", typeof(EvolutionRequest), new EvolutionRequest(options[index.Value].Id, Hax: HaXMode.IsOn));
-            if (request is not null) await EditMonAsync(target, (s, b, i) => Get<IEvolutionService>().Evolve(s, b, i, request), "Evolve Pokémon");
+            var choice = await Pokemon.Read(target, (s, b, i) => EvolutionCard.RunAsync(Screens.ControlRoot, s, b, i));
+            if (choice is null) return;
+            var committed = false;
+            var result = await Pokemon.EditAsync(target, (s, b, i) => Get<IEvolutionService>().Evolve(s, b, i, choice.Request),
+                "Evolve Pokémon", committed: () => committed = true);
+            Screens.Invalidate();
+            if (committed) await EvolutionOverlay.PlayAsync(Screens.EffectRoot, choice, Get<ISpriteService>(), () => UiDispatcher.Instance.MonotonicTime);
+            await Dialogs.MessageAsync("Evolution", result);
         }
         if (action == "Showdown QR")
         {

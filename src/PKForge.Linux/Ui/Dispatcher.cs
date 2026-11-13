@@ -29,6 +29,7 @@ public sealed class UiDispatcher : SynchronizationContext, IDispatcher
     private bool _paused;
     private long _pausedAt;
     private long Timestamp => _paused ? _pausedAt : _clock();
+    internal TimeSpan MonotonicTime => TimeSpan.FromSeconds((double)Timestamp / Stopwatch.Frequency);
     public int ActiveTimerCount => _timers.Count(t => t.Running);
     /// <summary>Install a deterministic diagnostic clock before any animations start.</summary>
     public void UseAnimationClock(Func<TimeSpan> clock)

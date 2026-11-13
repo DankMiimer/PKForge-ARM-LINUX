@@ -9,6 +9,9 @@
     <Project Path="src/PKForge.Park/PKForge.Park.csproj" />
     <Project Path="src/PKForge.Linux/PKForge.Linux.csproj" />
   </Folder>
+  <Folder Name="/external/">
+    <Project Path="external/PKHeX/PKHeX.Core/PKHeX.Core.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/PKForge.Domain.Tests/PKForge.Domain.Tests.csproj" />
     <Project Path="tests/PKForge.Engine.Tests/PKForge.Engine.Tests.csproj" />

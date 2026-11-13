@@ -50,7 +50,7 @@ public sealed partial class WorkspaceHost
     private async Task BulkActionsAsync(StorageScreen screen)
     {
         var key = Sessions.Current!.Document.DocumentId;
-        var all = Session.Snapshot.Slots.Where(s => s.Species is > 0 && !Get<ProtectionStore>().IsBoxLocked(key, s.Box));
+        var all = Session.Snapshot.Slots.Where(s => s.Species is > 0 && !IsBoxLocked(key, s.Box));
         var selected = (screen.Marks.Count == 0 ? all.Where(s => s.Box == screen.Box).Select(s => new SlotRef(s.Box, s.Slot)) : screen.Marks.Where(at => all.Any(s => s.Box == at.Box && s.Slot == at.Slot))).ToArray();
         var slots = selected.Select(s => (s.Box, s.Slot)).ToArray();
         if (slots.Length == 0) throw new InvalidOperationException("Select occupied Pokémon in unlocked boxes.");

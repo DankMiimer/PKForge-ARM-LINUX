@@ -4,6 +4,8 @@
     <DefineConstants>$(DefineConstants);PKFORGE_LINUX</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../PKForge.App/Services/PokewalkerStrolls.cs;../PKForge.App/Services/WalkerSteps.cs;../PKForge.App/Services/PokemonHistorySetting.cs;../PKForge.App/Services/TransferService.cs" Link="Upstream/Services/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Services/SpriteImages.cs;../PKForge.App/Services/MotionSetting.cs;../PKForge.App/Services/UiScaleSetting.cs;../PKForge.App/Services/TaskObserver.cs" Link="Upstream/Services/%(Filename)%(Extension)" />
     <Compile Include="../PKForge.App/Services/ItemArt.cs" Link="Upstream/Services/ItemArt.cs" />
     <Compile Include="../PKForge.App/Services/SecondScreenMode.cs" Link="Upstream/Services/SecondScreenMode.cs" />
     <ProjectReference Include="../PKForge.Application/PKForge.Application.csproj" />

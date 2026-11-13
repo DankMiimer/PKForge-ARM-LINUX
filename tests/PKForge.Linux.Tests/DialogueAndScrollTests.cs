@@ -89,8 +89,8 @@ public sealed class DialogueAndScrollTests
         time = 100; scroll.Handle(SKTouchAction.Moved, new(20, 0));
         time = 110; Assert.Null(scroll.Handle(SKTouchAction.Released, new(20, 0)));
         Assert.Equal(100, offset);
-        dispatcher.Fire(16); Assert.Equal(116, offset);
-        dispatcher.Fire(16); Assert.Equal(131.2f, offset, 3);
+        time += 16; dispatcher.Fire(16); Assert.Equal(116, offset);
+        time += 16; dispatcher.Fire(16); Assert.Equal(131.2f, offset, 3);
         scroll.Dispose(); var stopped = offset;
         dispatcher.Fire(16); Assert.Equal(stopped, offset);
         Assert.All(dispatcher.Timers, timer => Assert.False(timer.Running));
@@ -104,7 +104,7 @@ public sealed class DialogueAndScrollTests
         public void Dispatch(Action action) => action();
         public void DispatchDelayed(TimeSpan delay, Action action) => throw new NotSupportedException();
         public void StartTimer(TimeSpan interval, Func<bool> callback) => throw new NotSupportedException();
-        public void Fire(int milliseconds) { foreach (var timer in Timers.ToArray()) if (timer.Running && timer.Interval.TotalMilliseconds == milliseconds) timer.Fire(); }
+        public void Fire(int milliseconds) { foreach (var timer in Timers.ToArray()) if (timer.Running && Math.Abs(timer.Interval.TotalMilliseconds - milliseconds) < 1) timer.Fire(); }
         public sealed class Timer : IDispatcherTimer
         {
             public bool Running;

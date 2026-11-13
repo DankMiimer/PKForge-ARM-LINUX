@@ -11,7 +11,7 @@ the dirty tree and includes a manifest of the actual source files. They are
 rejected by release verification without the explicit candidate flag. Publishing
 still requires the clean committed-tree workflow below.
 
-The `linux` branch is the maintained port; upstream `main` and `v*` tags retain their original meanings. Linux releases use `linux-v<revision>` tags. Upstream behavior remains pinned to v3.1.1 and the submodule commits in `tools/linux/source.ps1`.
+The `linux` branch is the maintained port; upstream `main` and `v*` tags retain their original meanings. Linux releases use `linux-v<revision>` tags. Upstream behavior is pinned to v3.2.0 (published 0.2.3 Preview and earlier: v3.1.1) and the submodule commits in `tools/linux/source.ps1`.
 
 1. Commit all intended changes. Use a clean checkout with initialized submodules and the SDK in `global.json`. Update `PortRevision`, the documentation and release notes for a new port revision.
 2. Run `dotnet test PKForge.Linux.slnx -c Release`, check Android compilation, then run `pwsh -File tools/linux/build.ps1` and `pwsh -File tools/linux/verify-package.ps1`.

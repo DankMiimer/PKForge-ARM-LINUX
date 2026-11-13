@@ -14,9 +14,9 @@ Assert-Equal 'stable' $stable.channel
 Assert-Equal 'stable' $stable.status
 Assert-Equal $false $stable.prerelease
 Assert-Equal 'linux-v0.3.0' $stable.tag
-Assert-Equal 'PKForge 3.1.1 — Linux port 0.3.0' $stable.title
+Assert-Equal 'PKForge 3.2.0 — Linux port 0.3.0' $stable.title
 Assert-Equal 'preview' (Get-ReleaseIdentity '0.3.0-rc.1').channel
-Assert-Equal 'prerelease' (Get-ReleaseIdentity '0.2.3-dev').status
+Assert-Equal 'prerelease' (Get-ReleaseIdentity '0.2.4-dev').status
 Assert-Equal 'candidate' (Get-ReleaseIdentity '0.3.0' -Candidate).channel
 foreach ($revision in @('', 'v0.3.0', '0.3', '0.03.0', '../0.3.0', "0.3.0`n")) {
     Assert-Rejected { Get-ReleaseIdentity $revision }

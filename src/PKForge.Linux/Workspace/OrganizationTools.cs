@@ -53,7 +53,7 @@ public sealed partial class WorkspaceHost
         var occupied = AllStorageSlots(screen.IsBank).ToHashSet(); marked = marked.Where(occupied.Contains).ToArray();
         if (marked.Length == 0) throw new InvalidOperationException("Mark occupied slots first.");
         var key = screen.IsBank ? "bank" : Sessions.Current!.Document.DocumentId;
-        var free = Enumerable.Range(0, StorageBoxCount(screen.IsBank)).Where(box => !Get<ProtectionStore>().IsBoxLocked(key, box))
+        var free = Enumerable.Range(0, StorageBoxCount(screen.IsBank)).Where(box => !IsBoxLocked(key, box))
             .SelectMany(box => Enumerable.Range(0, StorageSlotCount(screen.IsBank, box)).Select(slot => new SlotRef(box, slot))).Where(at => !occupied.Contains(at)).ToArray();
         var chosen = await Dialogs.PickAsync("First empty destination", free.Select(at => $"Box {at.Box + 1} · Slot {at.Slot + 1}").ToArray()); if (chosen is null) return;
         var targets = free.Skip(chosen.Value).Take(marked.Length).ToArray(); if (targets.Length != marked.Length) throw new InvalidOperationException("Not enough empty slots after that position.");
@@ -83,7 +83,7 @@ public sealed partial class WorkspaceHost
         var all = await Dialogs.MenuAsync("Preset scope", "Locked boxes are excluded.", "Marked or this box", "All unlocked boxes"); if (all is null) return;
         var key = Sessions.Current!.Document.DocumentId;
         var slots = all == "All unlocked boxes" ? AllStorageSlots(false).Where(at => at.Box >= 0).ToArray() : screen.Marks.Count > 0 ? screen.Marks.ToArray() : AllStorageSlots(false).Where(at => at.Box == screen.Box).ToArray();
-        slots = slots.Where(at => !Get<ProtectionStore>().IsBoxLocked(key, at.Box)).ToArray();
+        slots = slots.Where(at => !IsBoxLocked(key, at.Box)).ToArray();
         var choice = await Dialogs.MenuAsync("Presets", "One backed-up write applies the preset.", "Level 50", "Level 100", "Perfect IVs / DVs", "0 Attack IV", "0 Speed IV", "Reset EVs", "Max friendship", "Hyper Train all");
         string[] instructions = choice switch
         {

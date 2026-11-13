@@ -10,8 +10,11 @@ using Xunit;
 
 namespace PKForge.Linux.Tests;
 
-public sealed class BankOverviewTests
+public sealed class BankOverviewTests : IDisposable
 {
+    private readonly string _settings = Path.Combine(Path.GetTempPath(), "pkforge-menu-" + Guid.NewGuid().ToString("N"));
+    public BankOverviewTests() => PKForge.Park.ParkPlatform.Configure(_settings, Path.Combine(AppContext.BaseDirectory, "assets"));
+    public void Dispose() => Directory.Delete(_settings, true);
     [Fact]
     public async Task Shared_theme_picker_returns_a_choice_without_applying_or_persisting_it()
     {
@@ -43,6 +46,7 @@ public sealed class BankOverviewTests
         try
         {
             var result = BankBoxOverview.ShowAsync(actions, host, bank, new SpriteService(), 0);
+            Assert.False(result.IsFaulted, result.Exception?.ToString());
             router.Dispatch(PadButton.Y); router.Dispatch(PadButton.Right); router.Dispatch(PadButton.A); router.Dispatch(PadButton.A);
             Assert.Equal(1, actions.Writes); Assert.Equal(1, actions.Remap!.Map(0));
             PKForge.App.App.Suspend(); Assert.False(result.IsCompleted);

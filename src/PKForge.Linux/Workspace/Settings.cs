@@ -14,8 +14,28 @@ public sealed partial class WorkspaceHost
     {
         while (true)
         {
-            var choice = await Dialogs.MenuAsync("Settings", "PKForge 3.1.1 · Linux preview", "Hardcore: " + (HardcoreMode.IsOn ? "ON" : "OFF"), "HaX: " + (HaXMode.IsOn ? "ON" : "OFF"), "Color theme", "Music", "Offline sprite pack", "Linked folders", "Scan report", "Recover unfinished operation", "Export diagnostics", "About / credits", "Box background", "Show hidden saves", "Generation ownership", "Bank / transfer history", "Second screen: " + (SecondScreenMode.UserOff ? "OFF" : "ON"));
+            var choice = await Dialogs.MenuAsync("Settings", "PKForge 3.2.0 · Linux preview", "Hardcore: " + (HardcoreMode.IsOn ? "ON" : "OFF"), "HaX: " + (HaXMode.IsOn ? "ON" : "OFF"), "Color theme", "Animations", "Interface scale", "Pokémon History", "PKForge data archive", "Music", "Offline sprite pack", "Linked folders", "Scan report", "Recover unfinished operation", "Export diagnostics", "About / credits", "Box background", "Show hidden saves", "Generation ownership", "Bank / transfer history", "Second screen: " + (SecondScreenMode.UserOff ? "OFF" : "ON"));
             if (choice is null) return;
+            if (choice == "PKForge data archive") { await DataArchiveAsync(); continue; }
+            if (choice == "Interface scale")
+            {
+                if (await Dialogs.PickAsync("Interface scale", UiScaleSetting.Choices.Select(UiScaleSetting.Name).ToArray()) is { } scale)
+                    UiScaleSetting.Percent = UiScaleSetting.Choices[scale];
+                Screens.Invalidate(); continue;
+            }
+            if (choice == "Animations")
+            {
+                var levels = Enum.GetValues<MotionLevel>();
+                if (await Dialogs.PickAsync("Animations", levels.Select(MotionSetting.Name).ToArray(), (int)MotionSetting.Level) is { } level)
+                    MotionSetting.Level = levels[level];
+                continue;
+            }
+            if (choice == "Pokémon History")
+            {
+                if (await Dialogs.ConfirmAsync("Pokémon History", "Remember each Pokémon's earlier formats during transfers. Records stay in PKForge's data folder.", PokemonHistorySetting.IsOn ? "Turn off" : "Turn on"))
+                    PokemonHistorySetting.Set(!PokemonHistorySetting.IsOn);
+                continue;
+            }
             if (choice.StartsWith("Second screen:", StringComparison.Ordinal))
             {
                 SecondScreenRequested?.Invoke(SecondScreenMode.UserOff);
@@ -52,13 +72,13 @@ public sealed partial class WorkspaceHost
                 case "Recover unfinished operation": await RecoveryAsync(); break;
                 case "Bank / transfer history": await RecoveryAsync(true); break;
                 case "Export diagnostics":
-                    await ExportAsync(System.Text.Encoding.UTF8.GetBytes($"PKForge upstream 3.1.1\nLinux revision {Arguments.PortRevision}\n{RuntimeInformation.OSDescription}\n{RuntimeInformation.ProcessArchitecture}\nCLR {Environment.Version}\nRSS {Process.GetCurrentProcess().WorkingSet64 / 1048576} MiB\nData {ParkPlatform.DataDirectory}\n{Get<SaveCatalogue>().Report}\nPending recovery records: {Get<RecoveryJournal>().Pending().Count}\n"), "pkforge-diagnostics.txt"); break;
+                    await ExportAsync(System.Text.Encoding.UTF8.GetBytes($"PKForge upstream 3.2.0\nLinux revision {Arguments.PortRevision}\n{RuntimeInformation.OSDescription}\n{RuntimeInformation.ProcessArchitecture}\nCLR {Environment.Version}\nRSS {Process.GetCurrentProcess().WorkingSet64 / 1048576} MiB\nData {ParkPlatform.DataDirectory}\n{Get<SaveCatalogue>().Report}\nPending recovery records: {Get<RecoveryJournal>().Pending().Count}\n"), "pkforge-diagnostics.txt"); break;
                 case "About / credits":
                     var notices = Path.Combine(ParkPlatform.AssetDirectory, "notices");
                     var paths = new[] { Path.Combine(AppContext.BaseDirectory, "..", "ATTRIBUTION.md"), Path.Combine(AppContext.BaseDirectory, "LICENSE") }
                         .Concat(Directory.Exists(notices) ? Directory.EnumerateFiles(notices).Where(p => Path.GetExtension(p) is ".txt" or ".md") : []).Where(File.Exists).ToArray();
                     var texts = await Task.WhenAll(paths.Select(async p => Path.GetFileName(p) + "\n" + await File.ReadAllTextAsync(p)));
-                    await InspectAsync("About / credits", "PKForge by sofianeelhor · upstream 3.1.1 · Linux " + Arguments.PortRevision + "\nManual ZIP / PortMaster updates.\n\n" + string.Join("\n\n", texts)); break;
+                    await InspectAsync("About / credits", "PKForge by sofianeelhor · upstream 3.2.0 · Linux " + Arguments.PortRevision + "\nManual ZIP / PortMaster updates.\n\n" + string.Join("\n\n", texts)); break;
             }
         }
     }

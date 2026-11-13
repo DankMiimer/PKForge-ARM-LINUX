@@ -15,6 +15,7 @@ namespace PKForge.App
     {
         public const int FrameCount = 8, FrameWidth = 640, FrameHeight = 360;
         public static bool HasActiveWidgets() => false;
+        public static Task RefreshAsync(TimeSpan spriteWait = default, bool always = false) => Task.CompletedTask;
         public static void Publish(IReadOnlyList<byte[]> frames) => throw new PlatformNotSupportedException("Android widgets are unavailable on Linux.");
     }
 }
@@ -34,6 +35,8 @@ namespace PKForge.App.Theme
 {
     public static class UiTokens
     {
+        public static SkiaSharp.SKColor SkShinyGold => PKForge.Chrome.Pksm.ShinyGold;
+        public static Color Warn => As(PKForge.Chrome.Pksm.ShinyGold);
         private static Color As(SkiaSharp.SKColor c) => new(c.Red, c.Green, c.Blue, c.Alpha);
         public static Color Housing => new(15, 25, 38);
         public static Color Maroon => As(PKForge.Chrome.Pksm.HeaderBlue);

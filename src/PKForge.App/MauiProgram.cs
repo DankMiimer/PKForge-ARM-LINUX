@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using PKForge.App.Services;
 using PKForge.App.Theme;
 using PKForge.App.ViewModels;
@@ -17,11 +16,24 @@ public static class MauiProgram
     {
         // First thing: every crash from here on leaves a report the player can share.
         Services.AppLog.Install();
+        Services.PerfTrace.SinceProcessStart("start.maui-program");
+        var buildWatch = System.Diagnostics.Stopwatch.StartNew();
         var builder = MauiApp.CreateBuilder();
         App.Trace("CreateMauiApp enter");
 #if ANDROID
         Views.CapsuleSkin.Register();
 #endif
+        // The artist's egg frames, read from the package the first time a painter asks for one.
+        PKForge.Chrome.EggSprite.Load = frame =>
+        {
+            try
+            {
+                using var stream = FileSystem.OpenAppPackageFileAsync($"ui/egg/egg-{frame}.png").GetAwaiter().GetResult();
+                using var bitmap = SkiaSharp.SKBitmap.Decode(stream);
+                return bitmap is null ? null : SkiaSharp.SKImage.FromBitmap(bitmap);
+            }
+            catch (Exception) { return null; } // a missing frame draws nothing, as before
+        };
         builder.UseMauiApp<App>().UseSkiaSharp()
             .ConfigureFonts(fonts =>
             {
@@ -32,7 +44,8 @@ public static class MauiProgram
                 // Best displayed at font-size 16 or multiples (it is a pixel font).
                 fonts.AddFont("NDS12.ttf", "PixelUI");
             });
-        builder.Services.AddSingleton<ISaveEngine, SaveEngine>();
+        // Pokémon History reaches every save session the engine opens, and only while it is on.
+        builder.Services.AddSingleton<ISaveEngine>(_ => new SaveEngine { History = Services.PokemonHistorySetting.Active });
         builder.Services.AddSingleton<IGameDataService, GameDataService>();
         builder.Services.AddSingleton<TrainerProfileStore>();
         builder.Services.AddSingleton<IGenerationOwnershipSettings>(sp => sp.GetRequiredService<TrainerProfileStore>());
@@ -56,12 +69,19 @@ public static class MauiProgram
         });
         builder.Services.AddSingleton<InjectedGiftHistory>(_ =>
             new InjectedGiftHistory(Path.Combine(FileSystem.AppDataDirectory, "injected-gifts.json")));
+        // The Item Bank's root is injected, so every data root can later move to one chosen folder.
+        builder.Services.AddSingleton(_ =>
+            new ItemBankStore(Path.Combine(FileSystem.AppDataDirectory, "item-bank")));
+        builder.Services.AddSingleton<ICustomGameArtStore>(_ =>
+            new FileCustomGameArtStore(Path.Combine(FileSystem.AppDataDirectory, CustomGameArt.Folder)));
         builder.Services.AddSingleton<ISaveIdentityStore>(_ =>
             new JsonSaveIdentityStore(Path.Combine(FileSystem.AppDataDirectory, "save-identities.json")));
         builder.Services.AddSingleton<ISaveSessionService>(sp => new SaveSessionService(
             sp.GetRequiredService<ISaveFileAccess>(), sp.GetRequiredService<ISaveEngine>(),
             sp.GetRequiredService<ISaveIdentityStore>()));
         builder.Services.AddSingleton<Services.ProtectionStore>();
+        builder.Services.AddSingleton<Services.PkforgeFolder>();
+        builder.Services.AddSingleton<IAppFolderSync>(sp => sp.GetRequiredService<Services.PkforgeFolder>());
         builder.Services.AddSingleton<ISafeSaveWriter, SafeSaveWriter>();
         builder.Services.AddSingleton<MutationPolicy>(_ => new(action => HardcoreMode.Blocks(action, out var reason) ? reason : null));
         builder.Services.AddSingleton<SaveOperations>();
@@ -81,7 +101,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<PokeparkCareStore>();
         builder.Services.AddSingleton<PokeparkTreasureStore>();
         builder.Services.AddSingleton<PokeparkDaycareService>();
+        builder.Services.AddSingleton<PokewalkerStrolls>();
         builder.Services.AddSingleton<PokeparkWildsStore>();
+        builder.Services.AddSingleton<PokeparkWeatherService>();
         builder.Services.AddSingleton<IParkOfflineStateStore, PokeparkOfflinePreferencesStore>();
         builder.Services.AddSingleton<ParkOfflineJournalService>();
         builder.Services.AddTransient<PokeparkPage>();
@@ -108,11 +130,16 @@ public static class MauiProgram
         builder.Services.AddTransient<BoxBrowserPage>();
         builder.Services.AddTransient<BackupHistoryViewModel>();
         builder.Services.AddTransient<BackupHistoryPage>();
+        builder.Services.AddTransient<SaveLibraryViewModel>();
+        builder.Services.AddTransient<SaveLibraryPage>();
         builder.Services.AddSingleton<SavePickerViewModel>();
+        builder.Services.AddSingleton<ISaveLibraryShelf>(services => services.GetRequiredService<SavePickerViewModel>());
         builder.Services.AddTransient<HomePage>();
         builder.Services.AddTransient<SecondScreenBoxPage>();
         builder.Services.AddTransient<BankPage>();
         App.Trace("builder.Build()");
-        return builder.Build();
+        var app = builder.Build();
+        Services.PerfTrace.Log("start.maui-build", buildWatch);
+        return app;
     }
 }
