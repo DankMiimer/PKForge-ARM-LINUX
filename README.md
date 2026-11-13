@@ -4,7 +4,7 @@ A native ARM64 Linux port of [PKForge](https://github.com/sofianeelhor/PKForge) 
 
 **[Download the Linux preview](https://github.com/DankMiimer/PKForge-ARM-LINUX/releases)** · [Installation and controls](LINUX.md) · [Feature coverage](FEATURE_COVERAGE.md) · [Validation](VALIDATION.md) · [Original project](https://github.com/sofianeelhor/PKForge)
 
-The next preview is Linux revision **0.2.4-dev**. See [3.2.0 support](UPSTREAM_3_2_0_SUPPORT.md) for integration and acceptance limits. The published **0.2.3-dev** packages still use upstream **v3.1.1**. Full visual parity and every game/format path remain acceptance work; shared source and passing tests do not establish hardware acceptance.
+The current preview is Linux revision **0.2.4-dev**, based on upstream **v3.2.0**. See [3.2.0 support](UPSTREAM_3_2_0_SUPPORT.md) for integration and acceptance limits. The earlier **0.2.3-dev** packages use upstream **v3.1.1**. Full visual parity and every game/format path remain acceptance work; shared source and passing tests do not establish hardware acceptance.
 
 ![Native Linux save library on RG34XXSP](docs/screenshots/linux/home.png)
 
@@ -19,7 +19,7 @@ Other ARM64 ROCKNIX/KNULLI handhelds are experimental. The packages bundle .NET 
 
 ## Install and update
 
-1. Download `PKForge-v3.1.1-linux-0.2.3-dev-arm64.zip` from this fork's Releases page.
+1. Download `PKForge-v3.2.0-linux-0.2.4-dev-arm64.zip` from this fork's Releases page.
 2. Extract it into `/storage/roms/ports/` on ROCKNIX or `/userdata/roms/ports/` on KNULLI. Keep both launchers beside the `pkforge` folder.
 3. Refresh the Ports list. **PKForge** opens Home; **PKForge Pokepark** opens the park directly.
 
