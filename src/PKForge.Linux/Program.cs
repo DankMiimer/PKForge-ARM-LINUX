@@ -384,7 +384,11 @@ try
             var activeControls = workspace.Screens.Active || page.MenuOpen || library.IsShowing || !gamepadRouter.IsTop(page) || page.ControlRoot.HasActiveAnimations;
             var singleParkUi = !workspace.Screens.Active && !dual && activeControls;
             // A park overlay follows UI cadence while the expensive scene is cached at 30 FPS.
-            page.ParkPaintInterval = singleParkUi ? TimeSpan.FromSeconds(1.0 / 30) : TimeSpan.Zero;
+            // On one screen the Pokéwalker's opaque backdrop hides the whole park: repainting the
+            // scene under it at 30 FPS cost every other UI frame its deadline (about 48 FPS on the
+            // RG34XXSP). Twice a second keeps the simulation stepping until the park shows again.
+            var parkHidden = singleParkUi && PKForge.App.Views.WalkerScreen.IsOpen;
+            page.ParkPaintInterval = parkHidden ? TimeSpan.FromSeconds(0.5) : singleParkUi ? TimeSpan.FromSeconds(1.0 / 30) : TimeSpan.Zero;
             var primaryInterval = workspace.Screens.Active || singleParkUi ? PresentationClock.UiInterval((parkDisplay ?? controls).RefreshRate) : 1000.0 / 30;
             if (primaryClock.Due(now, primaryInterval))
             {

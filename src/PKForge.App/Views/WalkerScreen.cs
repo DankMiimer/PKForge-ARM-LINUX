@@ -92,9 +92,16 @@ public sealed class WalkerScreen : IPadHandler
         };
     }
 
+    private static int _open;
+
+    /// <summary>Whether the Pokéwalker is on screen. It covers its whole host with an opaque
+    /// backdrop, so a host that keeps repainting a scene underneath (the Linux park) can rest it.</summary>
+    public static bool IsOpen => _open > 0;
+
     private async Task RunAsync()
     {
         var router = IPlatformApplication.Current?.Services.GetService<GamepadRouter>();
+        _open++;
         void Cancel() => _closed.TrySetResult();
         void Unloaded(object? sender, EventArgs args) => Cancel();
         App.Suspended += Cancel; _overlay.Unloaded += Unloaded;
@@ -118,6 +125,7 @@ public sealed class WalkerScreen : IPadHandler
         finally
         {
             App.Suspended -= Cancel; _overlay.Unloaded -= Unloaded;
+            _open--;
             _timer.Stop();
             router?.Remove(this);
             _host.Remove(_overlay);
