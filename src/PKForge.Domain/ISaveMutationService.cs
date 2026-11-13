@@ -4,6 +4,8 @@ namespace PKForge.Domain;
 public interface ISaveMutationService
 {
     string Status { get; }
+    /// <summary>Hosts that replace the session after writes expose the current instance here.</summary>
+    ISaveEngineSession? CurrentSession => null;
     Task<bool> RunMutationAsync(Func<ISaveEngineSession, GenerationOutcome> operation, int slot,
         bool refreshSlot = true, string? changeDescription = null, SaveAction action = SaveAction.EditMon);
     Task<bool> RunSlotMutationAsync(Func<ISaveEngineSession, GenerationOutcome> operation, SlotRef target,

@@ -13,8 +13,11 @@ using Xunit;
 
 namespace PKForge.Linux.Tests;
 
-public sealed class HomeAndMenuTests
+public sealed class HomeAndMenuTests : IDisposable
 {
+    private readonly string _settings = Path.Combine(Path.GetTempPath(), "pkforge-menu-" + Guid.NewGuid().ToString("N"));
+    public HomeAndMenuTests() => PKForge.Park.ParkPlatform.Configure(_settings, Path.Combine(AppContext.BaseDirectory, "assets"));
+    public void Dispose() => Directory.Delete(_settings, true);
     [Theory]
     [InlineData(640, 480)]
     [InlineData(720, 480)]
@@ -99,10 +102,10 @@ public sealed class HomeAndMenuTests
             var window = Assert.IsType<SkiaSharp.Views.Maui.Controls.SKCanvasView>(overlay.Children[^1]);
             window.CancelAnimations(); window.Opacity = window.Scale = 1;
             host.Draw(device.CurrentSurface.Canvas, new(0, 0, 640, 480), device);
-            (string, string)[] hints = [("A", "Choose"), ("B", "Cancel")];
-            var footer = new SKRect(10, window.CanvasSize.Height - 44, window.CanvasSize.Width - 10, window.CanvasSize.Height - 7);
-            using var font = AppChromePaint.HintFont(footer, hints, PixelFont.Face, 13);
-            var hit = PksmPaint.HintBarHitRects(footer, hints, font)[0];
+            var info = new SKImageInfo((int)window.CanvasSize.Width, (int)window.CanvasSize.Height);
+            using var surface = SKSurface.Create(info);
+            var hit = PadMenuPaint.Paint(surface.Canvas, info,
+                new("Choose", "Test", [new("First"), new("Second")], 1, 0, 0, "Back"), PixelFont.Face).Choose;
             var point = new SKPoint(window.Bounds.Left + hit.MidX, window.Bounds.Top + hit.MidY);
             Assert.True(host.HandleTouch(new(1, SKTouchAction.Pressed, point)));
             Assert.True(host.HandleTouch(new(1, SKTouchAction.Released, point)));

@@ -6,7 +6,7 @@ $root = [IO.Path]::GetFullPath($Directory)
 $info = Get-Content -LiteralPath (Join-Path $root 'BUILDINFO.json') -Raw | ConvertFrom-Json
 . (Join-Path $PSScriptRoot 'source.ps1')
 Test-ReleaseProvenance $info -AllowCandidate:$AllowCandidate -ExpectedCommit $ExpectedCommit -ExpectedTag $ExpectedTag
-$stem = "PKForge-v3.1.1-linux-$($info.linux)"
+$stem = "PKForge-v3.2.0-linux-$($info.linux)"
 $expected = @("$stem-arm64.zip", "$stem-full-source.zip", 'BUILDINFO.json')
 $expected += @('tg5040', 'tg5050', 'h700' | ForEach-Object { "$stem-nextui-$_-arm64.zip" })
 $listed = @()
@@ -76,11 +76,11 @@ try {
     Write-Output "Verified $([IO.Path]::GetFileName($binary)): $($zip.Entries.Count) entries, $($assets.Count) assets, $($native.files.Count) ARM64 binaries; no personal data."
 } finally { $zip.Dispose() }
 }
-Test-BinaryPackage (Join-Path $root "PKForge-v3.1.1-linux-$($info.linux)-arm64.zip") 'pkforge/' @('PKForge.sh', 'PKForge Pokepark.sh')
+Test-BinaryPackage (Join-Path $root "PKForge-v3.2.0-linux-$($info.linux)-arm64.zip") 'pkforge/' @('PKForge.sh', 'PKForge Pokepark.sh')
 foreach ($platform in @('tg5040', 'tg5050', 'h700')) {
-    Test-BinaryPackage (Join-Path $root "PKForge-v3.1.1-linux-$($info.linux)-nextui-$platform-arm64.zip") "Tools/$platform/PKForge.pak/pkforge/" @("Tools/$platform/PKForge.pak/launch.sh", "Tools/$platform/PKForge Pokepark.pak/launch.sh")
+    Test-BinaryPackage (Join-Path $root "PKForge-v3.2.0-linux-$($info.linux)-nextui-$platform-arm64.zip") "Tools/$platform/PKForge.pak/pkforge/" @("Tools/$platform/PKForge.pak/launch.sh", "Tools/$platform/PKForge Pokepark.pak/launch.sh")
 }
-$source = [IO.Compression.ZipFile]::OpenRead((Join-Path $root "PKForge-v3.1.1-linux-$($info.linux)-full-source.zip"))
+$source = [IO.Compression.ZipFile]::OpenRead((Join-Path $root "PKForge-v3.2.0-linux-$($info.linux)-full-source.zip"))
 try {
     foreach ($path in @('SOURCE-MANIFEST.json', 'global.json', 'tools/linux/build.ps1', 'external/PKHeX/PKHeX.Core/PKHeX.Core.csproj', 'external/PKHeX-Plugins/PKHeX.Core.AutoMod/PKHeX.Core.AutoMod.csproj')) {
         if (-not $source.GetEntry($path)) { throw "Complete source entry missing: $path" }

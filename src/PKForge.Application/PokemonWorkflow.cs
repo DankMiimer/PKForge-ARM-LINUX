@@ -14,13 +14,13 @@ public sealed class PokemonWorkflow(ISaveEngine engine, ISaveSessionService sess
         using var entity = engine.OpenEntitySession(bank.GetData(id), entry.Info.SourceName, entry.Info.Format) ?? throw new InvalidDataException("Bank entity is unreadable.");
         return read(entity, 0, 0);
     }
-    public async Task<string> EditAsync(PokemonTarget target, Func<ISaveEngineSession, int, int, GenerationOutcome> edit, string description, SaveAction action = SaveAction.EditMon)
+    public async Task<string> EditAsync(PokemonTarget target, Func<ISaveEngineSession, int, int, GenerationOutcome> edit, string description, SaveAction action = SaveAction.EditMon, Action? committed = null)
     {
         policy.Demand(action);
         if (target.InBank && target.BankId is null) throw new InvalidOperationException("Empty Bank slot.");
         if (target.BankId is not { } id)
         {
-            await operations.ExecuteAsync(s => edit(s, target.Box, target.Slot), WriteScope.Only(new SlotRef(target.Box, target.Slot)), action, description);
+            if (await operations.ExecuteAsync(s => edit(s, target.Box, target.Slot), WriteScope.Only(new SlotRef(target.Box, target.Slot)), action, description)) committed?.Invoke();
             return operations.Status;
         }
         var entry = bank.GetAll().Single(e => e.Id == id); var before = bank.GetData(id);
@@ -31,6 +31,7 @@ public sealed class PokemonWorkflow(ISaveEngine engine, ISaveSessionService sess
         var facts = engine.TryDescribeEntity(exported.Data, entry.Info.SourceName, exported.Format ?? entry.Info.Format) ?? throw new InvalidDataException("The edited Pokémon could not be read.");
         if (!before.AsSpan().SequenceEqual(bank.GetData(id))) throw new IOException("The Bank entry changed. Reopen it before editing.");
         await Task.Run(() => bank.Replace(id, exported.Data, facts));
+        entity.CommitHistory(); committed?.Invoke();
         return result.Message;
     }
 }

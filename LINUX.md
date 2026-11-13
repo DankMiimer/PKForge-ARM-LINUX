@@ -1,10 +1,14 @@
 # PKForge for ARM64 Linux
 
-This port is based on **PKForge v3.1.1**, commit
+The published 0.2.3 Preview is based on **PKForge v3.1.1**, commit
 `799dfc310c94bb978962dcd31ddf7d39e6d8cba3`. It reuses the release's park simulation,
 scene, interaction handlers, overlays, game rules, save engines and Bank format.
 It is an experimental preview; see `VALIDATION.md` for measured results and open
 release checks.
+
+This development branch now integrates upstream **v3.2.0** for the next
+`0.2.4-dev` preview. See [3.2.0 support and open gates](UPSTREAM_3_2_0_SUPPORT.md).
+The download instructions below describe the currently published 0.2.3 package.
 
 [Handheld compatibility](HANDHELD_COMPATIBILITY.md) separates verified hardware,
 previous trials, simulated firmware checks and unsupported userspaces.

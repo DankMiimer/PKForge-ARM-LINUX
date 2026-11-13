@@ -54,7 +54,7 @@ public static class PksmTransferFlow
         }
         catch (Exception error)
         {
-            return $"PKSM import failed: {error.Message}";
+            return $"PKSM import failed. {Domain.ErrorText.Plain(error)}";
         }
         finally
         {
@@ -99,7 +99,7 @@ public static class PksmTransferFlow
         }
         catch (Exception error)
         {
-            return $"PKSM import failed: {error.Message}";
+            return $"PKSM import failed. {Domain.ErrorText.Plain(error)}";
         }
         finally
         {
@@ -115,7 +115,7 @@ public static class PksmTransferFlow
         foreach (var (name, bnk, json) in sources.Banks)
         {
             try { plans.Add(PksmBankTransfer.PlanBank(name, bnk, json, Decode)); }
-            catch (InvalidDataException error) { notes.Add(error.Message); }
+            catch (InvalidDataException error) { notes.Add(Domain.ErrorText.Plain(error)); }
         }
         if (sources.LooseFiles.Count > 0)
             plans.Add(PksmBankTransfer.PlanLoose($"{sources.LooseFiles.Count} loose file(s)", sources.LooseFiles, Decode));
@@ -165,7 +165,7 @@ public static class PksmTransferFlow
         }
         catch (Exception error)
         {
-            return $"PKSM export failed: {error.Message}";
+            return $"PKSM export failed. {Domain.ErrorText.Plain(error)}";
         }
         finally
         {

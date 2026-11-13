@@ -79,6 +79,7 @@ public class View : INotifyPropertyChanged
     public LayoutOptions VerticalOptions { get; set; } = LayoutOptions.Fill;
     public Thickness Margin { get; set; }
     public bool IsVisible { get; set; } = true;
+    public int ZIndex { get; set; }
     public bool InputTransparent { get; set; }
     public double Opacity { get; set; } = 1;
     public double Scale { get; set; } = 1;
@@ -87,6 +88,8 @@ public class View : INotifyPropertyChanged
     public bool IsClippedToBounds { get; set; }
     private bool _released;
     private bool _loaded;
+    public bool IsLoaded => _loaded && !_released;
+    public object? Handler => IsLoaded ? this : null;
     public virtual bool HasActiveAnimations => !_released && UiDispatcher.Instance.Animations.IsAnimating(this);
     public double MaximumWidthRequest { get; set; } = double.PositiveInfinity;
     public double MinimumWidthRequest { get; set; }
@@ -340,7 +343,7 @@ public class Grid : View
             Bounds.Right - (float)Padding.Right, Bounds.Bottom - (float)Padding.Bottom);
         var rows = Tracks(RowDefinitions.Select(r => r.Height).ToArray(), inner.Height, (float)RowSpacing, false, inner.Width);
         var columns = Tracks(ColumnDefinitions.Select(c => c.Width).ToArray(), inner.Width, (float)ColumnSpacing, true, inner.Width);
-        foreach (var child in Children.ToArray())
+        foreach (var child in Children.OrderBy(c => c.ZIndex).ToArray())
         {
             var cell = Cells.GetOrCreateValue(child);
             var row = Math.Min(cell.Row, rows.Length - 1); var column = Math.Min(cell.Column, columns.Length - 1);
@@ -373,7 +376,7 @@ public class Grid : View
     }
     protected override bool OnTouch(SKTouchEventArgs e)
     {
-        foreach (var child in Children.AsEnumerable().Reverse().ToArray())
+        foreach (var child in Children.OrderBy(c => c.ZIndex).Reverse().ToArray())
             if (child != ExcludedInput && child.IsVisible && !child.InputTransparent && child.HandleTouch(e)) return true;
         return false;
     }
@@ -400,7 +403,12 @@ public sealed class Animation(Action<double> callback, double start, double end)
     public void Commit(View owner, string name, uint length = 250, Easing? easing = null) =>
         owner.CommitAnimation(name, start, end, length, callback, easing ?? Easing.Linear);
 }
-public static class DeviceDisplay { public static DisplayInfo MainDisplayInfo => new(1); }
+public static class DeviceDisplay
+{
+    public static DisplayInfo MainDisplayInfo => new(1);
+    public static DisplayDevice Current { get; } = new();
+    public sealed class DisplayDevice { public DisplayInfo MainDisplayInfo => DeviceDisplay.MainDisplayInfo; }
+}
 public readonly record struct DisplayInfo(double Density);
 public sealed class VerticalStackLayout : Grid
 {
@@ -505,13 +513,19 @@ public class ContentPage
     public INavigation Navigation => HostNavigation.Current;
     protected virtual void OnAppearing() { }
     protected virtual void OnDisappearing() { }
+    protected virtual void OnNavigatedFrom(NavigatedFromEventArgs args) { }
+    protected virtual bool OnBackButtonPressed() => false;
     public void Appear() => OnAppearing();
     public void Disappear() => OnDisappearing();
+    public void NavigatedFrom(NavigationType type) => OnNavigatedFrom(new(type));
 }
+public enum NavigationType { Push, Pop, PopToRoot, Remove }
+public sealed class NavigatedFromEventArgs(NavigationType type) : EventArgs { public NavigationType NavigationType => type; }
 public interface INavigation
 {
     Task PushAsync(ContentPage page);
     Task<ContentPage?> PopAsync();
+    Task<ContentPage?> PopAsync(bool animated) => PopAsync();
 }
 public static class HostNavigation { public static INavigation Current { get; set; } = null!; }
 public static class NavigationPage { public static void SetHasNavigationBar(ContentPage page, bool value) { } }

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "version": "3.1.1",
-    "commit": "799dfc310c94bb978962dcd31ddf7d39e6d8cba3"
+    "version": "3.2.0",
+    "commit": "c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a"
   },
   "viewports": [
     {
@@ -51,7 +51,7 @@
     {
       "id": "AutopilotArt",
       "source": "src/PKForge.App/Views/AutopilotArt.cs",
-      "sha256": "3683f23db9540e159cad26baa8d558b4d976eb0fdeb500cc6201035c28e29c4f",
+      "sha256": "8e7b1401570915037487206afa75e2549c16d1f366db2196ffcbf952d4c287d7",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -76,7 +76,7 @@
     {
       "id": "AwardsEditor",
       "source": "src/PKForge.App/Views/AwardsEditor.cs",
-      "sha256": "13e7daa0cbce7e2b34978418cecfee48fd136accfb224ccdd344dee8af125f50",
+      "sha256": "29be196ce74fbb0756a6aab0c15bcb11022dc3905d4c47a9e0c96011f77c530b",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -101,7 +101,7 @@
     {
       "id": "BackupHistoryPage",
       "source": "src/PKForge.App/Views/BackupHistoryPage.cs",
-      "sha256": "a861ea8f1eb9f43764d9a74d38ed870fc59d85f078acd2554926f8a13258c823",
+      "sha256": "3541a7b2c5a4a09f9b9cc6156a84518663d05a98451bb6e4259384e07effb2e2",
       "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
@@ -126,7 +126,7 @@
     {
       "id": "BadAppleEgg",
       "source": "src/PKForge.App/Views/BadAppleEgg.cs",
-      "sha256": "ca2dd64bbf110208f602c916af80d8660ccb3241ca5edfd62573205c30fbcb18",
+      "sha256": "bf96af9c5177c354e4cf8fae1ce9416de5890d92d6ff4f9110b479559749922d",
       "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
@@ -151,7 +151,7 @@
     {
       "id": "BankBoxArt",
       "source": "src/PKForge.App/Views/BankBoxArt.cs",
-      "sha256": "6402ee0b920e0fac270658e6ca73d6c0ce41d6d23e8b40cf15ad23ebb7401ee1",
+      "sha256": "2ca2aa37b451a3cf62d3fc65807d368804bf88064dd88acda8a44856e4147adf",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -176,14 +176,13 @@
     {
       "id": "BankBoxOverview",
       "source": "src/PKForge.App/Views/BankBoxOverview.cs",
-      "sha256": "55c015939c965b061abd679042a44674bb8af690f2310cb0bd233eb7995cf54b",
+      "sha256": "823a95dee0901cf2b42e00259d51fe2bf0ae36e0afeaf67bd991c5fcb5758c04",
       "kind": "screen",
       "motionSources": [
-        "CreateTimer",
-        "Spring"
+        "CreateTimer"
       ],
-      "linuxRoute": "Bank > Tools > Box overview; WorkspaceHost.BankOverviewAsync",
-      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
+      "linuxRoute": "",
+      "fixture": "",
       "states": [
         "normal",
         "focused",
@@ -199,12 +198,12 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Original graphical overview and springs shared through IBankBoxOverviewActions. Linux mutations remain journaled; reorder/suspend tests pass. Matched runtime verification remains pending."
+      "notes": ""
     },
     {
       "id": "BankEntryEditor",
       "source": "src/PKForge.App/Views/BankEntryEditor.cs",
-      "sha256": "8cb3a8099b7d64348cd0a1f53f2e7a49d3d3c31baa5e6eca59d9fe8bc08b88e3",
+      "sha256": "318b03b14b3a5ea730cf2ea9cc8d41f1277542a793ac706567e996e6f81635a7",
       "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
@@ -229,7 +228,7 @@
     {
       "id": "BankPage",
       "source": "src/PKForge.App/Views/BankPage.cs",
-      "sha256": "c1770f34f956bb1bdb9d657e917aed3fe30c2ef21e6d9f6a3ed264c862618b54",
+      "sha256": "f623bf6d4a8f4198a9444f67fd56ed9f6f800ad193793fceea81d8b0fe9a1103",
       "kind": "screen",
       "motionSources": [
         "CreateTimer"
@@ -256,7 +255,7 @@
     {
       "id": "BankSearchPage",
       "source": "src/PKForge.App/Views/BankSearchPage.cs",
-      "sha256": "25829a38e0dda9f43400d4e425d1d695f73f3fdbf7b5b7fb8d4a8dbf40129c71",
+      "sha256": "ebd4fd30813d367677db8301ee67249ebe15b9ef3f081fc7b9c723e6551a4c06",
       "kind": "screen",
       "motionSources": [
         "AnimateIn"
@@ -283,13 +282,13 @@
     {
       "id": "BankWallpaperPicker",
       "source": "src/PKForge.App/Views/BankWallpaperPicker.cs",
-      "sha256": "7eca3a6b94d6e0f810be84eb8d1f28fffe689796281554522b5920bc62ce3ea7",
+      "sha256": "b7b157ab67f80d6b440484dd4fd6047eb39a9f7bf1a72004b0502e4c02c8c09e",
       "kind": "screen",
       "motionSources": [
         "Spring"
       ],
-      "linuxRoute": "Bank > Box management > Wallpaper; WorkspaceHost.PickBankWallpaperAsync",
-      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
+      "linuxRoute": "",
+      "fixture": "",
       "states": [
         "normal",
         "focused",
@@ -305,13 +304,38 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Original graphical wallpaper picker and spring scrolling shared. Chosen decoration uses journaled Linux mutation. Matched runtime verification remains pending."
+      "notes": ""
     },
     {
       "id": "BoxBrowserPage.EditorPanel",
       "source": "src/PKForge.App/Views/BoxBrowserPage.EditorPanel.cs",
-      "sha256": "0dab721d98a2dba2d94e1ee051c30226c2ee60fedc1125424470fae761e69b49",
+      "sha256": "ea6ebc81b3e0ce560c3d38db76960166b15289be4e88e89c6eb88560fb3142ad",
       "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "BoxBrowserPage.HallOfFame",
+      "source": "src/PKForge.App/Views/BoxBrowserPage.HallOfFame.cs",
+      "sha256": "5918dda3b2936a607cac39564357f2451d42693a62964f8908fa86034bad7665",
+      "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
       "fixture": "",
@@ -335,8 +359,83 @@
     {
       "id": "BoxBrowserPage.LegalityAssist",
       "source": "src/PKForge.App/Views/BoxBrowserPage.LegalityAssist.cs",
-      "sha256": "941ba71ca83fc11ee642a1f47ebf0e29808f851de30fa0722c0d89eab8db6f43",
+      "sha256": "ee0af84b0e5fbb0f90d7a528ee78cb8596a85164be170177719835c041ef4f8a",
       "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "BoxBrowserPage.SaveData",
+      "source": "src/PKForge.App/Views/BoxBrowserPage.SaveData.cs",
+      "sha256": "bf443f1a43faeada92f6bce7df0e7dfd08b57f97b99f24911f15a8bff2707c97",
+      "kind": "screen",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "BoxBrowserPage.StorageTools",
+      "source": "src/PKForge.App/Views/BoxBrowserPage.StorageTools.cs",
+      "sha256": "d342e8ddb474ed1c19ce4416427969dc0ed8ae7765bdcafcf9120d8eca8c798d",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "BoxBrowserPage.TrainerCard",
+      "source": "src/PKForge.App/Views/BoxBrowserPage.TrainerCard.cs",
+      "sha256": "b09923259c8dcb2c2747351cfad8233336287f04f83b56f4aa02f681a3680151",
+      "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
       "fixture": "",
@@ -360,10 +459,9 @@
     {
       "id": "BoxBrowserPage",
       "source": "src/PKForge.App/Views/BoxBrowserPage.cs",
-      "sha256": "b738920dcded4ca2511cdd73dfd6d63eda981c8ef3a5216ddd9a69865ec7aef1",
+      "sha256": "332e9e61321449b04fb4821fa1f186f6c931c200c14119bba711d43eccdbd99c",
       "kind": "screen",
       "motionSources": [
-        "AnimateIn",
         "CreateTimer"
       ],
       "linuxRoute": "",
@@ -388,7 +486,7 @@
     {
       "id": "BoxGridRenderer",
       "source": "src/PKForge.App/Views/BoxGridRenderer.cs",
-      "sha256": "23ce7bad80dc1692e5b7f477305fbe0a7b0f1dde3c80491c8d4110c298d86cba",
+      "sha256": "585e2f3678e761f48077bd0271b3008c13f8e73ba14b2020d3904409b1934e1a",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -463,7 +561,7 @@
     {
       "id": "CarryHand",
       "source": "src/PKForge.App/Views/CarryHand.cs",
-      "sha256": "22a5e628b9f277a5b340d80da572e753ab78f634c2d283d69d3abc9717d9a847",
+      "sha256": "dcc14cc8f8ac0e431c2e95ffc40fa97e6ba092b78a2718ce7fa361a9fb49fe10",
       "kind": "component",
       "motionSources": [
         "Spring"
@@ -490,7 +588,7 @@
     {
       "id": "ClockRepairEditor",
       "source": "src/PKForge.App/Views/ClockRepairEditor.cs",
-      "sha256": "93008f84bc4935a4e156dbf4cfee143a6d6253fc329963251ab2d7a9ef9b7f98",
+      "sha256": "5f54090a33fee0076353350fe5c7b6ed74d9370e52cdd2df21d06a5368e3ea78",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -515,7 +613,7 @@
     {
       "id": "CollectionCenter",
       "source": "src/PKForge.App/Views/CollectionCenter.cs",
-      "sha256": "27acb3726cf1d8b0caf1ac8ceb31c3e57937ed6b7645dbeb9f9fcc581e67b127",
+      "sha256": "09acf5b31a6866fd65026a97078647ee7c897efe3e1e8a92eed5634568e18606",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -540,11 +638,36 @@
     {
       "id": "CollectionDexPage",
       "source": "src/PKForge.App/Views/CollectionDexPage.cs",
-      "sha256": "7238e9a87084cec0ea7b814bd82581fc73e7ccdea06f3b1e3cbee1a0587c6ee7",
+      "sha256": "5b8537dce4e4b4a91f70276617397306fd40341775edbcc9a89ff9604235e400",
       "kind": "screen",
       "motionSources": [
         "AnimateIn"
       ],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "ContestTreatsEditor",
+      "source": "src/PKForge.App/Views/ContestTreatsEditor.cs",
+      "sha256": "ab14d83a367c7f340f7010e55930d465d6f9cb746054e190ad010f9501fe8147",
+      "kind": "component",
+      "motionSources": [],
       "linuxRoute": "",
       "fixture": "",
       "states": [
@@ -592,9 +715,11 @@
     {
       "id": "DaycareEditor",
       "source": "src/PKForge.App/Views/DaycareEditor.cs",
-      "sha256": "de14ae480c7cc41255976d7c74de67cd20a3323133816d913da9afbf53888fe0",
-      "kind": "component",
-      "motionSources": [],
+      "sha256": "007201190bf7a8c59a7790c6ac7c555f3833bebccb4c627e3f063930231c6908",
+      "kind": "screen",
+      "motionSources": [
+        "CreateTimer"
+      ],
       "linuxRoute": "",
       "fixture": "",
       "states": [
@@ -617,11 +742,9 @@
     {
       "id": "DexEditorPage",
       "source": "src/PKForge.App/Views/DexEditorPage.cs",
-      "sha256": "3154554d18f65ba89a5cb065c46a8f79dd4e771a63eea7794c17b61a81e3a052",
+      "sha256": "9e21f20eb204086ccd5ed9dc48a493d1abf9f78ec132cd4edb5194f57d829898",
       "kind": "screen",
-      "motionSources": [
-        "AnimateIn"
-      ],
+      "motionSources": [],
       "linuxRoute": "",
       "fixture": "",
       "states": [
@@ -644,7 +767,7 @@
     {
       "id": "DexEntryView",
       "source": "src/PKForge.App/Views/DexEntryView.cs",
-      "sha256": "ddd3264c75a7c1722fd2d290f01f2653221c390aa1623b63d96d3cf6d156c433",
+      "sha256": "26b9c27594a0621afc268779e1d9e5f49582422e64642267f232467d0833b314",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -669,7 +792,7 @@
     {
       "id": "DexGridView",
       "source": "src/PKForge.App/Views/DexGridView.cs",
-      "sha256": "5263de835ff4f033677a0691a1c7ff2f7cbaad2be9dc3b307d3e2e097e2db71f",
+      "sha256": "90c0a4079447de461f6178c5903be3f3454915e92593f0b5d7a35f6f38475948",
       "kind": "component",
       "motionSources": [
         "TouchScroller"
@@ -694,15 +817,13 @@
       "notes": ""
     },
     {
-      "id": "DialogueBox",
-      "source": "src/PKForge.App/Views/DialogueBox.cs",
-      "sha256": "b14c1515ae391639503fd5aaa8ecacae0febbe0f784842a29d32ba53429caa4a",
+      "id": "DexModesPage",
+      "source": "src/PKForge.App/Views/DexModesPage.cs",
+      "sha256": "76542481fc2f90821506ff37cf0e220055dd87086df4eae400913dc30dab65be",
       "kind": "screen",
-      "motionSources": [
-        "CreateTimer"
-      ],
-      "linuxRoute": "Home first-run introduction; original shared DialogueBox",
-      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
       "states": [
         "normal",
         "focused",
@@ -718,19 +839,46 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Timed 24 ms typer and suspend/input cleanup implemented. Matched runtime timeline verification remains pending."
+      "notes": ""
+    },
+    {
+      "id": "DialogueBox",
+      "source": "src/PKForge.App/Views/DialogueBox.cs",
+      "sha256": "54a4e1374922f5b8c2c7b26b425f4455ab7152762f69573f09f2137831474788",
+      "kind": "screen",
+      "motionSources": [
+        "CreateTimer"
+      ],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
     },
     {
       "id": "DialogueChoiceBox",
       "source": "src/PKForge.App/Views/DialogueChoiceBox.cs",
-      "sha256": "4ac6d3aecf0738e3e557697c152bd529144f48d01fd9238f3a521a649105faf9",
+      "sha256": "40378da64679323433657493edcd89efe090edf7104a7ff2610bf62041ef1cc4",
       "kind": "screen",
       "motionSources": [
         "CreateTimer",
         "FadeToAsync"
       ],
-      "linuxRoute": "Shared source component preview; Android APK-update prompts are platform-specific",
-      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
+      "linuxRoute": "",
+      "fixture": "",
       "states": [
         "normal",
         "focused",
@@ -746,12 +894,12 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Original typed-message and answer window shared and captured. Suspend/unload cleanup tested. Linux does not install Android APK updates; reference-flow adaptation and full state/timeline review remain pending."
+      "notes": ""
     },
     {
       "id": "DsKit",
       "source": "src/PKForge.App/Views/DsKit.cs",
-      "sha256": "02e20a523fb973d2f9660f7045e35ad31dc995ae230c2de2c59e8ef8d2bce982",
+      "sha256": "fbc6587dee9bc13c76870e4bcb7db757481cfeb3efa6adb911fa9b728992baaf",
       "kind": "component",
       "motionSources": [
         "ScaleToAsync",
@@ -777,9 +925,59 @@
       "notes": ""
     },
     {
+      "id": "EReaderEditor",
+      "source": "src/PKForge.App/Views/EReaderEditor.cs",
+      "sha256": "7304807503f36337f5ec402bcfdd97150ec2a277d53851a496fd7c5e25de3b32",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
       "id": "EditorRows",
       "source": "src/PKForge.App/Views/EditorRows.cs",
-      "sha256": "6e3b19210fbda4fb799e947c429b70be8dff739634b7a7ae5736f6dd8c1d1ddf",
+      "sha256": "16752f69157a053259c3d5b6b513ec6952e32f2cae3a316fc027282f32b820f4",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "EggEditor",
+      "source": "src/PKForge.App/Views/EggEditor.cs",
+      "sha256": "1793b570c9b05e03c4e0aee7b7a26b22fa8c62a5c7934c3540f8274e75b34971",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -804,11 +1002,9 @@
     {
       "id": "EncounterGallery",
       "source": "src/PKForge.App/Views/EncounterGallery.cs",
-      "sha256": "794748c9c337ef94610c1956a5c4c445b1e5b8e45acee8c6416a1efe517a04f4",
+      "sha256": "4229ec4eb4b592638fddced3029518094282cacd073ba6211cf83915d943ea84",
       "kind": "screen",
-      "motionSources": [
-        "AnimateIn"
-      ],
+      "motionSources": [],
       "linuxRoute": "",
       "fixture": "",
       "states": [
@@ -856,7 +1052,7 @@
     {
       "id": "EventFlagsEditor",
       "source": "src/PKForge.App/Views/EventFlagsEditor.cs",
-      "sha256": "1e594aa302171565675a0547931f8c4701967c739f3ee30d82de386739cbd864",
+      "sha256": "528f0e901bd3bef98362309bfbee25502675ff25b972aa34d169acf31f2b87c5",
       "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
@@ -881,7 +1077,7 @@
     {
       "id": "EventGallery",
       "source": "src/PKForge.App/Views/EventGallery.cs",
-      "sha256": "e878d91667eeccd9bbf2f1afbc508245be25991e168f15a2459d6cee14886eed",
+      "sha256": "2b233208c31f099b2a5295709a368501da18a80430e97e8c880f9333baa78aea",
       "kind": "screen",
       "motionSources": [
         "AnimateIn",
@@ -934,7 +1130,82 @@
     {
       "id": "EvolutionCard",
       "source": "src/PKForge.App/Views/EvolutionCard.cs",
-      "sha256": "8c2e00be9da04b1b64270909aac3b4f0c81763eebfe6bdda17dadb1e4ae402fd",
+      "sha256": "dca68a3aad2301fa3c27c09c3d4f4610f45bac689435702692b3670bfa63f713",
+      "kind": "screen",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "EvolutionOverlay",
+      "source": "src/PKForge.App/Views/EvolutionOverlay.cs",
+      "sha256": "b24703c57442fb0fa7737aa6de1511ff4ef5bfb7df99bffd3dce12ee8d838dcb",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "FestivalPlazaEditor",
+      "source": "src/PKForge.App/Views/FestivalPlazaEditor.cs",
+      "sha256": "44c731c35962cc554a0455a245c261da621e2094c2a65b5214ff523637310b6b",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "GameArtPreview",
+      "source": "src/PKForge.App/Views/GameArtPreview.cs",
+      "sha256": "0b8615ab9b36c34075d60c4d496021e64b3c52b63f93d69109a89eb78bb16c23",
       "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
@@ -959,7 +1230,7 @@
     {
       "id": "GameIdentityArt",
       "source": "src/PKForge.App/Views/GameIdentityArt.cs",
-      "sha256": "4368c53d976cf3dbb783a694ffae37ded5e47b624f3bb843b19aae2777d78895",
+      "sha256": "d9b7ea03e2f596fd4cb9f5df6d5ae9b581c1277d9316dcdeafbebbeb3ec1dc21",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -984,7 +1255,7 @@
     {
       "id": "GenerateWizard",
       "source": "src/PKForge.App/Views/GenerateWizard.cs",
-      "sha256": "2dbb32827b530f3398376cbe16d75b94030019f5a0010daa376e54b68cc782b2",
+      "sha256": "b99548f0a090702d377c3c6624e4a0612ed0d8f4b494bd5f117a2ea85803e91a",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1009,7 +1280,7 @@
     {
       "id": "GrandUndergroundEditor",
       "source": "src/PKForge.App/Views/GrandUndergroundEditor.cs",
-      "sha256": "cfdab0257fb8e1a23f58eea828079a18106471a2e8d4209a051b5e2a299ca80f",
+      "sha256": "34c511a42fbf5caa0975695ceb2d0641372c53d4d3f37651324436189d3ad227",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1034,7 +1305,7 @@
     {
       "id": "HexEditorPage",
       "source": "src/PKForge.App/Views/HexEditorPage.cs",
-      "sha256": "769f4c3ac507c8121879a698d567aaad5916ecc2db27848aee42805369638a91",
+      "sha256": "e934b0b6caeb21f527e150df516dc12d878b859d96a2862d9d5ebe07e4957db5",
       "kind": "screen",
       "motionSources": [
         "AnimateIn"
@@ -1061,7 +1332,32 @@
     {
       "id": "HgssGadgetsEditor",
       "source": "src/PKForge.App/Views/HgssGadgetsEditor.cs",
-      "sha256": "73bc0567cef7eb1798d533e3f8800a88b1988b4dfc4a2c6198cab3ae1512809b",
+      "sha256": "cd5b67ef72f877ab72f6d80581b271c7091bc251db1d8cbb3f4b775c160c3b36",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "HomePage.PkforgeFolder",
+      "source": "src/PKForge.App/Views/HomePage.PkforgeFolder.cs",
+      "sha256": "086bf04fa223e0a9d9c67162639e3b8eb9930d6ee0728b4447d319461976b65c",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1086,7 +1382,7 @@
     {
       "id": "HomePage",
       "source": "src/PKForge.App/Views/HomePage.cs",
-      "sha256": "d65f04d2afe32c15294f240a8433a9608de870a2974e031b325b224e31619042",
+      "sha256": "2b63fd2a3842c9c664fdcccd6c1c1bcd5c02e31683ded3df0d6ed02cc0cc8644",
       "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
@@ -1136,11 +1432,11 @@
     {
       "id": "InfoKit",
       "source": "src/PKForge.App/Views/InfoKit.cs",
-      "sha256": "4a4b45518a0ba17932b86be6dd1db35c6862da8cb9ed6c4aafc84ada04db114a",
+      "sha256": "19f4db33e4e692534a784ebc1f1a501d0f9d6b07765b4bfbdb08ba388b20cbfd",
       "kind": "component",
       "motionSources": [],
-      "linuxRoute": "Shared picker rows and nature preview panels",
-      "fixture": "tools/UiPreview picker-types and nature-preview",
+      "linuxRoute": "",
+      "fixture": "",
       "states": [
         "normal",
         "focused",
@@ -1156,16 +1452,16 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Type/category/tag and stat-delta components compile from original source; complete use-site/state coverage remains pending."
+      "notes": ""
     },
     {
       "id": "InfoPickers",
       "source": "src/PKForge.App/Views/InfoPickers.cs",
-      "sha256": "c68337e09be226a9507096624dc7152426acfd68afbacd6f54135cec3fcce47f",
+      "sha256": "b6b758ef4779dd45f36a9ebe2c397c71e929c45a9be1a7316c69f337a8771273",
       "kind": "component",
       "motionSources": [],
-      "linuxRoute": "Pokemon editor moves/ability/held item; Potential > Tera type; Reference > Hidden Power",
-      "fixture": "tools/UiPreview move-preview at both viewports; Linux PickerTests captured move/item/type fixtures",
+      "linuxRoute": "",
+      "fixture": "",
       "states": [
         "normal",
         "focused",
@@ -1181,12 +1477,37 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Original information-rich picker renderers shared through immutable-fact overloads; temporary Bank sessions remain host-owned. Game-specific item IDs and legal/type filtering tests pass. Full matched Android state/timing evidence remains pending."
+      "notes": ""
+    },
+    {
+      "id": "ItemBankPage",
+      "source": "src/PKForge.App/Views/ItemBankPage.cs",
+      "sha256": "6c20afb0b0af44f6a102c3749cdd2c69d98ab1674a8e5ed8670fc73ee3373099",
+      "kind": "screen",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
     },
     {
       "id": "KeyItemEventsEditor",
       "source": "src/PKForge.App/Views/KeyItemEventsEditor.cs",
-      "sha256": "606b31e22155c4b6e36c425e22d25b391a3124c212844072828b367d617d96c5",
+      "sha256": "55a18864fe0ecc41f79648df7e15ce825d3bcff614204880891cc045a6515dbe",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1211,7 +1532,7 @@
     {
       "id": "Kit",
       "source": "src/PKForge.App/Views/Kit.cs",
-      "sha256": "13132659a648ae631990cb9f86c572b6a8f13d08dbe9bddb5adb4a2e3a9fe2d8",
+      "sha256": "eea8c0f23c9a3edcf93613e0c00a2a601cf15429a3dc5b33723fa379c6f9fbf4",
       "kind": "component",
       "motionSources": [
         "AnimateIn",
@@ -1219,8 +1540,8 @@
         "FadeToAsync",
         "ScaleToAsync"
       ],
-      "linuxRoute": "Shared Kit.Pickers partial plus Linux platform controls",
-      "fixture": "tools/UiPreview picker and nature fixtures",
+      "linuxRoute": "",
+      "fixture": "",
       "states": [
         "normal",
         "focused",
@@ -1236,12 +1557,12 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Picker chrome extracted verbatim into Kit.Pickers.cs for both hosts. Host controls supply rendering and input; remaining Kit surfaces and full parity are pending."
+      "notes": ""
     },
     {
       "id": "LegalityAssistUi",
       "source": "src/PKForge.App/Views/LegalityAssistUi.cs",
-      "sha256": "09f5c3b49cfa913a8cd83b558b7fb4bcfc8fd2ea1b41c1ccfb8d87fcdaf70b8a",
+      "sha256": "1d6f28b2a770de38f32b635dc46d7725b68b9ea25c97649a5234de1f02b8b138",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1266,7 +1587,7 @@
     {
       "id": "LivingDexAutopilotPage",
       "source": "src/PKForge.App/Views/LivingDexAutopilotPage.cs",
-      "sha256": "60e041a7cc76acac8d20a09ff03c6ee9f7ff8c9698a1900557fcef997b079dd5",
+      "sha256": "5466703d2656c9f036b6c24b4696f8ccc303b94717eb39d5c1d236e570f60221",
       "kind": "screen",
       "motionSources": [
         "AnimateIn"
@@ -1293,11 +1614,9 @@
     {
       "id": "LivingDexRouteMap",
       "source": "src/PKForge.App/Views/LivingDexRouteMap.cs",
-      "sha256": "430fd856c5efdcb2461cb17bb0ae13640d066c2ac8ed2af49f87c7cd89e2faae",
+      "sha256": "f157e725a07302b2063f3be5207f5668e11eb1bb7a0b22e5cadb576693a67753",
       "kind": "component",
-      "motionSources": [
-        "CreateTimer"
-      ],
+      "motionSources": [],
       "linuxRoute": "",
       "fixture": "",
       "states": [
@@ -1320,11 +1639,11 @@
     {
       "id": "LoadingOverlay",
       "source": "src/PKForge.App/Views/LoadingOverlay.cs",
-      "sha256": "904f5d04a3919dc52b113feec8e2843dcf98de0068f2d09d49c9c6c065ef73ef",
+      "sha256": "be4893a4de0c955e1d249e762f683a5ad1cf88a7d63fd930f6666dfa76a14085",
       "kind": "component",
       "motionSources": [],
-      "linuxRoute": "Home scan; Settings > Offline sprite pack; community downloads",
-      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
+      "linuxRoute": "",
+      "fixture": "",
       "states": [
         "normal",
         "focused",
@@ -1340,12 +1659,37 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Original loading view and walking-sprite timer shared; Chrome owns modal painters. Cancellation reaches the operation; closing/unloading releases input and timers. Android and native Linux layout measurements recorded. Full timeline, error and interruption acceptance remains pending."
+      "notes": ""
     },
     {
       "id": "MetOriginEditor",
       "source": "src/PKForge.App/Views/MetOriginEditor.cs",
       "sha256": "6190042c7d49c12f6492d26f91c78c9a8ab3a44e8108266a7eab8da10cdea46f",
+      "kind": "screen",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "MonCompareScreen",
+      "source": "src/PKForge.App/Views/MonCompareScreen.cs",
+      "sha256": "8e341aa5e9ca1892d45a9a127dce619ee6a89397dca62cbfa968ee6165cf98ad",
       "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
@@ -1395,7 +1739,7 @@
     {
       "id": "MonSummaryScreen",
       "source": "src/PKForge.App/Views/MonSummaryScreen.cs",
-      "sha256": "fac30a8dc34959bf5e750fbc53fd0260d1de55d0e3596917cf069aeb407213e0",
+      "sha256": "1032187e87239e18dbe4d42314df10154ef83e2481d3704637cc39e3055accc2",
       "kind": "screen",
       "motionSources": [
         "CreateTimer"
@@ -1422,11 +1766,10 @@
     {
       "id": "MonSummaryView",
       "source": "src/PKForge.App/Views/MonSummaryView.cs",
-      "sha256": "ba0e913df626365fbb807fd9e6e798f36178c419d3cf2ab1d7999ca9c173ecbd",
+      "sha256": "30e91b87dbe0decd4417217953939d6a84487ad568e6865929df32e370ceb9b8",
       "kind": "component",
       "motionSources": [
-        "Commit",
-        "CreateTimer"
+        "Commit"
       ],
       "linuxRoute": "",
       "fixture": "",
@@ -1450,7 +1793,7 @@
     {
       "id": "MoveDetailsEditor",
       "source": "src/PKForge.App/Views/MoveDetailsEditor.cs",
-      "sha256": "54cb37c11308839c54fb9429fa2acf6ae8ed5b59b3c60f662dd691559854ecd4",
+      "sha256": "a9a74ef7cec01e489ec1f337407487c43f925b83ccee34e62adb9a13d64b2758",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1475,8 +1818,33 @@
     {
       "id": "MoveShopEditor",
       "source": "src/PKForge.App/Views/MoveShopEditor.cs",
-      "sha256": "12635dc92dcb3556d119b014dfb2aa405e933640d4c58731ca01eb27584327f5",
+      "sha256": "f2a391107398410255c3b26871baf2ca52cd4422adc7b6cadb15e326fecfdce8",
       "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "MuseumScreen",
+      "source": "src/PKForge.App/Views/MuseumScreen.cs",
+      "sha256": "105b837f9f8008d195e93c4327162aa89d519a52e8dc705d7dad7e61677b623b",
+      "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
       "fixture": "",
@@ -1500,7 +1868,7 @@
     {
       "id": "MusicMenu",
       "source": "src/PKForge.App/Views/MusicMenu.cs",
-      "sha256": "5bffcdef960053b7535f50ba287a2dce6612a71f73092ff88326253a7f63bbcd",
+      "sha256": "0442990161da59c1af9268fa3610d400a9ad5db13050ffb63184a77cf200b92f",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1525,7 +1893,7 @@
     {
       "id": "MysteryGiftInboxEditor",
       "source": "src/PKForge.App/Views/MysteryGiftInboxEditor.cs",
-      "sha256": "6a857235251a4c2e929382f15ebda18e06a75a0f5e83820cd0e1febdfe36cd68",
+      "sha256": "8e463332911f91468f285b5868792208a28ee827fbc848fff0a8b53669f7d13d",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1553,8 +1921,8 @@
       "sha256": "b1a8cf70aaaa828ad1543533fb8d3be69b36db69cd6d13fa3c2ef67850c3eafe",
       "kind": "component",
       "motionSources": [],
-      "linuxRoute": "Pokemon editor nature and mint; generation wizard; nature reroll; reference nature/stats calculator",
-      "fixture": "tools/UiPreview nature-preview and nature-preview-highlight at both viewports",
+      "linuxRoute": "",
+      "fixture": "",
       "states": [
         "normal",
         "focused",
@@ -1570,12 +1938,12 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Original read-only preview and stat-delta panel shared. Staged values feed preview without writes; full matched Android review pending."
+      "notes": ""
     },
     {
       "id": "PadMenu",
       "source": "src/PKForge.App/Views/PadMenu.cs",
-      "sha256": "4936847c7d8862eb126b6feb9822a71705112a661ede20760c25f6b63d3392fb",
+      "sha256": "4ce50a239f3128058fdecc667941006d0d5a9ce7bd8300dbedec6511b9b74379",
       "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
@@ -1623,9 +1991,59 @@
       "notes": ""
     },
     {
+      "id": "PaintGuard",
+      "source": "src/PKForge.App/Views/PaintGuard.cs",
+      "sha256": "e0af952f06a371eb2b4a8aafc0b6ea606c06a52d57cf448f262ce59e7aeede08",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "PalParkEditor",
+      "source": "src/PKForge.App/Views/PalParkEditor.cs",
+      "sha256": "a558d2c165cc4512c35e4582d440a04bd3f715a4b858cf560761e870e4c17428",
+      "kind": "screen",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
       "id": "ParkCanvas",
       "source": "src/PKForge.App/Views/ParkCanvas.cs",
-      "sha256": "3fc1a4302189724e19bfa5ce2c8902c8ceab91e6e36bb92457e4fc242a820344",
+      "sha256": "247ac64ba4430802853aaf2a73c938cad540734f08517934b034737de88c0fb2",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1650,7 +2068,7 @@
     {
       "id": "PartyView",
       "source": "src/PKForge.App/Views/PartyView.cs",
-      "sha256": "c4d82879f6fe3d29890f3a26c0ecd024104e98b9f615deef84c8bb24828be7fc",
+      "sha256": "8d559cc0734be2df25bed9b7c092f2e5e8e4e0cd29067f9491bed5636c48a26c",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1675,11 +2093,11 @@
     {
       "id": "PickerMenu",
       "source": "src/PKForge.App/Views/PickerMenu.cs",
-      "sha256": "68b82eec2425784bbbb3746e2060b495299e120c66b672d52991dd83e5189152",
+      "sha256": "2e75a87b0707cda4d94bead8689ceea4cede20b49a411691f57896f66c796672",
       "kind": "screen",
       "motionSources": [],
-      "linuxRoute": "Workspace NativeDialogs.PickAsync; Select/touch search; original filters and type chips",
-      "fixture": "tools/UiPreview picker, picker-types, picker-empty at both viewports",
+      "linuxRoute": "",
+      "fixture": "",
       "states": [
         "normal",
         "focused",
@@ -1691,18 +2109,16 @@
         "confirmation",
         "long-text"
       ],
-      "visualEvidence": [
-        "docs/parity/picker-settled-720/evidence.json"
-      ],
+      "visualEvidence": [],
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Original picker is shared with virtualized Linux controls. Per-container native pixel rounding makes the five recorded settled 720px row-label rectangles match exactly; pixel/raster review, initial centering, 640px reference and complete state/timeline acceptance remain pending."
+      "notes": ""
     },
     {
       "id": "PixelFont",
       "source": "src/PKForge.App/Views/PixelFont.cs",
-      "sha256": "2b42abeb23294e15864af46e1063cab2076d8151cabefcae1aea95eb31cf31ab",
+      "sha256": "0964c3ce99286f01b01ed32447846d6771340fbd70a485c95ecde24fd04ca58f",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1752,7 +2168,7 @@
     {
       "id": "PksmTransferFlow",
       "source": "src/PKForge.App/Views/PksmTransferFlow.cs",
-      "sha256": "ef4e9c2d4ed55e01961105163d6573f0f7dce728aeaab5cda5a3bd354c4fc2b2",
+      "sha256": "051e5365a5d9f7ec248eee151eb7af550ae00b3bd35dc25b56efe5bd24fc7aca",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1777,7 +2193,7 @@
     {
       "id": "PokeBeansEditor",
       "source": "src/PKForge.App/Views/PokeBeansEditor.cs",
-      "sha256": "5b8e5b85a7f9679f34a1d55abf65c0717f65e0bb65308f13d68485d2829b7918",
+      "sha256": "4bc3aa93782dc4d2431f88ff6ea04b1f957e232a64bfcd20cf14084d40a6ad8c",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -1829,7 +2245,7 @@
     {
       "id": "PokeparkAlbumOverlay",
       "source": "src/PKForge.App/Views/PokeparkAlbumOverlay.cs",
-      "sha256": "632a5ffbf4b09f060fd2bf5901da4badf73a0076e3a1db6f063337979f609354",
+      "sha256": "34c54391e45104382e027332899d6200c1e649ed80b9a209ad19d0d60b341e28",
       "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
@@ -1854,7 +2270,7 @@
     {
       "id": "PokeparkCardOverlay",
       "source": "src/PKForge.App/Views/PokeparkCardOverlay.cs",
-      "sha256": "78c630e7c21ca41f71d44ccf6d9c3d286b41b40ef086e6592b65931b26341ce7",
+      "sha256": "b6bc5a3d205e4e627e218ba1653f79b8a49b1c6f341ddbe6ce00adc7745d8595",
       "kind": "screen",
       "motionSources": [
         "CreateTimer"
@@ -1881,11 +2297,9 @@
     {
       "id": "PokeparkCreditsOverlay",
       "source": "src/PKForge.App/Views/PokeparkCreditsOverlay.cs",
-      "sha256": "844d76aaf6bd4cfe6e300de5a24cb2a3d077bc4b29799b0c627d82fb11b84f3c",
+      "sha256": "2595aa9ebbfcd72c48e04a56083c58676cc69c10609a437d1ac1d725ee18d6b6",
       "kind": "screen",
-      "motionSources": [
-        "CreateTimer"
-      ],
+      "motionSources": [],
       "linuxRoute": "",
       "fixture": "",
       "states": [
@@ -1908,11 +2322,9 @@
     {
       "id": "PokeparkEventOverlay",
       "source": "src/PKForge.App/Views/PokeparkEventOverlay.cs",
-      "sha256": "ed8a46d697d9a3dbbd0f3c4e825d714a2a189aca111d3e266361e03519aefebc",
+      "sha256": "3dc8c51dba52d649de5cf2d60f796f1ecaa50562cbe227e8ca0bcca09cb6a599",
       "kind": "screen",
-      "motionSources": [
-        "CreateTimer"
-      ],
+      "motionSources": [],
       "linuxRoute": "",
       "fixture": "",
       "states": [
@@ -1960,7 +2372,7 @@
     {
       "id": "PokeparkJournalView",
       "source": "src/PKForge.App/Views/PokeparkJournalView.cs",
-      "sha256": "908df259bf4406813cccc1e334d75b06983133144acf7989ac8f14ae56721044",
+      "sha256": "01c06ff2ba47a46c23b1b9816770ca19fc85dc918c62e12461ce0f9af722d08f",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -2010,10 +2422,9 @@
     {
       "id": "PokeparkPage",
       "source": "src/PKForge.App/Views/PokeparkPage.cs",
-      "sha256": "633a8c1cf69e50de4336444485f2928f00208a99a97285ba9aae471a6e9c9d3e",
+      "sha256": "abf02af2fd08de504b1910536023635297aa6818ce271f5abf3b713ef0b76e36",
       "kind": "screen",
       "motionSources": [
-        "CreateTimer",
         "FadeToAsync"
       ],
       "linuxRoute": "",
@@ -2038,7 +2449,7 @@
     {
       "id": "PokeparkPortrait",
       "source": "src/PKForge.App/Views/PokeparkPortrait.cs",
-      "sha256": "306181c5ff5fdf80ac0fd9bf4315f84272ef1a673b0a3f52a051e3e9b7e32542",
+      "sha256": "17d5cab566d4705b3c2dc95176e4dba37690807eca90fdb4ba62ebd0222817bf",
       "kind": "component",
       "motionSources": [
         "StartTimer"
@@ -2065,7 +2476,57 @@
     {
       "id": "PokeparkScene",
       "source": "src/PKForge.App/Views/PokeparkScene.cs",
-      "sha256": "c6fdb988ab5c8037cded45ffd4e81a639824c6b49267e0e7ea0bc4c4757acb86",
+      "sha256": "9bae00425b47073282468158996be71b288ce73b187924211b164c8688b3e562",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "PokewalkerEditor",
+      "source": "src/PKForge.App/Views/PokewalkerEditor.cs",
+      "sha256": "b066fbddd630eb20fbcbb1eea230108240b6e849f3f281bc79538dff965541de",
+      "kind": "screen",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "PortalOverlay",
+      "source": "src/PKForge.App/Views/PortalOverlay.cs",
+      "sha256": "8f721396cb0cc840c9c33d5fbc79bca86e89216e7e42fbcc8ec7212461e89c83",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -2090,7 +2551,7 @@
     {
       "id": "PotentialEditor",
       "source": "src/PKForge.App/Views/PotentialEditor.cs",
-      "sha256": "30a2a07a976d70a111b495a3dc6a50cc7063edaf868cc605233efab8a5d9334f",
+      "sha256": "bf2e1bdef93a7c52cfed6f4ff112037915c4ca86e9ac0cb98fb7edec790b7668",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -2138,9 +2599,59 @@
       "notes": ""
     },
     {
+      "id": "RaidEditor",
+      "source": "src/PKForge.App/Views/RaidEditor.cs",
+      "sha256": "1b13f954d246cfa58b44175d1ea164b75ed7e3a94814fa147c0f3592b74f1ba3",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "ResearchTasksEditor",
+      "source": "src/PKForge.App/Views/ResearchTasksEditor.cs",
+      "sha256": "43ff9517ff2a6b16548bedf93b69d6a6460857da0ba487c825c24d8c0f83e95c",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
       "id": "RoamerEditor",
       "source": "src/PKForge.App/Views/RoamerEditor.cs",
-      "sha256": "27d9ee195ab2603ddc9b3e88512da38e7a29ee6199046d9a7e695fde76bd8a3b",
+      "sha256": "b5b835cbf4ee2985719eebfec7d214beaaf20acfe60b77aa21d003f9219e7175",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -2165,7 +2676,7 @@
     {
       "id": "SaveBlockEditor",
       "source": "src/PKForge.App/Views/SaveBlockEditor.cs",
-      "sha256": "7ce0b3bd6cc8a864430b765e0b08feaf6ecc47f5836203f0428fe9a9b318dd62",
+      "sha256": "7f214cbd2858a67df87806bc113e1ce7eb4caa5421413323cb057199d898bbdc",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -2190,8 +2701,33 @@
     {
       "id": "SaveIdentitySheet",
       "source": "src/PKForge.App/Views/SaveIdentitySheet.cs",
-      "sha256": "befa887fd6262f0b63f5e6687baae0c3a10980395d7f72d2866611017be80efe",
+      "sha256": "950d314c538acfa1a2f1c65b8c9c8f86718068554b96bccb7def7fb145fb8837",
       "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "SaveLibraryPage",
+      "source": "src/PKForge.App/Views/SaveLibraryPage.cs",
+      "sha256": "33c6dc9a259c33234499ead5552cf9e37f652b8d6140864268e2671d7057f213",
+      "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
       "fixture": "",
@@ -2215,7 +2751,7 @@
     {
       "id": "SavePickerSheet",
       "source": "src/PKForge.App/Views/SavePickerSheet.cs",
-      "sha256": "b8e586053db4c19e14a880e5810a3af709727a5bbcc29803cc9ba01637af4735",
+      "sha256": "79cab02bb9cd4ffee804cc430de46e0c6ed1826bbd5a411da7945b611d162204",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -2240,7 +2776,57 @@
     {
       "id": "SecondScreenBoxPage",
       "source": "src/PKForge.App/Views/SecondScreenBoxPage.cs",
-      "sha256": "5474aa5e29d329021ea55dde38811ae0d9fbce499c515fb866181b9da5bc4272",
+      "sha256": "969c8e6f90d2980f9b2916dfa1647be55bec986bbc07c1aa516187638dd6fb27",
+      "kind": "screen",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "SinnohUndergroundEditor",
+      "source": "src/PKForge.App/Views/SinnohUndergroundEditor.cs",
+      "sha256": "c16885d02936d5ec3a12e6ba5cc79acfa81e841f44349a11dfef3207e5da1861",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "SpritePackScreen",
+      "source": "src/PKForge.App/Views/SpritePackScreen.cs",
+      "sha256": "00992658ffc8b1bfcb0877bdbd7c6b726379f21bd26c0f9dfffb2935d3f26c10",
       "kind": "screen",
       "motionSources": [],
       "linuxRoute": "",
@@ -2290,7 +2876,7 @@
     {
       "id": "StatsPopup",
       "source": "src/PKForge.App/Views/StatsPopup.cs",
-      "sha256": "c1dafeeb44cf9ca5196b6bdf68af7ee157d03ca6f06683787f24270db31bf49f",
+      "sha256": "166e179c049199ce143fcac8290221d248de9d6c2aac640107b6f8ba9bbea8a2",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -2313,9 +2899,62 @@
       "notes": ""
     },
     {
+      "id": "StatusToast",
+      "source": "src/PKForge.App/Views/StatusToast.cs",
+      "sha256": "6273c7168b7086275a9404753a1ef0eab655a7ac1dfbb06c9395288d410ba010",
+      "kind": "component",
+      "motionSources": [
+        "FadeToAsync",
+        "TranslateToAsync"
+      ],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
       "id": "SummaryPlates",
       "source": "src/PKForge.App/Views/SummaryPlates.cs",
-      "sha256": "e05eb328c5801324e1eb0386cbb54507671c6d54edb1ebe8dc110dbadebada3d",
+      "sha256": "5a5aff7c938a99f77a7e15b26280fc8abc432aaa5dabd132445697d48033dd1f",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "SuperTrainingSaveEditor",
+      "source": "src/PKForge.App/Views/SuperTrainingSaveEditor.cs",
+      "sha256": "f6dee77a7723c30764b3a18624f0acb95f7f8f42a1d13148e972b10182df6ab7",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -2340,7 +2979,7 @@
     {
       "id": "TextPopup",
       "source": "src/PKForge.App/Views/TextPopup.cs",
-      "sha256": "f57d9abe147e3f102feaf29901f5376f0b38693f9fee49d5fbfdf6fecc834a6c",
+      "sha256": "58ce8ebfb9eedc22a9553119c9bd9d198da112ac56fd2ea2be7789c90b317a20",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",
@@ -2365,13 +3004,13 @@
     {
       "id": "ThemePicker",
       "source": "src/PKForge.App/Views/ThemePicker.cs",
-      "sha256": "4174eb00a3cf22614e734d64c15c247f726f27a7199a13ee570f7b8c69a65b18",
+      "sha256": "acda2895289122b43c1bdddc771b0844f759912ffc85bca4920bece97c563441",
       "kind": "screen",
       "motionSources": [
         "Spring"
       ],
-      "linuxRoute": "Settings > Color scheme; WorkspaceHost.SettingsAsync",
-      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
+      "linuxRoute": "",
+      "fixture": "",
       "states": [
         "normal",
         "focused",
@@ -2387,42 +3026,42 @@
       "interactionEvidence": [],
       "motionEvidence": [],
       "status": "pending",
-      "notes": "Original graphical theme previews and spring scrolling shared. Platform host persists selected theme. Matched runtime verification remains pending."
+      "notes": ""
+    },
+    {
+      "id": "ToolScreen",
+      "source": "src/PKForge.App/Views/ToolScreen.cs",
+      "sha256": "53449ca523f3bdd0a5fb68e037b24afe41016bcd04c79ddeb94424c8722c10b1",
+      "kind": "screen",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
     },
     {
       "id": "TouchScroller",
       "source": "src/PKForge.App/Views/TouchScroller.cs",
-      "sha256": "72694401fb35ffbe405515668916433272667abae5a7f07d44e485ac9920b746",
+      "sha256": "3066a4a5724607be800cd2d5e3365a3507a998b018e52f7042ebfb2e689a82c8",
       "kind": "component",
       "motionSources": [
         "CreateTimer",
         "TouchScroller"
       ],
-      "linuxRoute": "Home shelf and NativeListScreen touch scrolling",
-      "fixture": "tools/UiPreview disposable fixture; 640x480 and 720x480",
-      "states": [
-        "normal",
-        "focused",
-        "empty",
-        "populated",
-        "loading",
-        "disabled",
-        "error",
-        "confirmation",
-        "long-text"
-      ],
-      "visualEvidence": [],
-      "interactionEvidence": [],
-      "motionEvidence": [],
-      "status": "pending",
-      "notes": "Original inertial gesture implementation shared. Physical touch/cancellation and Android timeline comparison remain pending."
-    },
-    {
-      "id": "TrainerCardPopup",
-      "source": "src/PKForge.App/Views/TrainerCardPopup.cs",
-      "sha256": "5547ba309038a859cc20fef37b7ef2d1e9c118eef914ff3c09df0b6567d643c5",
-      "kind": "component",
-      "motionSources": [],
       "linuxRoute": "",
       "fixture": "",
       "states": [
@@ -2470,9 +3109,113 @@
     {
       "id": "TypePlates",
       "source": "src/PKForge.App/Views/TypePlates.cs",
-      "sha256": "fd98a0a5c8b6b6deefdb91f94653d67e20d458b2242d951d24d536260a718eff",
+      "sha256": "2443d26f99d4aae939bcb1ece9eefbc209c7d2b181816c3d1b77fdd159079a65",
       "kind": "component",
       "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "WalkerScreen",
+      "source": "src/PKForge.App/Views/WalkerScreen.cs",
+      "sha256": "689bd6aa79c8e4136e49b5e7741b6070b55c24805573f5945dbcf379ffe980da",
+      "kind": "screen",
+      "motionSources": [
+        "CreateTimer"
+      ],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "WellLayer",
+      "source": "src/PKForge.App/Views/WellLayer.cs",
+      "sha256": "adb7c55f5cd107359d1109b60d9f01f962d297d156ade15b9b5e5fb1167ea995",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "WidgetLinks",
+      "source": "src/PKForge.App/Views/WidgetLinks.cs",
+      "sha256": "4bececa51bcd924daa84339a114996b8931d973878b94b2fa8c88bff0b3ab6e9",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "WidgetMenu",
+      "source": "src/PKForge.App/Views/WidgetMenu.cs",
+      "sha256": "d7a72ed2a63e2e54159af897ad07037b54d049b99e416753ff4ccd9f0526d94a",
+      "kind": "screen",
+      "motionSources": [
+        "CreateTimer"
+      ],
       "linuxRoute": "",
       "fixture": "",
       "states": [
@@ -2520,7 +3263,32 @@
     {
       "id": "WorldEventsMenu",
       "source": "src/PKForge.App/Views/WorldEventsMenu.cs",
-      "sha256": "a7276703ac148f35b7376caa15310c65e8cbc25affdfc9a86d7bb2c47ad49a23",
+      "sha256": "582c042847b917246655431bcece44ddb993d751c2e0985c6f0585fe0a46dd0b",
+      "kind": "component",
+      "motionSources": [],
+      "linuxRoute": "",
+      "fixture": "",
+      "states": [
+        "normal",
+        "focused",
+        "empty",
+        "populated",
+        "loading",
+        "disabled",
+        "error",
+        "confirmation",
+        "long-text"
+      ],
+      "visualEvidence": [],
+      "interactionEvidence": [],
+      "motionEvidence": [],
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "id": "ZygardeCellEditor",
+      "source": "src/PKForge.App/Views/ZygardeCellEditor.cs",
+      "sha256": "1959d0dc3a9d1bc97555973c494cb53d67b0c259aeb62560f3c14cbb6f2cb866",
       "kind": "component",
       "motionSources": [],
       "linuxRoute": "",

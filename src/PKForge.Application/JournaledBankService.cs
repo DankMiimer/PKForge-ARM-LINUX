@@ -15,6 +15,9 @@ public sealed class JournaledBankService(FileBankService inner, string bankDirec
     public Action<IReadOnlyList<BankEntry>, SaveAction>? Guard { get; set; }
     public IReadOnlyList<BankEntry> GetAll() => inner.GetAll();
     public int BoxCount => inner.BoxCount;
+    public int Count => inner.Count;
+    public IReadOnlySet<int> LockedBoxes => inner.LockedBoxes;
+    public IReadOnlyList<BankBoxGroup> BoxGroups => inner.BoxGroups;
     public int MigrationVersion => inner.MigrationVersion;
     public byte[] GetData(Guid id)
     {
@@ -27,7 +30,10 @@ public sealed class JournaledBankService(FileBankService inner, string bankDirec
     public void ValidateSnapshot(IBankService staged)
     {
         var expected = inner.GetAll().OrderBy(e => e.Id).ToArray(); var actual = staged.GetAll().OrderBy(e => e.Id).ToArray();
-        if (inner.BoxCount != staged.BoxCount || inner.MigrationVersion != staged.MigrationVersion || !expected.SequenceEqual(actual))
+        var groupsChanged = inner.BoxGroups.Count != staged.BoxGroups.Count
+            || inner.BoxGroups.Zip(staged.BoxGroups).Any(pair => pair.First.Name != pair.Second.Name || !pair.First.Boxes.SequenceEqual(pair.Second.Boxes));
+        if (inner.BoxCount != staged.BoxCount || inner.MigrationVersion != staged.MigrationVersion || !expected.SequenceEqual(actual)
+            || !inner.LockedBoxes.SetEquals(staged.LockedBoxes) || groupsChanged)
             throw new IOException("The Bank index changed outside PKForge. Reopen the Bank before modifying it.");
     }
     public void ValidateReads(IBankService staged, IEnumerable<Guid> ids)
@@ -70,6 +76,8 @@ public sealed class JournaledBankService(FileBankService inner, string bankDirec
         }
     }
     public BankEntry Add(byte[] data, BankEntryInfo info) => Change(SaveAction.Duplicate, "Bank deposit", bank => bank.Add(data, info));
+    public void SetBoxLocked(int box, bool locked) => Change(SaveAction.Move, "Bank box lock", bank => { bank.SetBoxLocked(box, locked); return true; });
+    public void SetBoxGroups(IReadOnlyList<BankBoxGroup> groups) => Change(SaveAction.Move, "Bank box groups", bank => { bank.SetBoxGroups(groups); return true; });
     public IReadOnlyList<BankEntry> AddMany(IReadOnlyList<BankDeposit> deposits) => Change(SaveAction.Duplicate, "Bank deposits", bank => bank.AddMany(deposits));
     public void Replace(Guid id, byte[] data, BankEntryInfo info) => Change(SaveAction.EditMon, "Bank Pokémon edit", bank => { bank.Replace(id, data, info); return true; }, [id]);
     public void Remove(Guid id) => Change(SaveAction.Release, "Bank release", bank => { bank.Remove(id); return true; }, [id]);

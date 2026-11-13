@@ -40,9 +40,8 @@ public static class PixelFont
             using var stream = FileSystem.OpenAppPackageFileAsync("NDS12.ttf").GetAwaiter().GetResult();
             using var bytes = new MemoryStream();
             stream.CopyTo(bytes);
-            var cache = System.IO.Path.Combine(FileSystem.CacheDirectory, "NDS12.ttf");
-            File.WriteAllBytes(cache, bytes.ToArray());
-            face = SKTypeface.FromFile(cache) ?? SKTypeface.Default;
+            using var data = SKData.CreateCopy(bytes.ToArray());
+            face = SKTypeface.FromData(data) ?? SKTypeface.Default;
         }
         catch
         {
@@ -78,15 +77,16 @@ public static class PixelFont
                     using var stream = FileSystem.OpenAppPackageFileAsync("MPLUSRounded1c-Regular.ttf").GetAwaiter().GetResult();
                     using var bytes = new MemoryStream();
                     stream.CopyTo(bytes);
-                    var cache = System.IO.Path.Combine(FileSystem.CacheDirectory, "MPLUSRounded1c-Regular.ttf");
-                    File.WriteAllBytes(cache, bytes.ToArray());
-                    face = SKTypeface.FromFile(cache) ?? SKTypeface.Default;
+                    using var data = SKData.CreateCopy(bytes.ToArray());
+                    face = SKTypeface.FromData(data) ?? SKTypeface.Default;
                 }
                 catch
                 {
                     face = SKTypeface.Default;
                 }
                 Volatile.Write(ref _fallback, face);
+                // Every Skia painter falls back to it for glyphs NDS12 lacks (Japanese, full-width).
+                if (!ReferenceEquals(face, SKTypeface.Default)) PKForge.Chrome.TextFallback.Preferred = face;
             });
     }
 

@@ -1,7 +1,7 @@
 # Attribution
 
-This is a Linux adaptation of PKForge v3.1.1 by sofianeelhor, based on commit
-799dfc310c94bb978962dcd31ddf7d39e6d8cba3. The park's simulation, interactions,
+This is a Linux adaptation of PKForge v3.2.0 by sofianeelhor, based on commit
+c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a. The park's simulation, interactions,
 rendering, art and save engine are reused from that release.
 
 - PKForge, PKHeX.Core, PKHeX-Plugins and the PKSM-derived chrome: GPLv3 or later;

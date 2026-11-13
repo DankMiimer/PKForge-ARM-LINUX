@@ -28,7 +28,8 @@ try
     ParkPlatform.Configure(arguments.DataDirectory, Path.Combine(AppContext.BaseDirectory, "assets"));
     ParkPlatform.Dispatch = UiDispatcher.Instance.Dispatch;
     var collection = new ServiceCollection();
-    collection.AddSingleton<ISaveEngine, SaveEngine>();
+    collection.AddSingleton<ISaveEngine>(_ => new SaveEngine { History = PokemonHistorySetting.Active });
+    collection.AddSingleton<ICustomGameArtStore>(_ => new FileCustomGameArtStore(Path.Combine(ParkPlatform.DataDirectory, CustomGameArt.Folder)));
     collection.AddSingleton<IGameDataService, GameDataService>();
     collection.AddSingleton<LinuxSaveFileAccess>();
     collection.AddSingleton<ISaveFileAccess>(sp => sp.GetRequiredService<LinuxSaveFileAccess>());
@@ -92,6 +93,8 @@ try
     collection.AddSingleton<IEmulatorDetectionService>(sp => sp.GetRequiredService<LocalEmulatorScanner>());
     collection.AddSingleton<SaveCatalogue>(sp => new(sp.GetRequiredService<IWatchedRootStore>(), sp.GetRequiredService<IIncrementalEmulatorDetectionService>(), sp.GetRequiredService<ISaveIdentityStore>(), Path.Combine(ParkPlatform.DataDirectory, "cache", "save-catalogue-v1.json")));
     collection.AddSingleton<ISaveCatalogue>(sp => sp.GetRequiredService<SaveCatalogue>());
+    collection.AddSingleton<ISaveLibraryShelf, PKForge.Linux.Workspace.LinuxSaveLibraryShelf>();
+    collection.AddSingleton<PKForge.App.ViewModels.SaveLibraryViewModel>();
     collection.AddSingleton<WorkspaceHost>(sp => new(sp, false));
     collection.AddSingleton<IFileDialogService>(sp => sp.GetRequiredService<WorkspaceHost>().Files);
     collection.AddSingleton<IFolderPicker>(sp => sp.GetRequiredService<WorkspaceHost>().Files);
@@ -99,6 +102,12 @@ try
     collection.AddSingleton<ISaveMutationService>(sp => sp.GetRequiredService<SaveMutationService>());
     collection.AddSingleton<ISpriteService, SpriteService>();
     collection.AddSingleton<PokeparkService>();
+    collection.AddSingleton<ItemBankStore>(_ => new(Path.Combine(ParkPlatform.DataDirectory, "item-bank")));
+    collection.AddSingleton<IItemBankStore>(sp => sp.GetRequiredService<ItemBankStore>());
+    collection.AddSingleton<LinuxDataTransfer>();
+    collection.AddSingleton<PokewalkerStrolls>();
+    collection.AddSingleton<TransferService>();
+    collection.AddSingleton<PokeparkWeatherService>();
     collection.AddSingleton<PokeparkJournalState>();
     collection.AddSingleton<PokeparkSpriteService>();
     collection.AddSingleton<PokeparkNarrativeMemory>();
@@ -154,6 +163,7 @@ try
             if (arguments.HeadlessScreen is "boxes" or "party" or "summary" or "summary-overview") workspace.OpenStorage(false);
             if (arguments.HeadlessScreen == "party") workspace.Screens.OnPadButton(PadButton.L);
             if (arguments.HeadlessScreen == "bank") workspace.OpenStorage(true);
+            if (arguments.HeadlessScreen == "item-bank") workspace.PushAsync(new ItemBankPage(() => services.GetRequiredService<ISaveCatalogue>().Saves)).GetAwaiter().GetResult();
             if (arguments.HeadlessScreen is "summary" or "summary-overview") workspace.SummaryAsync(new(0, 0)).GetAwaiter().GetResult();
             if (arguments.HeadlessScreen == "summary-overview") workspace.Screens.OnPadButton(PadButton.Select);
             if (arguments.HeadlessScreen == "collection") workspace.Screens.Push(new CollectionScreen(workspace, services.GetRequiredService<CollectionWorkflow>().ReadAsync().GetAwaiter().GetResult(), services.GetRequiredService<IGameDataService>().SpeciesNames, services.GetRequiredService<ISaveSessionService>().CurrentSession?.MaxSpeciesId ?? 1025, null));
@@ -161,6 +171,11 @@ try
             using var captureDevice = GraphicsDevice.CreateHeadless(arguments.CaptureWidth, arguments.CaptureHeight);
             var home = captureDevice.CurrentSurface;
             var captureBounds = new SKRect(0, 0, arguments.CaptureWidth, arguments.CaptureHeight);
+            void DrawCapture()
+            {
+                if (arguments.HeadlessScreen == "home-preview") workspace.Screens.DrawScreen(home.Canvas, captureBounds, true, captureDevice);
+                else workspace.Screens.DrawControls(home.Canvas, captureBounds, captureDevice);
+            }
             if (arguments.HeadlessInput.Count > 0)
             {
                 // Scripted presses on the real screen, at 30 FPS, as the main loop delivers them;
@@ -172,7 +187,7 @@ try
                     for (var frame = 0; frame < count; frame++)
                     {
                         UiDispatcher.Instance.Pump();
-                        workspace.Screens.DrawScreen(home.Canvas, captureBounds, arguments.HeadlessScreen == "home-preview", captureDevice);
+                        DrawCapture();
                         Thread.Sleep(33);
                     }
                 }
@@ -190,7 +205,7 @@ try
             for (var pass = 0; pass < 3; pass++)
             {
                 UiDispatcher.Instance.Pump();
-                workspace.Screens.DrawScreen(home.Canvas, captureBounds, arguments.HeadlessScreen == "home-preview", captureDevice);
+                DrawCapture();
                 if (pass < 2) Task.Delay(100).GetAwaiter().GetResult(); // Let sprite decodes dispatch their canvas invalidations.
             }
             using var screenshot = home.Snapshot(); using var png = screenshot.Encode(SKEncodedImageFormat.Png, 100);
@@ -252,8 +267,8 @@ try
             {
                 input.ClearHeld();
                 if (workspace.Screens.Active) workspace.Screens.Current?.Leave();
-                (parkDisplay ?? controls).MakeCurrent(); workspace.Screens.Primary.ReleaseSurface(); page.ParkView.ReleaseSurface();
-                controls.MakeCurrent(); journal.ReleaseSurface(); workspace.Screens.ControlRoot.ReleaseSurface(); page.ControlRoot.ReleaseSurface();
+                (parkDisplay ?? controls).MakeCurrent(); workspace.Screens.Primary.ReleaseSurface(); workspace.Screens.EffectRoot.ReleaseSurface(); page.ParkView.ReleaseSurface();
+                controls.MakeCurrent(); journal.ReleaseSurface(); workspace.ClosePages(); workspace.Screens.ControlRoot.ReleaseSurface(); page.ControlRoot.ReleaseSurface();
             });
             dual = displays.Dual;
             controls = displays.Secondary ?? displays.Primary;
@@ -373,6 +388,7 @@ try
             {
                 var start = Stopwatch.GetTimestamp();
                 var display = parkDisplay ?? controls;
+                UiScaleSetting.ApplyToPainters(display.Width, display.Height);
                 var surface = display.BeginFrame(); surface.Canvas.Clear(SKColors.Black);
                 if (workspace.Screens.Active)
                 {
@@ -389,6 +405,7 @@ try
             controlsPending |= activeControls;
             if (dual && secondaryClock.Due(now, controlsPending ? PresentationClock.UiInterval(controls.RefreshRate) : 200))
             {
+                UiScaleSetting.ApplyToPainters(controls.Width, controls.Height);
                 var surface = controls.BeginFrame(); surface.Canvas.Clear(new SKColor(15, 25, 38));
                 if (workspace.Screens.Active) workspace.Screens.DrawControls(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls);
                 else
@@ -405,6 +422,7 @@ try
         if (arguments.Screenshot)
         {
             var display = parkDisplay ?? controls;
+            UiScaleSetting.ApplyToPainters(display.Width, display.Height);
             var frame = display.BeginFrame(); frame.Canvas.Clear(SKColors.Black);
             if (workspace.Screens.Active)
             {
@@ -419,6 +437,7 @@ try
         controls.MakeCurrent();
         if (arguments.Screenshot && dual)
         {
+            UiScaleSetting.ApplyToPainters(controls.Width, controls.Height);
             var frame = controls.BeginFrame(); frame.Canvas.Clear(new SKColor(15, 25, 38));
             if (workspace.Screens.Active) workspace.Screens.DrawControls(frame.Canvas, new(0, 0, controls.Width, controls.Height), controls);
             else
@@ -430,8 +449,8 @@ try
             controls.Present();
         }
         App.Suspend(); page.Disappear(); workspace.Screens.Deactivate();
-        (parkDisplay ?? controls).MakeCurrent(); workspace.Screens.Primary.ReleaseSurface();
-        controls.MakeCurrent(); workspace.Screens.ControlRoot.ReleaseSurface();
+        (parkDisplay ?? controls).MakeCurrent(); workspace.Screens.Primary.ReleaseSurface(); workspace.Screens.EffectRoot.ReleaseSurface();
+        controls.MakeCurrent(); workspace.ClosePages(); workspace.Screens.ControlRoot.ReleaseSurface();
         (parkDisplay ?? controls).MakeCurrent(); page.ParkView.ReleaseSurface();
         controls.MakeCurrent(); page.ControlRoot.ReleaseSurface();
         services.GetRequiredService<SdlMusicPlayer>().Dispose();
@@ -450,9 +469,9 @@ catch (Exception error)
 
 internal sealed record Arguments
 {
-    public const string UpstreamVersion = "3.1.1";
-    public const string PortRevision = "0.2.3-dev";
-    public const string HelpText = "PKForge 3.1.1\n--data-dir PATH --start-page home|park --display-mode auto|single|dual --swap-screens --software --windowed\n--save PATH --demo --headless --seconds N --screenshot\n--headless-width N --headless-height N (Home/workspace capture size)\n--headless-input \"A Right A\" (pad presses before the capture; hold:A / release:A split one)\n--phase Morning|Day|Evening|Night --weather Sunny|Cloudy|Rain|Storm\n--input-script PATH (timed controller actions for integration testing)";
+    public const string UpstreamVersion = "3.2.0";
+    public const string PortRevision = "0.2.4-dev";
+    public const string HelpText = "PKForge 3.2.0\n--data-dir PATH --start-page home|park --display-mode auto|single|dual --swap-screens --software --windowed\n--save PATH --demo --headless --seconds N --screenshot\n--headless-width N --headless-height N (Home/workspace capture size)\n--headless-input \"A Right A\" (pad presses before the capture; hold:A / release:A split one)\n--phase Morning|Day|Evening|Night --weather Sunny|Cloudy|Rain|Storm\n--input-script PATH (timed controller actions for integration testing)";
     public string StartPage { get; init; } = "home";
     public string HeadlessScreen { get; init; } = "home";
     public int CaptureWidth { get; init; } = 640;

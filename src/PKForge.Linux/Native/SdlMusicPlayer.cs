@@ -18,6 +18,14 @@ public sealed class SdlMusicPlayer : IMusicPlayer, IDisposable
     public MusicOrder Order => Enum.TryParse<MusicOrder>(Preferences.Default.Get("music_order", "InOrder"), out var order) ? order : MusicOrder.InOrder;
     public MusicPlace Place { get; private set; }
     public bool Autostart => Preferences.Default.Get("music_autostart", false);
+    // Preserve the old Linux mixer's 48/128 gain until the user changes the
+    // new app-level slider. This never touches the firmware/system volume.
+    public int Volume => MusicPlaces.ClampVolume(Preferences.Default.Get("music_volume", 61));
+    public void SetVolume(int volume)
+    {
+        Preferences.Default.Set("music_volume", MusicPlaces.ClampVolume(volume));
+        if (_ready) Mix_VolumeMusic((int)Math.Round(128 * MusicPlaces.Gain(Volume)));
+    }
     public SdlMusicPlayer()
     {
         _library = Preferences.Default.Get("music_library", "").Split('\n', StringSplitOptions.RemoveEmptyEntries)
@@ -41,7 +49,7 @@ public sealed class SdlMusicPlayer : IMusicPlayer, IDisposable
             }
             if (Sdl.SDL_InitSubSystem(Sdl.InitAudio) != 0) throw new InvalidOperationException(Sdl.Error);
             if (Mix_OpenAudio(44100, 0x8010, 2, 1024) != 0) throw new InvalidOperationException(Sdl.Error);
-            _ready = true; Mix_VolumeMusic(48);
+            _ready = true; Mix_VolumeMusic((int)Math.Round(128 * MusicPlaces.Gain(Volume)));
             PKForge.App.App.Suspended += Suspend;
             PKForge.App.App.Resumed += Resume;
             Console.WriteLine("AUDIO SDL2_mixer initialized.");

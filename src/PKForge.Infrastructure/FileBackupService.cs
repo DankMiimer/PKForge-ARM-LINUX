@@ -7,7 +7,8 @@ namespace PKForge.Infrastructure;
 /// <summary>
 /// Durable backup store: raw save bytes plus a JSON metadata sidecar per version,
 /// under an app-private directory. Each save file keeps its newest <see cref="_maxVersions"/>
-/// versions, so a busy save never pushes out another save's restore points.
+/// versions, so a busy save never pushes out another save's restore points. Points the
+/// player pinned are kept on top of that allowance and never dropped.
 /// </summary>
 public sealed class FileBackupService(string rootDirectory, int maxVersions = 20, Action<string>? syncDirectory = null) : IBackupService
 {
@@ -71,6 +72,22 @@ public sealed class FileBackupService(string rootDirectory, int maxVersions = 20
         return bytes;
     }
 
+    public ValueTask SetPinnedAsync(string backupId, bool pinned, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(backupId);
+        if (backupId.Contains('/') || backupId.Contains('\\') || backupId.Contains(".."))
+            throw new ArgumentException("Invalid backup id.", nameof(backupId));
+        var info = ReadSidecar(SidecarPath(backupId))
+            ?? throw new FileNotFoundException($"Backup {backupId} not found.");
+        if (info.Pinned == pinned) return ValueTask.CompletedTask;
+        // Written beside the sidecar and moved over it: a crash never leaves half a sidecar.
+        cancellationToken.ThrowIfCancellationRequested();
+        AtomicFile.WriteText(SidecarPath(backupId), JsonSerializer.Serialize(info with { Pinned = pinned }, JsonOptions));
+        // Letting a point go puts it back under the allowance.
+        if (!pinned) Prune();
+        return ValueTask.CompletedTask;
+    }
+
     private List<BackupInfo> ReadAll()
     {
         if (!Directory.Exists(_root)) return [];
@@ -85,7 +102,7 @@ public sealed class FileBackupService(string rootDirectory, int maxVersions = 20
     private void Prune()
     {
         // Points made before they recorded their file share one allowance, as before.
-        foreach (var stale in ReadAll().GroupBy(x => x.DocumentId).SelectMany(file => file.Skip(_maxVersions)))
+        foreach (var stale in ReadAll().Where(x => !x.Pinned).GroupBy(x => x.DocumentId).SelectMany(file => file.Skip(_maxVersions)))
         {
             File.Delete(BytesPath(stale.BackupId));
             File.Delete(SidecarPath(stale.BackupId));
@@ -97,9 +114,12 @@ public sealed class FileBackupService(string rootDirectory, int maxVersions = 20
         if (!File.Exists(path)) return null;
         try
         {
-            return JsonSerializer.Deserialize<BackupInfo>(File.ReadAllText(path));
+            // A sidecar names its own files: one whose id is not its file name (a path, another
+            // point's) would make pruning delete something else, so it is not a restore point.
+            var info = JsonSerializer.Deserialize<BackupInfo>(File.ReadAllText(path));
+            return info is { BackupId: { } id, Sha256: not null } && id == Path.GetFileNameWithoutExtension(path) ? info : null;
         }
-        catch (JsonException)
+        catch (Exception error) when (error is JsonException or NotSupportedException or IOException)
         {
             return null;
         }

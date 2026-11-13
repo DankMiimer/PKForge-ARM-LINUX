@@ -90,12 +90,12 @@ try {
         [ordered]@{ path=$_.FullName.Substring($manifestRoot.Length+1).Replace('\','/'); bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
     })
     [IO.File]::WriteAllText((Join-Path $appDirectory 'asset-manifest.json'), (ConvertTo-Json -InputObject $assetManifest -Depth 4))
-    $buildInfo = [ordered]@{ upstream='3.1.1'; upstreamCommit=$provenance.upstreamCommit; linux=$portRevision; channel=$identity.channel; portCommit=$provenance.portCommit; submodules=$provenance.submodules; dirty=$provenance.dirty; candidate=[bool]$Candidate; minimumGlibc='2.29'; sdk=(dotnet --version); runtime=$runtimeVersion; rid='linux-arm64'; configuration=$Configuration }
+    $buildInfo = [ordered]@{ upstream='3.2.0'; upstreamCommit=$provenance.upstreamCommit; linux=$portRevision; channel=$identity.channel; portCommit=$provenance.portCommit; submodules=$provenance.submodules; dirty=$provenance.dirty; candidate=[bool]$Candidate; minimumGlibc='2.29'; sdk=(dotnet --version); runtime=$runtimeVersion; rid='linux-arm64'; configuration=$Configuration }
     $buildJson = ConvertTo-Json -Depth 5 -InputObject $buildInfo
     [IO.File]::WriteAllText((Join-Path $distributionDirectory 'BUILDINFO.json'), $buildJson)
     [IO.File]::WriteAllText((Join-Path $packageDirectory 'pkforge\BUILDINFO.json'), $buildJson)
-    [IO.File]::WriteAllText((Join-Path $appDirectory 'port-version.json'), (ConvertTo-Json -Compress -InputObject ([ordered]@{ upstream='3.1.1'; commit=$provenance.upstreamCommit; portCommit=$provenance.portCommit; linux=$portRevision; status=$identity.status })))
-    $archive = Join-Path $distributionDirectory "PKForge-v3.1.1-linux-$portRevision-arm64.zip"
+    [IO.File]::WriteAllText((Join-Path $appDirectory 'port-version.json'), (ConvertTo-Json -Compress -InputObject ([ordered]@{ upstream='3.2.0'; commit=$provenance.upstreamCommit; portCommit=$provenance.portCommit; linux=$portRevision; status=$identity.status })))
+    $archive = Join-Path $distributionDirectory "PKForge-v3.2.0-linux-$portRevision-arm64.zip"
     if (Test-Path -LiteralPath $archive) { Remove-Item -LiteralPath $archive }
     New-PortableArchive $packageDirectory $archive
     $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -114,7 +114,7 @@ try {
         $launcher = [IO.File]::ReadAllText((Join-Path $repoRoot 'packaging/linux/nextui-launch.sh'))
         [IO.File]::WriteAllText((Join-Path $homePak 'launch.sh'), $launcher.Replace('@ENTRY@', 'home'))
         [IO.File]::WriteAllText((Join-Path $parkPak 'launch.sh'), $launcher.Replace('@ENTRY@', 'park'))
-        $nextArchive = Join-Path $distributionDirectory "PKForge-v3.1.1-linux-$portRevision-nextui-$platform-arm64.zip"
+        $nextArchive = Join-Path $distributionDirectory "PKForge-v3.2.0-linux-$portRevision-nextui-$platform-arm64.zip"
         if (Test-Path -LiteralPath $nextArchive) { Remove-Item -LiteralPath $nextArchive }
         New-PortableArchive $nextRoot $nextArchive
         $binaryArchives += $nextArchive
@@ -127,7 +127,7 @@ try {
     if (Test-Path -LiteralPath $sourceDirectory) { Remove-Item -LiteralPath $sourceDirectory -Recurse -Force }
     New-Item -ItemType Directory -Path $sourceDirectory | Out-Null
     Export-CompleteSource $repoRoot $sourceDirectory $provenance
-    $sourceArchive = Join-Path $distributionDirectory "PKForge-v3.1.1-linux-$portRevision-full-source.zip"
+    $sourceArchive = Join-Path $distributionDirectory "PKForge-v3.2.0-linux-$portRevision-full-source.zip"
     if (Test-Path -LiteralPath $sourceArchive) { Remove-Item -LiteralPath $sourceArchive }
     New-PortableArchive $sourceDirectory $sourceArchive
     Write-Output $sourceArchive

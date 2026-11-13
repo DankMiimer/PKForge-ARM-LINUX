@@ -14,6 +14,15 @@
     <RuntimeHostConfigurationOption Include="System.Globalization.AppLocalIcu" Value="72.1.0.3" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="../PKForge.App/Resources/UI/**/*.png" Exclude="../PKForge.App/Resources/UI/design/**;../PKForge.App/Resources/UI/pksm/**;../PKForge.App/Resources/UI/lumi/**;../PKForge.App/Resources/UI/logo/**;../PKForge.App/Resources/UI/portal/**" Link="assets/ui/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../PKForge.App/Views/EvolutionCard.cs;../PKForge.App/Views/EvolutionOverlay.cs;../PKForge.App/Views/PortalOverlay.cs" Link="Upstream/%(Filename)%(Extension)" />
+    <Content Include="../PKForge.App/Resources/UI/portal/*.png" Link="assets/ui/portal/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <Compile Include="../PKForge.App/ViewModels/SaveLibraryViewModel.cs;../PKForge.App/ViewModels/SaveDescriptions.cs;../PKForge.App/Views/MuseumScreen.cs" Link="Upstream/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Services/GameArt.cs" Link="Upstream/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Views/RaidEditor.cs;../PKForge.App/Views/ContestTreatsEditor.cs;../PKForge.App/Views/SinnohUndergroundEditor.cs;../PKForge.App/Views/ResearchTasksEditor.cs;../PKForge.App/Views/SaveEditorWrites.cs" Link="Upstream/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Views/WalkerScreen.cs;../PKForge.App/Views/ItemBankPage.cs" Link="Upstream/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Views/PadMenu.cs;../PKForge.App/Views/PaintGuard.cs;../PKForge.App/Views/WellLayer.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Content Include="Resources/Fonts/*.ttf" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../PKForge.App/Resources/UI/dex/*.bin.gz" Link="assets/dex/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../PKForge.App/Resources/Events/*.bin.gz" Link="assets/events/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
@@ -44,9 +53,8 @@
     <Compile Include="../PKForge.App/Views/DialogueBox.cs;../PKForge.App/Views/TouchScroller.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Compile Include="../PKForge.App/Views/BankBoxOverview.cs;../PKForge.App/Views/BankWallpaperPicker.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Compile Include="../PKForge.App/Views/ThemePicker.cs" Link="Upstream/%(Filename)%(Extension)" />
-    <Compile Include="../PKForge.App/Views/Kit.Walker.cs;../PKForge.App/Views/LoadingOverlay.cs;../PKForge.App/Views/PadOverlay.cs;../PKForge.App/Views/DialogueChoiceBox.cs" Link="Upstream/%(Filename)%(Extension)" />
+    <Compile Include="../PKForge.App/Views/LoadingOverlay.cs;../PKForge.App/Views/PadOverlay.cs;../PKForge.App/Views/DialogueChoiceBox.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Compile Include="../PKForge.App/Views/PickerMenu.cs;../PKForge.App/Views/NaturePicker.cs;../PKForge.App/Views/InfoKit.cs;../PKForge.App/Views/InfoPickers.cs" Link="Upstream/%(Filename)%(Extension)" />
-    <Compile Include="../PKForge.App/Views/Kit.Pickers.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Compile Include="../PKForge.App/Services/IBankBoxOverviewActions.cs;../PKForge.App/Services/Motion.cs;../PKForge.App/Services/FrameInvalidator.cs" Link="Upstream/%(Filename)%(Extension)" />
     <Content Include="../PKForge.App/Resources/Pokepark/park/*.png" Link="assets/pokepark/park/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../PKForge.App/Resources/Fonts/*.ttf" Link="assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

@@ -36,10 +36,10 @@ public sealed partial class WorkspaceHost
         if (options is null) return;
         var plan = await Task.Run(() => LivingDexPlanner.Plan(LivingDexCatalogBuilder.Build(), sources, options));
         var protections = Get<ProtectionStore>(); var bankEntries = Bank.GetAll().ToDictionary(e => e.Id);
-        var bankProtected = bankEntries.Values.Where(e => protections.IsBoxLocked("bank", e.Box) || !Pokemon.Read(new(e.Box, e.Slot, e.Id, true), (s, b, i) => protections.CanRelease("bank", e.Box, e.Slot, s.GetRngInfo(b, i).Pid))).Select(e => e.Id).ToHashSet();
+        var bankProtected = bankEntries.Values.Where(e => IsBoxLocked("bank", e.Box) || !Pokemon.Read(new(e.Box, e.Slot, e.Id, true), (s, b, i) => protections.CanRelease("bank", e.Box, e.Slot, s.GetRngInfo(b, i).Pid))).Select(e => e.Id).ToHashSet();
         plan = plan with { Steps = plan.Steps.Select(step => step.Blocked is not null ? step : step.Holding?.BankId is { } bankId && bankProtected.Contains(bankId)
             ? step with { Blocked = "Source Bank Pokémon or box is protected." }
-            : plan.DestinationKind == LivingDexSourceKind.Bank && step.Destination is { } at && protections.IsBoxLocked("bank", at.Box)
+            : plan.DestinationKind == LivingDexSourceKind.Bank && step.Destination is { } at && IsBoxLocked("bank", at.Box)
                 ? step with { Blocked = "Destination Bank box is locked." } : step).ToArray() };
         Screens.Push(new AutopilotRouteScreen(plan));
         try

@@ -2,6 +2,11 @@
 
 Status: implementation in progress. Prepared 2026-10-25. See [implementation progress and evidence](ANDROID_PARITY_PROGRESS.md).
 
+Baseline update, 2026-11-13: future acceptance targets Android **v3.2.0** at
+`c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a`. Preserve the v3.1.1 measurements
+below as historical evidence. The new portal/evolution scenes, painted menus
+and other changed effects need matched 3.2.0 recordings before acceptance.
+
 Companion: [UI parity plan, baseline and execution order](ANDROID_UI_PARITY_PLAN.md).
 
 ## Target

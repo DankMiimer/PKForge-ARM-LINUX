@@ -1,5 +1,6 @@
 using System.Reflection;
 using PKForge.App.Services;
+using PKForge.App.Views;
 using PKForge.Application;
 using PKForge.Domain;
 using PKForge.Engine;
@@ -17,6 +18,10 @@ public sealed partial class WorkspaceHost
         if (SupportedWorldTools().Length > 0 || Session.SupportsRTCRepair) labels.Insert(7, "World / game-specific tools");
         if (Session.GetPokeBeans().Count > 0) labels.Add("Poké Beans");
         if (Session.GetGrandUndergroundItems().Count > 0) labels.Add("Grand Underground");
+        if (RaidService.IsSupported(Session)) labels.Add("Raids");
+        if (TreatCaseService.IsSupported(Session)) labels.Add("Contest treats");
+        if (SinnohUndergroundService.IsSupported(Session)) labels.Add("Sinnoh Underground");
+        if (LegendsResearchService.Supports(Session)) labels.Add("Research tasks");
         if (Session.SupportsLegalFashionUnlock || Session.SupportsStylePoints) labels.Add("Fashion / style");
         if (Session.GetDaycare().Supported) labels.Add("Day Care / Nursery");
         if (Session.SupportsCompassSettings) labels.Add("Compass settings");
@@ -27,12 +32,27 @@ public sealed partial class WorkspaceHost
         var choice = await Dialogs.MenuAsync("Save data", SaveTitle, labels.ToArray());
         switch (choice)
         {
+            case "Raids": await RaidEditor.ShowAsync(Screens.ControlRoot, Session, Get<ISaveMutationService>()); break;
+            case "Contest treats": await ContestTreatsEditor.ShowAsync(Screens.ControlRoot, Session, Get<ISaveMutationService>()); break;
+            case "Sinnoh Underground": await SinnohUndergroundEditor.ShowAsync(Screens.ControlRoot, Session, Get<ISaveMutationService>()); break;
+            case "Research tasks":
+                var species = LegendsResearchService.GetSpecies(Session);
+                var research = await Dialogs.PickAsync("Research tasks", new[] { "Perfect all research" }.Concat(species.Select(s => Data.SpeciesNames[s])).ToArray());
+                if (research == 0) await ResearchTasksEditor.PerfectAllAsync(Screens.ControlRoot, Get<ISaveMutationService>());
+                else if (research is > 0) await ResearchTasksEditor.ShowAsync(Screens.ControlRoot, Get<ISaveMutationService>(), Session, species[research.Value - 1], Data.SpeciesNames[species[research.Value - 1]]);
+                break;
             case "Trainer card":
                 var trainer = (TrainerInfo?)await Forms.RecordAsync("Trainer card", typeof(TrainerInfo), Session.GetTrainer(), textRules: field => field == "Name" ? GameTextRules.ForTrainer(Session) : null);
                 if (trainer is not null) await CommitAsync(s => { s.SetTrainer(trainer); return new(true, "Trainer updated."); }, "Trainer card", SaveAction.EditTrainer); break;
             case "Trainer statistics":
                 var capabilities = Session.GetTrainerStats();
-                var stats = await Forms.EditAsync<TrainerStatsEdit>("Trainer statistics", capabilities, field => field.ToLowerInvariant() switch { "playtimehours" or "playtimeminutes" => capabilities.SupportsPlayTime, "bp" => capabilities.SupportsBP, "coins" => capabilities.SupportsCoins, _ => false });
+                var stats = await Forms.EditAsync<TrainerStatsEdit>("Trainer statistics", capabilities, field => field.ToLowerInvariant() switch
+                {
+                    "playtimehours" or "playtimeminutes" => capabilities.SupportsPlayTime, "bp" => capabilities.SupportsBP,
+                    "coins" => capabilities.SupportsCoins, "watts" => capabilities.SupportsWatts,
+                    "festacoins" => capabilities.SupportsFestaCoins, "leaguepoints" => capabilities.SupportsLeaguePoints,
+                    "blueberrypoints" => capabilities.SupportsBlueberryPoints, _ => false
+                });
                 if (stats is not null) await CommitAsync(s => { s.SetTrainerStats(stats); return new(true, "Statistics updated."); }, "Trainer statistics", SaveAction.EditTrainer); break;
             case "Trainer profiles": await TrainerProfilesAsync(); break;
             case "Trainer records": await InspectAsync("Trainer records", Session.GetTrainerRecords()); break;
@@ -164,7 +184,7 @@ public sealed partial class WorkspaceHost
             await CommitAsync(s => { var result = s.WithdrawDaycareToFirstEmptyBox(fi, slotIndex); return new(true, $"{result.SpeciesName} moved to Box {result.Box + 1}, Slot {result.Slot + 1}."); }, "Withdraw from daycare", SaveAction.Move, WriteScope.Only(new SlotRef(landing.Box, landing.Slot)));
         }
     }
-    private static readonly Type[] WorldToolTypes = [typeof(ClockRepairService), typeof(RoamerService), typeof(EventResetService), typeof(EntralinkService), typeof(ApricornService), typeof(PokewalkerService), typeof(HoneyTreeService), typeof(KeyItemEventService)];
+    private static readonly Type[] WorldToolTypes = [typeof(ClockRepairService), typeof(RoamerService), typeof(EventResetService), typeof(EntralinkService), typeof(ApricornService), typeof(PokewalkerService), typeof(HoneyTreeService), typeof(KeyItemEventService), typeof(TrainerCardService), typeof(HallOfFameService)];
     private Type[] SupportedWorldTools() => WorldToolTypes.Where(t => (bool)(t.GetMethod("IsSupported")!.Invoke(null, [Session]) ?? false)).ToArray();
     private async Task WorldToolsAsync()
     {
@@ -201,7 +221,8 @@ public sealed partial class WorkspaceHost
             {
                 arguments[0] = s; var result = method.Invoke(null, arguments);
                 return result is GenerationOutcome outcome ? outcome : new(true, result is null ? "Updated." : NativeForms.Describe(result));
-            }, NativeForms.Name(method.Name), method.DeclaringType == typeof(ClockRepairService) ? SaveAction.RepairRtc : SaveAction.EditWorld);
+            }, NativeForms.Name(method.Name), method.DeclaringType == typeof(ClockRepairService) ? SaveAction.RepairRtc
+                : method.DeclaringType == typeof(TrainerCardService) ? SaveAction.EditTrainer : SaveAction.EditWorld);
         }
     }
     private async Task EventFlagsAsync()

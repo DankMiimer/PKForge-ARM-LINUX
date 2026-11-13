@@ -13,7 +13,7 @@ public sealed partial class WorkspaceHost
     {
         var options = new List<string> { "Import Pokémon files", "Generate Pokémon", "Search / filter", "Move selected", "Copy selected", "Release selected", "Export selected", "Select this box", "Clear selection", "Box management", "Sort", "Collection dex", "Living Dex Autopilot", "Showdown / QR import", "Community collections" };
         if (!screen.IsBank) options.AddRange(["Save data", "Batch editor", "Battle prep", "Batch rename / OT", "Generation tools", "Legality sweep", "Audit clones", "Nuzlocke report", "Encounters", "Egg factory", "Export box to Showdown"]);
-        else options.AddRange(["Add Bank box", "Export Bank archive", "Import Bank archive"]);
+        else options.AddRange(["Item Bank", "Add Bank box", "Export Bank archive", "Import Bank archive"]);
         options.AddRange(["Selection tools", "Duplicate within storage", "Find held item", "IV ranking"]);
         if (screen.IsBank) options.Add("PKSM bank transfer"); else options.Add("Presets");
         if (!screen.IsBank && Session is SaveEngineSession) options.Add("Bulk actions");
@@ -24,6 +24,7 @@ public sealed partial class WorkspaceHost
         var targets = addresses.Where(at => StorageSlots(screen.IsBank, at.Box).Any(s => s.Slot == at.Slot && s.Species is > 0)).Select(at => StorageTarget(screen.IsBank, at.Box, at.Slot)).ToArray();
         switch (choice)
         {
+            case "Item Bank": await ItemBankAsync(); break;
             case "Import Pokémon files": await ImportFilesAsync(screen.IsBank, screen.Box); break;
             case "Generate Pokémon": await EmptySlotAsync(screen.Target); break;
             case "Search / filter": await SearchAsync(screen.IsBank); break;
@@ -125,7 +126,7 @@ public sealed partial class WorkspaceHost
         var key = screen.IsBank ? "bank" : Sessions.Current!.Document.DocumentId;
         var boxes = (scopeChoice == "This box" ? new[] { screen.Box }
             : scopeChoice == "Boxes containing marked Pokémon" ? screen.Marks.Select(s => s.Box)
-            : Enumerable.Range(0, StorageBoxCount(screen.IsBank))).Distinct().Order().Where(b => b >= 0 && !Get<ProtectionStore>().IsBoxLocked(key, b)).ToArray();
+            : Enumerable.Range(0, StorageBoxCount(screen.IsBank))).Distinct().Order().Where(b => b >= 0 && !IsBoxLocked(key, b)).ToArray();
         if (boxes.Length == 0) throw new InvalidOperationException("There are no unlocked PC boxes in this scope.");
         var direction = await Dialogs.MenuAsync("Sort direction", "The chosen boxes are pooled and compacted; all other boxes stay in place.", "Normal", "Reversed");
         if (direction is null) return;
@@ -154,8 +155,13 @@ public sealed partial class WorkspaceHost
         var choice = await Dialogs.MenuAsync("Box management", "Box indexes in prompts start at 1.", labels.ToArray());
         if (choice == "Box overview") { await BankOverviewAsync(screen); return; }
         var key = screen.IsBank ? "bank" : Sessions.Current!.Document.DocumentId;
-        if (choice == "Lock / unlock") { Get<ProtectionStore>().ToggleBox(key, screen.Box); return; }
-        if (Get<ProtectionStore>().IsBoxLocked(key, screen.Box)) throw new InvalidOperationException("Unlock this box before modifying it.");
+        if (choice == "Lock / unlock")
+        {
+            if (screen.IsBank) await ToggleBankBoxLockAsync(screen.Box);
+            else Get<ProtectionStore>().ToggleBox(key, screen.Box);
+            return;
+        }
+        if (IsBoxLocked(key, screen.Box)) throw new InvalidOperationException("Unlock this box before modifying it.");
         if (choice == "Rename")
         {
             if (screen.IsBank) { await RenameBankBoxAsync(screen.Box); return; }
@@ -180,7 +186,7 @@ public sealed partial class WorkspaceHost
         {
             var target = await Dialogs.NumberAsync("Other box (1-based)", 1, 1, StorageBoxCount(screen.IsBank)); if (target is null) return;
             var other = (int)target - 1;
-            if (Get<ProtectionStore>().IsBoxLocked(key, other)) throw new InvalidOperationException("The other box is locked.");
+            if (IsBoxLocked(key, other)) throw new InvalidOperationException("The other box is locked.");
             if (screen.IsBank) await RemapBankAsync(BankBoxRemap.Swap(Bank.BoxCount, screen.Box, other));
             else await CommitAsync(s => { s.SwapBoxes(screen.Box, other); return new(true, "Boxes swapped."); }, "Swap boxes", SaveAction.Move,
                 new(Session.Snapshot.Slots.Where(s => s.Box == screen.Box || s.Box == other).Select(s => new SlotRef(s.Box, s.Slot)).ToArray()));
@@ -190,7 +196,7 @@ public sealed partial class WorkspaceHost
             var box = await Dialogs.NumberAsync("Destination box (1-based)", 1, 1, StorageBoxCount(screen.IsBank)); if (box is null) return;
             var slot = await Dialogs.NumberAsync("Destination slot (1-based)", 1, 1, StorageSlotCount(screen.IsBank, (int)box - 1)); if (slot is null) return;
             var targetBox = (int)box - 1; var targetSlot = (int)slot - 1;
-            if (Get<ProtectionStore>().IsBoxLocked(key, targetBox)) throw new InvalidOperationException("The destination box is locked.");
+            if (IsBoxLocked(key, targetBox)) throw new InvalidOperationException("The destination box is locked.");
             if (screen.IsBank) { var id = screen.Target.BankId ?? throw new InvalidOperationException("Empty slot."); Bank.Move(id, targetBox, targetSlot); }
             else await CommitAsync(s => { s.MoveSlot(screen.Box, screen.Cursor, targetBox, targetSlot); return new(true, "Pokémon moved."); }, "Move / swap", SaveAction.Move, WriteScope.Only(new SlotRef(screen.Box, screen.Cursor), new SlotRef(targetBox, targetSlot)));
         }
@@ -207,7 +213,7 @@ public sealed partial class WorkspaceHost
             else
             {
                 var mons = Session.Snapshot.Slots.Where(s => s.Box == screen.Box && s.Species is > 0).ToArray();
-                var free = Session.Snapshot.Slots.Where(s => s.Box >= 0 && s.Box != screen.Box && s.Species is null or 0 && !Get<ProtectionStore>().IsBoxLocked(key, s.Box)).Take(mons.Length).ToArray();
+                var free = Session.Snapshot.Slots.Where(s => s.Box >= 0 && s.Box != screen.Box && s.Species is null or 0 && !IsBoxLocked(key, s.Box)).Take(mons.Length).ToArray();
                 if (free.Length < mons.Length) throw new InvalidOperationException("Not enough unlocked space to rescue this box.");
                 var scope = new WriteScope(Session.Snapshot.Slots.Where(s => s.Box >= screen.Box).Concat(free).Select(s => new SlotRef(s.Box, s.Slot)).Distinct().ToArray());
                 await CommitAsync(s => { for (var i = 0; i < mons.Length; i++) s.MoveSlot(mons[i].Box, mons[i].Slot, free[i].Box, free[i].Slot); s.DeleteBox(screen.Box); return new(true, "Box deleted; all Pokémon rescued."); }, "Rescue and delete box", SaveAction.Move, scope);
@@ -232,10 +238,15 @@ public sealed partial class WorkspaceHost
                 new(Session.Snapshot.Slots.Where(s => s.Box >= Math.Min(screen.Box, target) && s.Box <= Math.Max(screen.Box, target)).Select(s => new SlotRef(s.Box, s.Slot)).ToArray()));
         }
     }
-    internal async Task RemapBankAsync(BankBoxRemap remap)
+    internal async Task RemapBankAsync(BankBoxRemap remap, Func<IReadOnlyList<BankBoxGroup>, IReadOnlyList<BankBoxGroup>>? changeGroups = null)
     {
         if (Get<ProtectionStore>().LockedBoxes("bank").Any(box => remap.Map(box) != box)) throw new InvalidOperationException("Unlock affected boxes before reordering them.");
-        await Get<JournaledBankService>().ExecuteAsync(SaveAction.Move, "Reorder Bank boxes", stage => { stage.Bank.RemapBoxes(remap); stage.Names.Remap(remap); stage.Wallpapers.Remap(remap); return true; });
+        await Get<JournaledBankService>().ExecuteAsync(SaveAction.Move, "Reorder Bank boxes", stage =>
+        {
+            stage.Bank.RemapBoxes(remap);
+            if (changeGroups is not null) stage.Bank.SetBoxGroups(changeGroups(stage.Bank.BoxGroups));
+            stage.Names.Remap(remap); stage.Wallpapers.Remap(remap); return true;
+        });
         BankBoxDecor.Names.Reload(); BankBoxDecor.Wallpapers.Reload();
         RemapBankPresentation(remap);
     }
@@ -247,7 +258,7 @@ public sealed partial class WorkspaceHost
             var action = await Dialogs.MenuAsync(title, "Each action uses one validated write and restore point.", "Heal party", "Heal all (party + boxes)", "PP Max all moves", "Set party to Lv50", "Set all to Lv100");
             if (action is null) return;
             var partyOnly = action is "Heal party" or "Set party to Lv50";
-            var targets = Session.Snapshot.Slots.Where(s => s.Species is > 0 && (!partyOnly || s.Box == -1) && !Get<ProtectionStore>().IsBoxLocked(key, s.Box)).Select(s => new SlotRef(s.Box, s.Slot)).ToArray();
+            var targets = Session.Snapshot.Slots.Where(s => s.Species is > 0 && (!partyOnly || s.Box == -1) && !IsBoxLocked(key, s.Box)).Select(s => new SlotRef(s.Box, s.Slot)).ToArray();
             string[] lines = action switch
             {
                 "Heal party" or "Heal all (party + boxes)" => ["Heal"],
@@ -260,7 +271,7 @@ public sealed partial class WorkspaceHost
         if (screen.Marks.Count > 0) scopeOptions.Insert(0, "Marked Pokémon");
         var scope = await Dialogs.MenuAsync(title + " scope", "Locked boxes are excluded.", scopeOptions.ToArray()); if (scope is null) return;
         var slots = (scope == "Marked Pokémon" ? screen.Marks : Session.Snapshot.Slots.Where(s => s.Species is > 0 && (scope == "This box" ? s.Box == screen.Box : scope == "All unlocked boxes" ? s.Box >= 0 : true)).Select(s => new SlotRef(s.Box, s.Slot)))
-            .Where(s => !Get<ProtectionStore>().IsBoxLocked(key, s.Box)).Distinct().ToArray();
+            .Where(s => !IsBoxLocked(key, s.Box)).Distinct().ToArray();
         if (slots.Length == 0) throw new InvalidOperationException("There are no unlocked Pokémon in this scope.");
         if (title == "Batch rename / OT")
         {
@@ -320,7 +331,11 @@ public sealed partial class WorkspaceHost
         var pid = Pokemon.Read(target, (s, b, i) => s.GetRngInfo(b, i).Pid);
         var action = await Dialogs.MenuAsync("Protection", "Locks prevent release and destructive bulk operations.", "Toggle release lock", "Toggle box lock");
         if (action == "Toggle release lock") Get<ProtectionStore>().ToggleMon(key, target.Box, target.Slot, pid);
-        if (action == "Toggle box lock") Get<ProtectionStore>().ToggleBox(key, target.Box);
+        if (action == "Toggle box lock")
+        {
+            if (target.InBank) await ToggleBankBoxLockAsync(target.Box);
+            else Get<ProtectionStore>().ToggleBox(key, target.Box);
+        }
     }
     private async Task ReleaseAsync(PokemonTarget target)
     {
@@ -328,7 +343,7 @@ public sealed partial class WorkspaceHost
         var mon = Pokemon.Read(target, (s, b, i) => s.ReadEntity(b, i));
         var pid = Pokemon.Read(target, (s, b, i) => s.GetRngInfo(b, i).Pid);
         var key = target.InBank ? "bank" : Sessions.Current!.Document.DocumentId;
-        if (Get<ProtectionStore>().IsBoxLocked(key, target.Box) || !Get<ProtectionStore>().CanRelease(key, target.Box, target.Slot, pid)) throw new InvalidOperationException("This Pokémon or its box is locked.");
+        if (IsBoxLocked(key, target.Box) || !Get<ProtectionStore>().CanRelease(key, target.Box, target.Slot, pid)) throw new InvalidOperationException("This Pokémon or its box is locked.");
         if (!target.InBank) CheckReleases([new(target.Box, target.Slot)]);
         if (!await Dialogs.ConfirmAsync("Release to the Wilds", mon.Nickname + " leaves its storage. A recovery copy is kept.", "Release")) return;
         var export = Pokemon.Read(target, (s, b, i) => s.ExportSlot(b, i));

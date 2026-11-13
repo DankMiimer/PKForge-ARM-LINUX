@@ -1,4 +1,5 @@
 using PKForge.App.Services;
+using PKForge.App.Views;
 using PKForge.Application;
 using PKForge.Domain;
 using PKForge.Engine;
@@ -34,6 +35,11 @@ public sealed partial class WorkspaceHost
         if (destination is null && fromBank) throw new InvalidOperationException("These Pokémon are already in the Bank. Use Move within Bank instead.");
         if (!copy && !fromBank) CheckReleases(targets.Select(t => new SlotRef(t.Box, t.Slot)).ToArray());
         var exports = targets.Select(t => Pokemon.Read(t, (s, b, i) => s.ExportSlot(b, i))).ToArray();
+        var screen = Screens.Current as StorageScreen;
+        var leaving = targets.Select(t => new PortalSource(StorageSlots(fromBank, t.Box).First(s => s.Slot == t.Slot),
+            screen is not null && screen.IsBank == fromBank && t.Box == screen.Box ? t.Slot : null)).ToArray();
+        var measured = screen?.WellBounds ?? default;
+        var well = measured.IsEmpty ? default : SkiaSharp.SKRect.Create(measured.Left, measured.Top, Math.Max(1, (int)measured.Width), Math.Max(1, (int)measured.Height));
         var journal = Get<RecoveryJournal>(); List<PreparedFileChange> changes = [];
         using var bankStage = new BankStaging(Path.Combine(ParkPlatform.DataDirectory, "bank"), Path.Combine(ParkPlatform.DataDirectory, "cache", "staging"));
         Get<JournaledBankService>().ValidateSnapshot(bankStage.Bank);
@@ -53,7 +59,7 @@ public sealed partial class WorkspaceHost
         if (destination is null)
         {
             var occupied = bankStage.Bank.GetAll().Select(e => (e.Box, e.Slot)).ToHashSet();
-            var free = Enumerable.Range(0, bankStage.Bank.BoxCount).Where(box => !Get<ProtectionStore>().IsBoxLocked("bank", box))
+            var free = Enumerable.Range(0, bankStage.Bank.BoxCount).Where(box => !IsBoxLocked("bank", box))
                 .SelectMany(box => Enumerable.Range(0, IBankService.SlotsPerBox).Where(slot => !occupied.Contains((box, slot))).Select(slot => new SlotRef(box, slot))).ToArray();
             if (free.Length < targets.Count) throw new InvalidOperationException("Add unlocked Bank boxes to make room for this transfer.");
             var start = await Dialogs.PickAsync("First Bank destination", free.Select(at => $"{BankBoxDecor.Label(at.Box)} · Slot {at.Slot + 1}").ToArray()); if (start is null) return;
@@ -68,7 +74,7 @@ public sealed partial class WorkspaceHost
             var before = (await Get<ISaveFileAccess>().ReadAsync(destination.DocumentId)).ToArray();
             var format = SaveIdentityRules.FormatOfChoice(Get<ISaveIdentityStore>().Get(destination.DocumentId)?.GameChoiceId);
             using var session = Get<ISaveEngine>().OpenSession(before, destination.DisplayName, format);
-            var free = session.Snapshot.Slots.Where(s => s.Box >= 0 && s.Species is null or 0 && !Get<ProtectionStore>().IsBoxLocked(destination.DocumentId, s.Box)).ToArray();
+            var free = session.Snapshot.Slots.Where(s => s.Box >= 0 && s.Species is null or 0 && !IsBoxLocked(destination.DocumentId, s.Box)).ToArray();
             if (free.Length < targets.Count) throw new InvalidOperationException($"Destination has {free.Length} empty slots; {targets.Count} are needed.");
             var start = await Dialogs.PickAsync("First destination slot", free.Select(s => $"Box {s.Box + 1} · Slot {s.Slot + 1}").ToArray()); if (start is null) return;
             var rooms = free.Skip(start.Value).Take(targets.Count).ToArray();
@@ -107,6 +113,11 @@ public sealed partial class WorkspaceHost
         var record = await journal.PrepareAsync(copy ? "Copy Pokémon" : "Move Pokémon", changes);
         await journal.CommitAsync(record.Id);
         await RefreshStoresAsync();
+        Screens.Invalidate();
+        if (screen is not null && ReferenceEquals(Screens.Current, screen) && !well.IsEmpty)
+            await PortalOverlay.PlayAsync(Screens.EffectRoot,
+                new(new(well.Width, well.Height), well, Screens.Invalidate, () => Screens.Active && ReferenceEquals(Screens.Current, screen), () => UiDispatcher.Instance.MonotonicTime),
+                leaving, Get<ISpriteService>(), screen.BdspStyle, screen.Cursor);
         await Dialogs.MessageAsync("Transfer complete", $"{targets.Count} Pokémon {(copy ? "copied" : "moved")}. The operation and preserved originals are recorded.");
     }
     private void CheckReleases(IReadOnlyList<SlotRef> slots)
@@ -115,7 +126,7 @@ public sealed partial class WorkspaceHost
         var protects = Get<ProtectionStore>();
         foreach (var at in slots)
         {
-            if (protects.IsBoxLocked(document, at.Box)) throw new InvalidOperationException("A source box is locked.");
+            if (IsBoxLocked(document, at.Box)) throw new InvalidOperationException("A source box is locked.");
             if (!protects.CanRelease(document, at.Box, at.Slot, Session.GetRngInfo(at.Box, at.Slot).Pid)) throw new InvalidOperationException("A selected Pokémon is release-locked.");
         }
         if (slots.Any(s => s.Box < 0))

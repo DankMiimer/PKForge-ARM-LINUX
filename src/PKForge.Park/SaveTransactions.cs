@@ -65,6 +65,7 @@ public sealed class LinuxSaveFileAccess : IFingerprintedSaveFileAccess
 /// <summary>Shared transaction funnel: the live session is rolled back on every failure.</summary>
 public sealed class SaveMutationService(ISaveSessionService sessions, ISafeSaveWriter writer) : ISaveMutationService
 {
+    public ISaveEngineSession? CurrentSession => sessions.CurrentSession;
     private readonly SaveOperations? _shared;
     public SaveMutationService(ISaveSessionService sessions, ISafeSaveWriter writer, SaveOperations shared) : this(sessions, writer) => _shared = shared;
     private readonly SemaphoreSlim _gate = new(1);

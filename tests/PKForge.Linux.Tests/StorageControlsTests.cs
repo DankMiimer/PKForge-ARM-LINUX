@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.Controls;
 using PKForge.App.Services;
 using PKForge.Application;
 using PKForge.Domain;
@@ -23,7 +24,7 @@ public sealed class StorageControlsTests : IDisposable
     public StorageControlsTests()
     {
         Directory.CreateDirectory(_directory);
-        ParkPlatform.Configure(_directory, _directory);
+        ParkPlatform.Configure(_directory, Path.Combine(AppContext.BaseDirectory, "assets"));
         _save = Path.Combine(_directory, "test.sav");
         File.WriteAllBytes(_save, Fixture());
         var collection = new ServiceCollection();
@@ -168,6 +169,37 @@ public sealed class StorageControlsTests : IDisposable
         _services.GetRequiredService<ProtectionStore>().ToggleBox("bank", 0);
         await Assert.ThrowsAsync<InvalidOperationException>(() => _workspace.RemapBankAsync(BankBoxRemap.Swap(bank.BoxCount, 0, 1)));
         Assert.Equal("Protected", BankBoxDecor.Names.Get(0)); Assert.Equal(0, BankBoxDecor.LivingDexStartBox); Assert.Equal(0, screen.Box);
+    }
+
+    [Fact]
+    public async Task Upstream_box_lock_follows_a_whole_box_move_with_its_group()
+    {
+        var bank = _services.GetRequiredService<IBankService>();
+        bank.SetBoxLocked(0, true); bank.SetBoxGroups([new("Keep", [0])]);
+        await _workspace.RemapBankAsync(BankBoxRemap.Move(bank.BoxCount, 0, 1));
+        Assert.True(bank.LockedBoxes.SetEquals([1])); Assert.Equal(new[] { 1 }, bank.BoxGroups.Single().Boxes);
+        Assert.Empty(_services.GetRequiredService<RecoveryJournal>().Pending());
+    }
+
+    [Fact]
+    public async Task Shared_page_navigation_hides_and_restores_pages_and_notifies_removal()
+    {
+        var first = new TrackedPage(); var second = new TrackedPage();
+        await _workspace.PushAsync(first); await _workspace.PushAsync(second);
+        Assert.False(first.Content!.IsVisible); Assert.Equal(1, first.Disappeared);
+        Assert.Same(second, await _workspace.PopAsync()); Assert.True(first.Content.IsVisible);
+        Assert.Equal(2, first.Appeared); Assert.Equal(NavigationType.Pop, second.Removal);
+        _workspace.OpenHome(); Assert.Equal(NavigationType.Remove, first.Removal);
+        Assert.DoesNotContain(first.Content, _workspace.Screens.ControlRoot.Children);
+    }
+    private sealed class TrackedPage : ContentPage
+    {
+        public int Appeared, Disappeared;
+        public NavigationType? Removal;
+        public TrackedPage() => Content = new Grid();
+        protected override void OnAppearing() => Appeared++;
+        protected override void OnDisappearing() => Disappeared++;
+        protected override void OnNavigatedFrom(NavigatedFromEventArgs args) => Removal = args.NavigationType;
     }
 
     /// <summary>A Gen 3 save with Pikachu in box 1 slot 1 and Mewtwo in slot 2, as the Park tests use.</summary>

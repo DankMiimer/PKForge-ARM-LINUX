@@ -22,12 +22,14 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
     private SKImage? _wallpaper;
     public void Leave()
     {
+        PortalOverlay.Stop(); EvolutionOverlay.Stop();
         _wallpaper?.Dispose(); _wallpaper = null; _wallpaperPath = null; _hand.Reset();
         _backdrop?.Dispose(); _backdrop = null; _backdropKey = default;
         _inspector?.ReleaseSurface(); _inspector = null; _selectHeld = false; _rectangle = null;
     }
     public bool IsBank => bank;
     public int Box { get; private set; }
+    internal string? BankGroup { get; set; }
     internal void SelectBox(int box)
     {
         Box = Math.Clamp(box, 0, Math.Max(0, Host.StorageBoxCount(bank) - 1));
@@ -81,7 +83,7 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
     private (int Box, int Slot, object? Version)? _inspected;
     private MonSummaryView? _inspector;
     private long _partyPulseStart = Environment.TickCount64;
-    public void Enter() { _cachedBox = int.MinValue; _inspected = null; _partyPulseStart = Environment.TickCount64; }
+    public void Enter() { _cachedBox = int.MinValue; _inspected = null; _partyPulseStart = Environment.TickCount64; PortalOverlay.Warm(Host.Screens.EffectRoot); }
     private IReadOnlyList<SlotSummary> Slots
     {
         get
@@ -101,6 +103,8 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
     }
     private SlotSummary? Selected => _cursor < 0 ? null : Slots.FirstOrDefault(s => s.Slot == _cursor && s.Species is > 0);
     public PokemonTarget Target => Host.StorageTarget(bank, Box, Cursor);
+    internal SKRect WellBounds { get; private set; }
+    internal bool BdspStyle => Shape.BdspStyle;
 
     // ── The hand ──────────────────────────────────────────────────────────────
 
@@ -226,6 +230,7 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
         // BankPage pads its body 20 (BoxBrowserPage 34) and stacks its LCD status line over the footer.
         var well = new SKRect(left, bar.Bottom + 28 * unit, bounds.Right - right,
             bank ? bounds.Bottom - 42 - 6 - StatusHeight - 20 * unit : bounds.Bottom - 42 - 34 * unit);
+        WellBounds = well;
         var wallpaper = _wallpaperFor;
         if (wallpaper != _wallpaperPath)
         {
@@ -386,7 +391,16 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
     private void ChangeBox(int delta)
     {
         _message = null; _rectangle = null;
-        if (bank) { Box = Math.Clamp(Box + delta, 0, Math.Max(0, BoxCount - 1)); return; }
+        if (bank)
+        {
+            if (BankGroup is { } group)
+            {
+                var members = Host.BankGroupMembers(group);
+                if (BankBoxGroups.Step(members, Box, delta) is { } member) { Box = member; return; }
+                BankGroup = null;
+            }
+            Box = Math.Clamp(Box + delta, 0, Math.Max(0, BoxCount - 1)); return;
+        }
         // The party wraps around the boxes: last box, then the party, then box 1 again.
         var next = Box + delta;
         if (next > BoxCount - 1) next = FirstBox;

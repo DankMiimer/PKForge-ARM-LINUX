@@ -1,5 +1,18 @@
 # ARM64 port validation
 
+## Upstream 3.2.0 integration — 13 November 2026
+
+New development pins v3.2.0. The feature/acceptance matrix is in
+[UPSTREAM_3_2_0_SUPPORT.md](UPSTREAM_3_2_0_SUPPORT.md). Earlier test counts,
+captures and handheld reports below refer to their recorded commits and
+remain historical. None establishes acceptance of the 3.2.0 packages.
+The 129-unit reference ledger starts with all parity gates pending.
+
+On the merged source, the host suites pass **3,352 tests** (1,437 Domain,
+1,741 Engine, 77 Park, 97 Linux UI) and the 12 launcher scenarios; the Android
+project compiles (compile target only, no APK built). No 3.2.0 package has been
+built, and nothing in this section was run on a handheld.
+
 ## 0.3.0 development work — 12 November 2026
 
 The current Linux suites pass **1,989 tests** (861 Domain, 966 Engine,

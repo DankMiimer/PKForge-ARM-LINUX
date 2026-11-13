@@ -83,7 +83,7 @@ jobs:
           if ($LASTEXITCODE) { throw 'Could not download the verified release input.' }
           $info = Get-Content release-input/BUILDINFO.json -Raw | ConvertFrom-Json
           $source = Join-Path $env:RUNNER_TEMP 'pkforge-complete-source'
-          $archive = Join-Path (Resolve-Path release-input) "PKForge-v3.1.1-linux-$($info.linux)-full-source.zip"
+          $archive = Join-Path (Resolve-Path release-input) "PKForge-v3.2.0-linux-$($info.linux)-full-source.zip"
           [IO.Compression.ZipFile]::ExtractToDirectory($archive, $source)
           Push-Location $source
           try {
@@ -141,7 +141,7 @@ jobs:
           test "$RELEASE_TAG" = "linux-v$(jq -r .linux BUILDINFO.json)"
           jq -e --arg commit "$RELEASE_COMMIT" '.dirty == false and .candidate == false and .portCommit == $commit' BUILDINFO.json
           revision=$(jq -r .linux BUILDINFO.json)
-          title="PKForge 3.1.1 — Linux port $revision"
+          title="PKForge 3.2.0 — Linux port $revision"
           flags=()
           case $(jq -r .channel BUILDINFO.json) in
             stable)

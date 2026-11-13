@@ -18,6 +18,9 @@ public sealed partial class WorkspaceHost : INavigation
     private ISaveSessionService Sessions => Get<ISaveSessionService>();
     private ISaveEngineSession Session => Sessions.CurrentSession ?? throw new InvalidOperationException("Open a save first.");
     private IBankService Bank => Get<IBankService>();
+    private bool IsBoxLocked(string document, int box) => Get<ProtectionStore>().IsBoxLocked(document, box)
+        || document == "bank" && Bank.LockedBoxes.Contains(box);
+    internal IReadOnlyList<int> BankGroupMembers(string group) => BankBoxGroups.Members(Bank.BoxGroups, group);
     private SaveOperations Operations => Get<SaveOperations>();
     private PokemonWorkflow Pokemon => Get<PokemonWorkflow>();
     private IGameDataService Data => Get<IGameDataService>();
@@ -38,6 +41,7 @@ public sealed partial class WorkspaceHost : INavigation
     }
     public void OpenHome(bool welcome = false)
     {
+        ClosePages();
         Screens.Home(); Screens.Activate();
         if (welcome && !Preferences.Default.Get("linux.welcome.v1", false) && LibraryGroups.Count == 0)
         {
@@ -66,8 +70,36 @@ public sealed partial class WorkspaceHost : INavigation
             case { } download when download.StartsWith("Download the sprite pack", StringComparison.Ordinal): await DownloadSpritesAsync(); break;
         }
     }
-    public Task PushAsync(ContentPage page) { OpenHome(); return Task.CompletedTask; }
-    public Task<ContentPage?> PopAsync() { OpenHome(); return Task.FromResult<ContentPage?>(null); }
+    private readonly List<ContentPage> _pages = [];
+    internal void ClosePages()
+    {
+        while (_pages.LastOrDefault() is { } page)
+        {
+            page.Disappear(); _pages.RemoveAt(_pages.Count - 1);
+            if (page.Content is { } content) Screens.ControlRoot.Remove(content);
+            page.NavigatedFrom(NavigationType.Remove);
+        }
+    }
+    public Task PushAsync(ContentPage page)
+    {
+        if (page.Content is null) throw new InvalidOperationException("The page has no content.");
+        if (_pages.LastOrDefault() is { } previous)
+        { previous.Disappear(); if (previous.Content is { } behind) behind.IsVisible = false; }
+        _pages.Add(page); Screens.ControlRoot.Add(page.Content); page.Appear();
+        Screens.Invalidate(); return Task.CompletedTask;
+    }
+    public Task<ContentPage?> PopAsync()
+    {
+        if (_pages.LastOrDefault() is not { } page) { OpenHome(); return Task.FromResult<ContentPage?>(null); }
+        page.Disappear(); _pages.RemoveAt(_pages.Count - 1);
+        if (page.Content is { } content) Screens.ControlRoot.Remove(content);
+        page.NavigatedFrom(NavigationType.Pop);
+        if (_pages.LastOrDefault() is { } previous)
+        { if (previous.Content is { } behind) behind.IsVisible = true; previous.Appear(); }
+        Screens.Invalidate();
+        return Task.FromResult<ContentPage?>(page);
+    }
+    private Task ItemBankAsync() => PushAsync(new ItemBankPage(() => Get<ISaveCatalogue>().Saves, Screens.Invalidate));
     private SaveSession? _homeSession;
     private IReadOnlyList<IReadOnlyList<DetectedSave>>? _homeGroups;
     private IReadOnlyList<(string, Func<Task>)>? _homeRows;
@@ -78,6 +110,8 @@ public sealed partial class WorkspaceHost : INavigation
         _homeSession = Sessions.Current; _homeGroups = groups;
         List<(string, Func<Task>)> items = [
             ("Open a save file", OpenFileAsync), ("Browse Bank", () => { OpenStorage(true); return Task.CompletedTask; }),
+            ("Item Bank", ItemBankAsync),
+            ("Saves / snapshots / museum", SaveLibraryAsync),
             ("Poképark", () => { ParkRequested?.Invoke(); return Task.CompletedTask; }),
             ("Scan linked folders", ScanAsync), ("Link a folder", LinkFolderAsync),
             ("Settings and diagnostics", SettingsAsync), ("Filter / sort game library", LibraryFilterAsync)];

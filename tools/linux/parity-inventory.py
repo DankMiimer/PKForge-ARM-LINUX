@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE = "799dfc310c94bb978962dcd31ddf7d39e6d8cba3"
+BASELINE = "c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a"
 LEDGER = ROOT / "PARITY_ACCEPTANCE.json"
 STATES = ["normal", "focused", "empty", "populated", "loading", "disabled", "error", "confirmation", "long-text"]
 ADAPTATIONS = {
@@ -54,7 +54,7 @@ def update(rows):
             "status": "pending", "notes": "",
         }.items()})
         surfaces.append(row)
-    result = {"baseline": {"version": "3.1.1", "commit": BASELINE},
+    result = {"baseline": {"version": "3.2.0", "commit": BASELINE},
               "viewports": [{"mode": "single", "width": 720, "height": 480},
                             {"mode": "dual", "width": 640, "height": 480}],
               "approvedAdaptations": ADAPTATIONS, "surfaces": surfaces}
@@ -63,7 +63,7 @@ def update(rows):
 
 def check(rows, complete):
     data = json.loads(LEDGER.read_text(encoding="utf-8"))
-    if data["baseline"] != {"version": "3.1.1", "commit": BASELINE}:
+    if data["baseline"] != {"version": "3.2.0", "commit": BASELINE}:
         raise ValueError("Android reference baseline changed")
     recorded = data["surfaces"]
     keys = ("id", "source", "sha256", "kind", "motionSources")

@@ -1,10 +1,10 @@
 # PKForge-ARM-LINUX for ROCKNIX and KNULLI
 
-A native ARM64 Linux port of [PKForge](https://github.com/sofianeelhor/PKForge) by **sofianeelhor**, maintained here by **DankMiimer**. Based on upstream **v3.1.1**, with the rebuilt Poképark, a native save library, Pokémon editors and Bank tools.
+A native ARM64 Linux port of [PKForge](https://github.com/sofianeelhor/PKForge) by **sofianeelhor**, maintained here by **DankMiimer**. This branch integrates upstream **v3.2.0**, including Item Bank, the handheld Pokéwalker, save snapshots and museum, and the updated engines and painted menus.
 
 **[Download the Linux preview](https://github.com/DankMiimer/PKForge-ARM-LINUX/releases)** · [Installation and controls](LINUX.md) · [Feature coverage](FEATURE_COVERAGE.md) · [Validation](VALIDATION.md) · [Original project](https://github.com/sofianeelhor/PKForge)
 
-This is a **development preview**, Linux revision **0.2.3-dev**. Broad editor functionality is implemented, but full v3.1.1 parity and every game/format path have not completed acceptance. The feature matrix distinguishes implementation from verified behavior.
+The next preview is Linux revision **0.2.4-dev**. See [3.2.0 support](UPSTREAM_3_2_0_SUPPORT.md) for integration and acceptance limits. The published **0.2.3-dev** packages still use upstream **v3.1.1**. Full visual parity and every game/format path remain acceptance work; shared source and passing tests do not establish hardware acceptance.
 
 ![Native Linux save library on RG34XXSP](docs/screenshots/linux/home.png)
 

@@ -1,9 +1,11 @@
 # Matched UI reference captures
 
-The reference stays at Android v3.1.1,
-`799dfc310c94bb978962dcd31ddf7d39e6d8cba3`. The acceptance ledger is
+The current reference is Android v3.2.0,
+`c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a`. The acceptance ledger is
 `PARITY_ACCEPTANCE.json`; captures and shared source do not automatically verify
-a surface or close its state, interaction and motion gates.
+a surface or close its state, interaction and motion gates. Existing 3.1.1
+captures and the diagnostic harness below are historical; update and compile
+the harness against 3.2.0 before making new acceptance claims.
 
 ## Linux components
 
@@ -80,7 +82,7 @@ diagnostic build installs as `org.pkforge.app.debug`, beside the unmodified app.
 The harness refuses non-emulator hardware. Never install it on a personal device
 or reuse an emulator containing personal saves or accounts.
 
-Use only copied synthetic Bank data. Verify all 98 `Views/` source files against
+Use only copied synthetic Bank data. Verify all 129 `Views/` source files against
 the baseline (normalize LF/CRLF before comparing content); record both the
 unmodified and diagnostic APK hashes, the hook and harness source hashes, and
 the installed APK hash reported by `sha256sum` on the path from `pm path`.

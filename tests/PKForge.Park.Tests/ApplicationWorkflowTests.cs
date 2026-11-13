@@ -345,6 +345,70 @@ public sealed class ApplicationWorkflowTests : IDisposable
         Assert.Equal(10, rule.MaximumLength); Assert.Equal(accepted, rule.Accepts(text));
         Assert.Equal("MON", save.ReadEntity(0, 0).Nickname);
     }
+    [Fact]
+    public void Bank_reload_observes_locks_and_groups_from_the_committed_index()
+    {
+        var raw = new FileBankService(PathOf("bank"));
+        var external = new FileBankService(PathOf("bank"));
+        external.SetBoxLocked(1, true); external.SetBoxGroups([new("Keep", [1, 2])]);
+        raw.Reload();
+        Assert.True(raw.LockedBoxes.SetEquals([1]));
+        Assert.Equal("Keep", raw.BoxGroups.Single().Name); Assert.Equal(new[] { 1, 2 }, raw.BoxGroups.Single().Boxes);
+    }
+    [Theory] [InlineData(false)] [InlineData(true)]
+    public void Bank_mutation_refuses_external_lock_or_group_changes(bool groups)
+    {
+        var raw = new FileBankService(PathOf("bank")); var journal = Journal();
+        var bank = new JournaledBankService(raw, PathOf("bank"), PathOf("staging"), journal, new(_ => null));
+        var external = new FileBankService(PathOf("bank"));
+        if (groups) external.SetBoxGroups([new("Keep", [0])]); else external.SetBoxLocked(0, true);
+        Assert.Throws<IOException>(() => bank.AddBox());
+        Assert.Empty(journal.History());
+        var reloaded = new FileBankService(PathOf("bank"));
+        Assert.Equal(external.LockedBoxes, reloaded.LockedBoxes);
+        Assert.Equal(external.BoxGroups.Select(g => g.Name), reloaded.BoxGroups.Select(g => g.Name));
+    }
+    [Fact]
+    public async Task Bank_lock_and_group_change_undo_as_one_journaled_operation()
+    {
+        var raw = new FileBankService(PathOf("bank")); var journal = Journal();
+        var bank = new JournaledBankService(raw, PathOf("bank"), PathOf("staging"), journal, new(_ => null));
+        await bank.ExecuteAsync(SaveAction.Move, "Lock and group", stage =>
+        { stage.Bank.SetBoxLocked(1, true); stage.Bank.SetBoxGroups([new("Keep", [1])]); return true; });
+        Assert.True(bank.LockedBoxes.Contains(1)); Assert.Equal("Keep", bank.BoxGroups.Single().Name);
+        await journal.RecoverAsync(journal.History().Single().Id, true); bank.Reload();
+        Assert.Empty(bank.LockedBoxes); Assert.Empty(bank.BoxGroups);
+    }
+    [Fact]
+    public async Task Linux_archive_import_keeps_safety_copy_and_device_preferences()
+    {
+        var source = PathOf("archive-source");
+        var sourceBank = new FileBankService(Path.Combine(source, "bank"));
+        sourceBank.Add([1, 2, 3], new(25, 0, false, "Pika", 5, 8, "test", "PK8"));
+        using var archive = new MemoryStream();
+        DataArchive.Export(archive, source, [new("color_theme", "string", "fire"), new("linux.last-save", "string", "/other/save"), new("motion_level", "int", "1")], "3.2.0", DateTimeOffset.UtcNow);
+        ParkPlatform.Settings.Set("linux.last-save", "/local/save"); ParkPlatform.Settings.Set("color_theme", "water");
+        var raw = new FileBankService(PathOf("bank")); var journal = Journal();
+        var bank = new JournaledBankService(raw, PathOf("bank"), PathOf("staging"), journal, new(_ => null));
+        var transfer = new LinuxDataTransfer(bank, new JsonSaveIdentityStore(PathOf("save-identities.json")), new(PathOf("injected-gifts.json")), new(PathOf("item-bank")));
+        archive.Position = 0; var imported = await transfer.ImportAsync(archive, "3.2.0");
+        Assert.Equal(1, imported.Result.BankImported); Assert.Single(bank.GetAll()); Assert.Empty(journal.Pending());
+        Assert.Equal("/local/save", ParkPlatform.Settings.Get("linux.last-save", ""));
+        Assert.Equal("fire", ParkPlatform.Settings.Get("color_theme", "")); Assert.Equal(1, ParkPlatform.Settings.Get("motion_level", 0));
+        using var safetyInput = File.OpenRead(imported.SafetyArchive);
+        using var safety = DataArchive.Open(safetyInput);
+        Assert.Equal("water", safety.Preferences.Single(p => p.Key == "color_theme").Value);
+        Assert.Equal(0, safety.Manifest.ItemsIn(DataTransfer.BankSection));
+    }
+    [Fact]
+    public void Invalid_archive_preferences_are_rejected_before_a_settings_write()
+    {
+        var settings = (JsonSettingsStore)ParkPlatform.Settings; settings.Set("motion_level", 0);
+        Assert.Throws<DataArchiveException>(() => settings.ImportPreferences([new("motion_level", "int", "wrong")]));
+        Assert.Equal(0, settings.Get("motion_level", -1));
+        settings.ImportPreferences([new("linux.last-save", "string", "/foreign"), new("music_library", "string", "/foreign.mp3")]);
+        Assert.Equal("missing", settings.Get("linux.last-save", "missing")); Assert.Equal("missing", settings.Get("music_library", "missing"));
+    }
     public void Dispose()
     {
         // The directory was created by this fixture under the dedicated test root.
