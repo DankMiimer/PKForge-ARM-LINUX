@@ -140,9 +140,44 @@ public static class WalkerPaint
     // ---- The device -------------------------------------------------------------------------
 
     // The artist's shell, as large as whole steps allow, the LCD in its window, the buttons on their anchors.
+    /// <summary>
+    /// Small handheld screens (the Linux port's 640 and 720 wide panels) only have room for the
+    /// shell at ×1 in whole steps, leaving most of its area empty. With this on, a device that
+    /// would be drawn below ×3 is composed at the next whole step up and scaled down smoothly to
+    /// fill its area instead. Off by default: larger screens keep the exact whole-step pixels.
+    /// </summary>
+    public static bool FillSmallScreens { get; set; }
+
+    private static readonly SKSamplingOptions Smooth = new(SKFilterMode.Linear, SKMipmapMode.None);
+
     private static (WalkerHits, SKRect) PaintDevice(SKCanvas c, SKRect area, WalkerScene scene, WalkerDeviceArt art)
     {
         var device = Fit(art.Shell, area);
+        var exact = Math.Min(area.Width / art.Shell.Width, area.Height / art.Shell.Height);
+        if (FillSmallScreens && exact is > 1f and < 3f && exact > device.Width / art.Shell.Width)
+        {
+            var whole = (int)MathF.Ceiling(exact);
+            var composed = SKRect.Create(0, 0, art.Shell.Width * whole, art.Shell.Height * whole);
+            using var surface = SKSurface.Create(new SKImageInfo((int)composed.Width, (int)composed.Height, SKColorType.Rgba8888, SKAlphaType.Premul));
+            if (surface is not null)
+            {
+                surface.Canvas.Clear(SKColors.Transparent);
+                var (inner, _) = DrawDevice(surface.Canvas, composed, scene, art);
+                var w = MathF.Floor(art.Shell.Width * exact);
+                var h = MathF.Floor(art.Shell.Height * exact);
+                var fitted = SKRect.Create(MathF.Round(area.MidX - w / 2), MathF.Round(area.MidY - h / 2), w, h);
+                using (var image = surface.Snapshot()) c.DrawImage(image, fitted, Smooth);
+                var kx = fitted.Width / composed.Width;
+                var ky = fitted.Height / composed.Height;
+                SKRect Map(SKRect r) => SKRect.Create(fitted.Left + r.Left * kx, fitted.Top + r.Top * ky, r.Width * kx, r.Height * ky);
+                return (new WalkerHits(Map(inner.Left), Map(inner.Centre), Map(inner.Right), Map(inner.Screen), [.. inner.Targets.Select(Map)]), fitted);
+            }
+        }
+        return DrawDevice(c, device, scene, art);
+    }
+
+    private static (WalkerHits, SKRect) DrawDevice(SKCanvas c, SKRect device, WalkerScene scene, WalkerDeviceArt art)
+    {
         var s = device.Width / art.Shell.Width;
         c.DrawImage(art.Shell, device, Crisp);
         SKRect Place(SKRectI r) => SKRect.Create(device.Left + r.Left * s, device.Top + r.Top * s, r.Width * s, r.Height * s);

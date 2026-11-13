@@ -107,6 +107,24 @@ public sealed class StorageControlsTests : IDisposable
     }
 
     [Fact]
+    public async Task Opening_a_menu_puts_the_Pokemon_in_hand_back_first()
+    {
+        // Reported on the RGDS: A (grab), then + and a transfer from the menu, left the
+        // transferred Pokémon drawn in the hand until the next grab.
+        var screen = Open(bank: false);
+        Press(PadButton.A);
+        Assert.True(screen.Carrying);
+        // Every menu button (+, X, Y, −) goes through RunMenu; a stand-in keeps real overlays out of the test.
+        var ran = false;
+        screen.RunMenu(() => { ran = true; Assert.False(screen.Carrying); return Task.CompletedTask; });
+        Assert.True(ran);
+        Assert.False(screen.Carrying);
+        // Nothing was moved or written by putting it back.
+        await screen.PendingWrite;
+        Assert.Equal(25, SpeciesOnDisk(0, 0));
+    }
+
+    [Fact]
     public void Minus_is_the_green_hand_where_held_A_marks_the_swept_area()
     {
         var screen = Open(bank: false);

@@ -128,9 +128,10 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
             _carryId = bank ? Host.StorageTarget(true, Box, _cursor).BankId : null;
             return;
         }
-        Run(() => Host.PokemonMenuAsync(Target));
+        RunMenu(() => Host.PokemonMenuAsync(Target));
     }
     private void CancelCarry() { _carry = null; _carried = null; _carryId = null; }
+    internal bool Carrying => _carry is not null;
     private async Task DropAsync()
     {
         if (_carry is null || _dropWaiting) return;
@@ -363,8 +364,11 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
 
     // ── Input ─────────────────────────────────────────────────────────────────
 
-    private void Run(Func<Task> action) => _ = Host.Screens.RunAsync(async () =>
+    internal void RunMenu(Func<Task> action) => _ = Host.Screens.RunAsync(async () =>
     {
+        // A menu acts on the slot under the cursor. A Pokémon still in hand goes back first, so
+        // one the menu then transfers or releases cannot stay drawn in the hand afterwards.
+        CancelCarry();
         try { await action(); }
         finally
         {
@@ -424,16 +428,16 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
                 if (bank && Marks.Count > 0) { Marks.Clear(); break; }
                 if (_carry is not null) { CancelCarry(); break; }
                 return false;
-            case PadButton.X: Run(() => Host.StorageToolsAsync(this)); break;
+            case PadButton.X: RunMenu(() => Host.StorageToolsAsync(this)); break;
             case PadButton.Y:
-                if (!bank) { Run(Host.SaveToolsAsync); break; }
+                if (!bank) { RunMenu(Host.SaveToolsAsync); break; }
                 if (!ToggleMark(Cursor)) _message = "Nothing to mark in an empty slot.";
                 break;
-            case PadButton.Start: if (_cursor < 0) _cursor = 0; Run(() => Host.PokemonMenuAsync(Target)); break;
+            case PadButton.Start: if (_cursor < 0) _cursor = 0; RunMenu(() => Host.PokemonMenuAsync(Target)); break;
             case PadButton.Select:
                 if (!bank) EnterSelectMode();
                 else if (Host.Screens.Dual) _inspector?.TurnPage(1);
-                else Run(() => Host.SummaryAsync(Target));
+                else RunMenu(() => Host.SummaryAsync(Target));
                 break;
             default: return false;
         }
@@ -463,8 +467,8 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
                 BeginRectangle(_cursor);
                 break;
             case PadButton.Y: TogglePage(); break;
-            case PadButton.X: Run(() => Host.StorageToolsAsync(this)); break;
-            case PadButton.Start: Run(() => Host.BoxManagementAsync(this)); break;
+            case PadButton.X: RunMenu(() => Host.StorageToolsAsync(this)); break;
+            case PadButton.Start: RunMenu(() => Host.BoxManagementAsync(this)); break;
             case PadButton.B: if (Marks.Count > 0) Marks.Clear(); else ExitSelectMode(); break;
             case PadButton.Select: ExitSelectMode(); break;
             default: return false;

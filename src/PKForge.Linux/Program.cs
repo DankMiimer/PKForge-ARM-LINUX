@@ -153,6 +153,8 @@ try
     }
     // Complete font tasks before entering the UI loop; no event-loop continuation is required.
     Task.WhenAll(PixelFont.WarmAsync(), PixelFont.WarmFallbackAsync()).GetAwaiter().GetResult();
+    // Handheld panels only fit the Pokéwalker shell at ×1 in whole steps; let it fill its area.
+    PKForge.Chrome.WalkerPaint.FillSmallScreens = true;
     _ = NativeLabelFonts.AndroidFallback;
     if (arguments.Headless)
     {
