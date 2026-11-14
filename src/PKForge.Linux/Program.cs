@@ -244,7 +244,7 @@ try
         }, (index, secondary) =>
         {
             var title = (index == 1 ? "[w2] " : "") + (secondary ? "PKForge Controls" : "PKForge Park");
-            var device = new GraphicsDevice(title, index, arguments.Software || !ParkCanvas.UsesGpu, !arguments.Windowed);
+            var device = new GraphicsDevice(title, index, arguments.Software || !ParkCanvas.UsesGpu, !arguments.Windowed, GraphicsDevice.RequestedSwapInterval(secondary));
             try { device.BeginFrame(); return device; }
             catch { device.Dispose(); throw; }
         }, arguments.DisplayMode, arguments.SwapScreens, Console.WriteLine);
@@ -305,9 +305,12 @@ try
         var performance = new FrameStatistics();
         var primaryClock = new PresentationClock();
         var secondaryClock = new PresentationClock();
+        // PKFORGE_PACING=panel: count the primary panel's refreshes instead of using the fixed clock.
+        var panelPacer = Environment.GetEnvironmentVariable("PKFORGE_PACING") == "panel" ? new PanelPacer() : null;
+        Console.WriteLine("PACING " + (panelPacer is null ? "clock" : "panel"));
         var controlsPending = false;
         var lastMotion = timer.Elapsed.TotalSeconds;
-        workspace.Screens.Changed = () => { primaryClock.Reset(); secondaryClock.Reset(); if (workspace.Screens.Active) { page.Disappear(); services.GetRequiredService<IMusicPlayer>().EnterPlace(MusicPlace.Menus); } };
+        workspace.Screens.Changed = () => { primaryClock.Reset(); secondaryClock.Reset(); panelPacer?.Reset(); if (workspace.Screens.Active) { page.Disappear(); services.GetRequiredService<IMusicPlayer>().EnterPlace(MusicPlace.Menus); } };
         var mouseHeld = false;
         var refreshDisplays = false;
         var wasSuspended = App.IsSuspended;
@@ -359,7 +362,7 @@ try
             if (refreshDisplays && !App.IsSuspended)
             {
                 RefreshDisplays(); refreshDisplays = false; mouseHeld = false;
-                primaryClock.Reset(); secondaryClock.Reset();
+                primaryClock.Reset(); secondaryClock.Reset(); panelPacer?.Reset();
             }
             input.Update();
             touchPanels?.Pump(controls.Width, controls.Height, (top, touch) =>
@@ -390,7 +393,10 @@ try
             var parkHidden = singleParkUi && PKForge.App.Views.WalkerScreen.IsOpen;
             page.ParkPaintInterval = parkHidden ? TimeSpan.FromSeconds(0.5) : singleParkUi ? TimeSpan.FromSeconds(1.0 / 30) : TimeSpan.Zero;
             var primaryInterval = workspace.Screens.Active || singleParkUi ? PresentationClock.UiInterval((parkDisplay ?? controls).RefreshRate) : 1000.0 / 30;
-            if (primaryClock.Due(now, primaryInterval))
+            // With a swap that waits for the panel at this very rate, the swap is the pacer;
+            // a second, software clock beside it would drift against the panel and drop frames.
+            var panelPeriod = 1000.0 / (parkDisplay ?? controls).RefreshRate;
+            if (panelPacer is not null ? panelPacer.Due(now, primaryInterval, panelPeriod) : (parkDisplay ?? controls).SwapPaces(primaryInterval) || primaryClock.Due(now, primaryInterval))
             {
                 var start = Stopwatch.GetTimestamp();
                 var display = parkDisplay ?? controls;
@@ -403,14 +409,23 @@ try
                 }
                 else if (dual) page.ParkView.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                 else page.ControlRoot.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
+                display.Flush(); var render = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+                // A finished frame waits for the refresh before its own, or it would be shown one refresh early.
+                if (panelPacer is not null) while (timer.Elapsed.TotalMilliseconds < panelPacer.SwapNotBefore(primaryInterval, panelPeriod)) Thread.Sleep(1);
+                var drawn = Stopwatch.GetTimestamp();
                 display.Present();
-                performance.Add(Stopwatch.GetElapsedTime(start).TotalMilliseconds, now, workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : singleParkUi ? "Park UI" : "Park");
+                var swap = Stopwatch.GetElapsedTime(drawn).TotalMilliseconds;
+                panelPacer?.Presented(timer.Elapsed.TotalMilliseconds, render, swap);
+                performance.Add(false, workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : singleParkUi ? PKForge.App.Views.WalkerScreen.IsOpen ? "Pokewalker" : "Park UI" : "Park",
+                    timer.Elapsed.TotalMilliseconds, render, swap, primaryInterval);
             }
             // Keep one fast presentation pending after motion/menu activity ends, so the
             // final transparent frame (or closed menu) does not wait for the idle interval.
             controlsPending |= activeControls;
-            if (dual && secondaryClock.Due(now, controlsPending ? PresentationClock.UiInterval(controls.RefreshRate) : 200))
+            var secondaryInterval = controlsPending ? PresentationClock.UiInterval(controls.RefreshRate) : 200;
+            if (dual && (controls.SwapPaces(secondaryInterval) || secondaryClock.Due(now, secondaryInterval)))
             {
+                var start = Stopwatch.GetTimestamp();
                 UiScaleSetting.ApplyToPainters(controls.Width, controls.Height);
                 var surface = controls.BeginFrame(); surface.Canvas.Clear(new SKColor(15, 25, 38));
                 if (workspace.Screens.Active) workspace.Screens.DrawControls(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls);
@@ -419,7 +434,10 @@ try
                     journal.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height - 70), controls);
                     page.ControlRoot.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls, page.ParkView);
                 }
+                controls.Flush(); var drawn = Stopwatch.GetTimestamp();
                 controls.Present(); controlsPending = activeControls;
+                performance.Add(true, workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : PKForge.App.Views.WalkerScreen.IsOpen ? "Pokewalker" : activeControls ? "Park controls" : "Park journal",
+                    timer.Elapsed.TotalMilliseconds, Stopwatch.GetElapsedTime(start, drawn).TotalMilliseconds, Stopwatch.GetElapsedTime(drawn).TotalMilliseconds, secondaryInterval);
             }
             if (arguments.InputScript is { } script) library.RunScript(script, timer.Elapsed.TotalSeconds);
             Thread.Sleep(1);
@@ -460,7 +478,13 @@ try
         (parkDisplay ?? controls).MakeCurrent(); page.ParkView.ReleaseSurface();
         controls.MakeCurrent(); page.ControlRoot.ReleaseSurface();
         services.GetRequiredService<SdlMusicPlayer>().Dispose();
-        performance.Save(Path.Combine(ParkPlatform.DataDirectory, "performance.json"), (parkDisplay ?? controls).Gpu, dual);
+        performance.Save(Path.Combine(ParkPlatform.DataDirectory, "performance.json"), (parkDisplay ?? controls).Gpu, dual, new Dictionary<string, object?>
+        {
+            ["upstream"] = Arguments.UpstreamVersion, ["portRevision"] = Arguments.PortRevision, ["module"] = typeof(Arguments).Module.ModuleVersionId,
+            ["pacing"] = panelPacer is null ? "clock" : panelPacer.SwapWaits ? "panel" : "panel (swap does not wait; target interval)",
+            ["displays"] = new[] { parkDisplay ?? controls, parkDisplay is null ? null : controls }.Where(d => d is not null)
+                .Select(d => new { width = d!.Width, height = d.Height, refreshRate = d.RefreshRate, swapInterval = d.SwapInterval, gpu = d.Gpu }).ToArray()
+        });
         Console.WriteLine("Clean exit.");
     }
     finally { Sdl.SDL_Quit(); }
@@ -549,41 +573,6 @@ internal static class DemoRoster
         Preferences.Default.Set("pkforge.pokepark.roster.v1", JsonSerializer.Serialize(roster));
         Preferences.Default.Set("pkforge.pokepark.initialized.v2", true);
         Preferences.Default.Set("pkforge.pokepark.residents.v1", JsonSerializer.Serialize(roster.Select(p => p.Id).ToArray()));
-    }
-}
-
-internal sealed class FrameStatistics
-{
-    private readonly List<double> _times = [];
-    private readonly Dictionary<int, MinuteWindow> _windows = [];
-    private double _first = -1, _last;
-    private sealed class MinuteWindow
-    {
-        public int Frames;
-        public double DrawTotal;
-        public double RssMiB = Process.GetCurrentProcess().WorkingSet64 / 1048576.0;
-        public double ManagedMiB = GC.GetTotalMemory(false) / 1048576.0;
-        public double AllocatedMiB = GC.GetTotalAllocatedBytes() / 1048576.0;
-        public int[] Collections = [GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2)];
-        public readonly Dictionary<string, int> Views = [];
-    }
-    public void Add(double elapsed, double at, string view)
-    {
-        if (_first < 0) _first = at; _last = at; _times.Add(elapsed);
-        var minute = (int)(at / 60000); if (!_windows.TryGetValue(minute, out var window)) _windows[minute] = window = new();
-        window.Frames++; window.DrawTotal += elapsed; window.Views[view] = window.Views.GetValueOrDefault(view) + 1;
-        if (window.Frames == 1) Console.WriteLine($"MINUTE {minute}: RSS={window.RssMiB:F1} MiB; view={view}");
-    }
-    public void Save(string path, bool gpu, bool dual)
-    {
-        var sorted = _times.Order().ToArray();
-        var result = new { frames = _times.Count, seconds = (_last - _first) / 1000, fps = (_times.Count - 1) * 1000 / Math.Max(1, _last - _first),
-            drawAverageMs = _times.Count == 0 ? 0 : _times.Average(), drawP95Ms = sorted.Length == 0 ? 0 : sorted[(int)((sorted.Length - 1) * .95)],
-            rssMiB = Process.GetCurrentProcess().WorkingSet64 / 1048576.0, gpu, dual, upstream = Arguments.UpstreamVersion, portRevision = Arguments.PortRevision, module = typeof(Arguments).Module.ModuleVersionId,
-            viewFrames = _windows.Values.SelectMany(window => window.Views).GroupBy(pair => pair.Key).ToDictionary(group => group.Key, group => group.Sum(pair => pair.Value)),
-            minuteWindows = _windows.Where(p => p.Key < (int)(_last / 60000)).OrderBy(p => p.Key).Select(p => new { startSeconds = p.Key * 60, seconds = 60, warmup = p.Key == 0, frames = p.Value.Frames, fps = p.Value.Frames / 60.0, drawAverageMs = p.Value.DrawTotal / p.Value.Frames, rssMiB = p.Value.RssMiB, managedMiB = p.Value.ManagedMiB, allocatedMiB = p.Value.AllocatedMiB, collections = p.Value.Collections, views = p.Value.Views }).ToArray() };
-        File.WriteAllText(path, JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
-        Console.WriteLine("PERFORMANCE " + JsonSerializer.Serialize(result));
     }
 }
 
