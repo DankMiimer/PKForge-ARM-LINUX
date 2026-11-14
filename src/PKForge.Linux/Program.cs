@@ -244,7 +244,7 @@ try
         }, (index, secondary) =>
         {
             var title = (index == 1 ? "[w2] " : "") + (secondary ? "PKForge Controls" : "PKForge Park");
-            var device = new GraphicsDevice(title, index, arguments.Software || !ParkCanvas.UsesGpu, !arguments.Windowed, GraphicsDevice.RequestedSwapInterval(secondary));
+            var device = new GraphicsDevice(title, index, arguments.Software || !ParkCanvas.UsesGpu, !arguments.Windowed);
             try { device.BeginFrame(); return device; }
             catch { device.Dispose(); throw; }
         }, arguments.DisplayMode, arguments.SwapScreens, Console.WriteLine);
@@ -305,12 +305,9 @@ try
         var performance = new FrameStatistics();
         var primaryClock = new PresentationClock();
         var secondaryClock = new PresentationClock();
-        // PKFORGE_PACING=panel: count the primary panel's refreshes instead of using the fixed clock.
-        var panelPacer = Environment.GetEnvironmentVariable("PKFORGE_PACING") == "panel" ? new PanelPacer() : null;
-        Console.WriteLine("PACING " + (panelPacer is null ? "clock" : "panel"));
         var controlsPending = false;
         var lastMotion = timer.Elapsed.TotalSeconds;
-        workspace.Screens.Changed = () => { primaryClock.Reset(); secondaryClock.Reset(); panelPacer?.Reset(); if (workspace.Screens.Active) { page.Disappear(); services.GetRequiredService<IMusicPlayer>().EnterPlace(MusicPlace.Menus); } };
+        workspace.Screens.Changed = () => { primaryClock.Reset(); secondaryClock.Reset(); if (workspace.Screens.Active) { page.Disappear(); services.GetRequiredService<IMusicPlayer>().EnterPlace(MusicPlace.Menus); } };
         var mouseHeld = false;
         var refreshDisplays = false;
         var wasSuspended = App.IsSuspended;
@@ -362,7 +359,7 @@ try
             if (refreshDisplays && !App.IsSuspended)
             {
                 RefreshDisplays(); refreshDisplays = false; mouseHeld = false;
-                primaryClock.Reset(); secondaryClock.Reset(); panelPacer?.Reset();
+                primaryClock.Reset(); secondaryClock.Reset();
             }
             input.Update();
             touchPanels?.Pump(controls.Width, controls.Height, (top, touch) =>
@@ -393,10 +390,7 @@ try
             var parkHidden = singleParkUi && PKForge.App.Views.WalkerScreen.IsOpen;
             page.ParkPaintInterval = parkHidden ? TimeSpan.FromSeconds(0.5) : singleParkUi ? TimeSpan.FromSeconds(1.0 / 30) : TimeSpan.Zero;
             var primaryInterval = workspace.Screens.Active || singleParkUi ? PresentationClock.UiInterval((parkDisplay ?? controls).RefreshRate) : 1000.0 / 30;
-            // With a swap that waits for the panel at this very rate, the swap is the pacer;
-            // a second, software clock beside it would drift against the panel and drop frames.
-            var panelPeriod = 1000.0 / (parkDisplay ?? controls).RefreshRate;
-            if (panelPacer is not null ? panelPacer.Due(now, primaryInterval, panelPeriod) : (parkDisplay ?? controls).SwapPaces(primaryInterval) || primaryClock.Due(now, primaryInterval))
+            if (primaryClock.Due(now, primaryInterval))
             {
                 var start = Stopwatch.GetTimestamp();
                 var display = parkDisplay ?? controls;
@@ -409,21 +403,16 @@ try
                 }
                 else if (dual) page.ParkView.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                 else page.ControlRoot.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
-                display.Flush(); var render = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
-                // A finished frame waits for the refresh before its own, or it would be shown one refresh early.
-                if (panelPacer is not null) while (timer.Elapsed.TotalMilliseconds < panelPacer.SwapNotBefore(primaryInterval, panelPeriod)) Thread.Sleep(1);
-                var drawn = Stopwatch.GetTimestamp();
+                display.Flush(); var drawn = Stopwatch.GetTimestamp();
                 display.Present();
-                var swap = Stopwatch.GetElapsedTime(drawn).TotalMilliseconds;
-                panelPacer?.Presented(timer.Elapsed.TotalMilliseconds, render, swap);
                 performance.Add(false, workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : singleParkUi ? PKForge.App.Views.WalkerScreen.IsOpen ? "Pokewalker" : "Park UI" : "Park",
-                    timer.Elapsed.TotalMilliseconds, render, swap, primaryInterval);
+                    timer.Elapsed.TotalMilliseconds, Stopwatch.GetElapsedTime(start, drawn).TotalMilliseconds, Stopwatch.GetElapsedTime(drawn).TotalMilliseconds, primaryInterval);
             }
             // Keep one fast presentation pending after motion/menu activity ends, so the
             // final transparent frame (or closed menu) does not wait for the idle interval.
             controlsPending |= activeControls;
             var secondaryInterval = controlsPending ? PresentationClock.UiInterval(controls.RefreshRate) : 200;
-            if (dual && (controls.SwapPaces(secondaryInterval) || secondaryClock.Due(now, secondaryInterval)))
+            if (dual && secondaryClock.Due(now, secondaryInterval))
             {
                 var start = Stopwatch.GetTimestamp();
                 UiScaleSetting.ApplyToPainters(controls.Width, controls.Height);
@@ -481,7 +470,6 @@ try
         performance.Save(Path.Combine(ParkPlatform.DataDirectory, "performance.json"), (parkDisplay ?? controls).Gpu, dual, new Dictionary<string, object?>
         {
             ["upstream"] = Arguments.UpstreamVersion, ["portRevision"] = Arguments.PortRevision, ["module"] = typeof(Arguments).Module.ModuleVersionId,
-            ["pacing"] = panelPacer is null ? "clock" : panelPacer.SwapWaits ? "panel" : "panel (swap does not wait; target interval)",
             ["displays"] = new[] { parkDisplay ?? controls, parkDisplay is null ? null : controls }.Where(d => d is not null)
                 .Select(d => new { width = d!.Width, height = d.Height, refreshRate = d.RefreshRate, swapInterval = d.SwapInterval, gpu = d.Gpu }).ToArray()
         });

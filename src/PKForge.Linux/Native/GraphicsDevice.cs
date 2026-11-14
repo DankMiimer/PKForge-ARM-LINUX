@@ -11,20 +11,8 @@ public sealed class GraphicsDevice : IDisposable
     public int Width { get; private set; }
     public int Height { get; private set; }
     public int RefreshRate { get; } = 60;
-    /// <summary>The swap interval the driver reports: 0 returns at once, 1 waits for the panel.</summary>
+    /// <summary>The swap interval the driver reports, for the performance log.</summary>
     public int SwapInterval { get; private set; }
-    /// <summary>True when the swap itself already holds presentation to this interval.</summary>
-    public bool SwapPaces(double intervalMilliseconds) => SwapInterval > 0 && intervalMilliseconds <= 1000.0 / RefreshRate * SwapInterval + .5;
-    /// <summary>
-    /// PKFORGE_SWAP_INTERVAL="primary[,secondary]" (0 or 1) selects panel-synchronized swaps for a
-    /// pacing comparison on a device. Unset keeps immediate swaps under the software clock.
-    /// </summary>
-    public static int RequestedSwapInterval(bool secondary, string? setting = null)
-    {
-        var parts = (setting ?? Environment.GetEnvironmentVariable("PKFORGE_SWAP_INTERVAL") ?? "").Split(',', StringSplitOptions.TrimEntries);
-        var part = parts.Length > 1 && secondary ? parts[1] : secondary ? "" : parts[0];
-        return part == "1" ? 1 : 0;
-    }
     private readonly IntPtr _gl;
     private readonly GRContext? _context;
     private readonly GRGlInterface? _interface;
@@ -47,7 +35,7 @@ public sealed class GraphicsDevice : IDisposable
         _screen = SKSurface.Create(new SKImageInfo(width, height)) ?? throw new InvalidOperationException("Raster surface unavailable.");
     }
 
-    public GraphicsDevice(string title, int display, bool software, bool fullscreen = true, int swapInterval = 0)
+    public GraphicsDevice(string title, int display, bool software, bool fullscreen = true)
     {
         if (Sdl.SDL_GetCurrentDisplayMode(display, out var mode) == 0 && mode.RefreshRate > 0) RefreshRate = mode.RefreshRate;
         var width = 640; var height = 480;
@@ -68,7 +56,9 @@ public sealed class GraphicsDevice : IDisposable
                 if (_gl != IntPtr.Zero)
                 {
                     Sdl.SDL_GL_MakeCurrent(Window, _gl);
-                    if (Sdl.SDL_GL_SetSwapInterval(swapInterval) != 0) Sdl.SDL_GL_SetSwapInterval(0);
+                    // Measured on both reference handhelds: at 30 FPS the swap returns at once
+                    // with interval 0 and 1 alike, so the software clock is the pacer.
+                    Sdl.SDL_GL_SetSwapInterval(0);
                     SwapInterval = Math.Max(0, Sdl.SDL_GL_GetSwapInterval());
                     _interface = GRGlInterface.CreateGles(Sdl.SDL_GL_GetProcAddress);
                     if (_interface is not null) _context = GRContext.CreateGl(_interface);
