@@ -78,3 +78,42 @@ public sealed class WalkerDeviceFitTests : IDisposable
         Assert.True(scale >= 3);
     }
 }
+
+/// <summary>The Pokéwalker LCD image, written in one copy, against Skia setting each pixel itself.</summary>
+public sealed class WalkerLcdImageTests
+{
+    [Theory]
+    [InlineData(255)]   // the LCD's own opaque tones
+    [InlineData(90)]    // translucent tones: stored premultiplied, with Skia's rounding
+    [InlineData(1)]
+    public void The_image_matches_setting_every_pixel_through_the_bitmap(byte alpha)
+    {
+        var tones = WalkerPaint.LcdTones.Select(tone => tone.WithAlpha(alpha)).ToArray();
+        var lcd = new WalkerLcd();
+        for (var y = 0; y < WalkerLcd.Height; y++)
+            for (var x = 0; x < WalkerLcd.Width; x++)
+                lcd.Dot(x, y, (x * 7 + y * 3 + x * y) % 4);
+
+        using var expected = new SKBitmap(new SKImageInfo(WalkerLcd.Width, WalkerLcd.Height, SKColorType.Rgba8888, SKAlphaType.Premul));
+        for (var y = 0; y < WalkerLcd.Height; y++)
+            for (var x = 0; x < WalkerLcd.Width; x++)
+                expected.SetPixel(x, y, tones[lcd[x, y]]);
+
+        using var image = lcd.ToImage(tones);
+        Assert.Equal(expected.Info, image.Info);
+        using var actual = new SKBitmap(expected.Info);
+        Assert.True(image.ReadPixels(actual.Info, actual.GetPixels(), actual.RowBytes, 0, 0));
+        var differing = Enumerable.Range(0, expected.ByteCount).Count(i => expected.GetPixelSpan()[i] != actual.GetPixelSpan()[i]);
+        Assert.Equal(0, differing);
+    }
+
+    [Fact]
+    public void Painting_the_screen_takes_no_native_call_per_pixel()
+    {
+        // 300 screens: about 2 s when each pixel was set through the bitmap, a few milliseconds in one copy.
+        var lcd = new WalkerLcd();
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        for (var i = 0; i < 300; i++) lcd.ToImage(WalkerPaint.LcdTones).Dispose();
+        Assert.InRange(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, 0, 600);
+    }
+}

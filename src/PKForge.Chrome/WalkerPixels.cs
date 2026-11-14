@@ -102,11 +102,27 @@ public sealed class WalkerLcd
     /// <summary>The screen as a 96×64 image in the given four tones (light to dark).</summary>
     public SKImage ToImage(IReadOnlyList<SKColor> tones)
     {
-        using var bitmap = new SKBitmap(new SKImageInfo(Width, Height, SKColorType.Rgba8888, SKAlphaType.Premul));
-        for (var y = 0; y < Height; y++)
-            for (var x = 0; x < Width; x++)
-                bitmap.SetPixel(x, y, tones[_px[y * Width + x]]);
-        return SKImage.FromBitmap(bitmap);
+        // The whole screen in one copy. Setting it a pixel at a time is a native call per pixel,
+        // 6,144 a frame: about 100 ms on a handheld's processor, on the thread that draws the frame.
+        Span<byte> palette = stackalloc byte[4 * 4];
+        for (var tone = 0; tone < 4; tone++)
+        {
+            var color = tones[tone];
+            palette[tone * 4] = Premultiplied(color.Red, color.Alpha);
+            palette[tone * 4 + 1] = Premultiplied(color.Green, color.Alpha);
+            palette[tone * 4 + 2] = Premultiplied(color.Blue, color.Alpha);
+            palette[tone * 4 + 3] = color.Alpha;
+        }
+        var pixels = new byte[_px.Length * 4];
+        for (var i = 0; i < _px.Length; i++) palette.Slice(_px[i] * 4, 4).CopyTo(pixels.AsSpan(i * 4, 4));
+        return SKImage.FromPixelCopy(new SKImageInfo(Width, Height, SKColorType.Rgba8888, SKAlphaType.Premul), pixels, Width * 4);
+    }
+
+    // Skia's own rounding when it stores a colour premultiplied.
+    private static byte Premultiplied(byte channel, byte alpha)
+    {
+        var product = channel * alpha + 128;
+        return (byte)((product + (product >> 8)) >> 8);
     }
 
     private static string Fold(string text)
