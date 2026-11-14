@@ -68,19 +68,28 @@ public static class DsChrome
     private sealed class FooterView((string Button, string Label, Action? OnTap)[] hints) : View
     {
         private readonly List<(SKRect Rect, Action? Tap)> _hits = [];
+        // The bar is fitted and laid out once per place, theme and interface scale, then replayed:
+        // measuring its prompts on every frame took 1.6 ms of each frame on the RG DS.
+        private SKPicture? _picture;
+        private (SKRect Bounds, ColorTheme Theme, int Scale) _drawnFor;
         public override float NaturalHeight(float width) => 54;
         protected override void DrawContent(SKCanvas c, PKForge.Linux.Native.GraphicsDevice device, View? excluded)
         {
-            var prompts = hints.Select(h => (h.Button, h.Label)).ToArray();
-            using var font = AppChromePaint.HintFont(Bounds, prompts, PKForge.App.Views.PixelFont.Face, 14);
-            PksmPaint.HintBar(c, Bounds, prompts, font);
-            _hits.Clear();
-            var rects = PksmPaint.HintBarHitRects(Bounds, prompts, font);
-            for (var i = 0; i < hints.Length; i++)
+            var now = (Bounds, ColorTheme.Current, PKForge.App.Services.UiScaleSetting.Percent);
+            if (_picture is null || now != _drawnFor)
             {
-                _hits.Add((rects[i], hints[i].OnTap));
+                var prompts = hints.Select(h => (h.Button, h.Label)).ToArray();
+                using var font = AppChromePaint.HintFont(Bounds, prompts, PKForge.App.Views.PixelFont.Face, 14);
+                using var recorder = new SKPictureRecorder();
+                PksmPaint.HintBar(recorder.BeginRecording(Bounds), Bounds, prompts, font);
+                _picture?.Dispose(); _picture = recorder.EndRecording(); _drawnFor = now;
+                _hits.Clear();
+                var rects = PksmPaint.HintBarHitRects(Bounds, prompts, font);
+                for (var i = 0; i < hints.Length; i++) _hits.Add((rects[i], hints[i].OnTap));
             }
+            c.DrawPicture(_picture);
         }
+        public override void ReleaseSurface() { _picture?.Dispose(); _picture = null; base.ReleaseSurface(); }
         protected override bool OnTouch(SKTouchEventArgs e)
         {
             var hit = _hits.FirstOrDefault(h => h.Rect.Contains(e.Location));

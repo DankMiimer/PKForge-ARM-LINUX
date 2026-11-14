@@ -394,6 +394,8 @@ try
             {
                 var start = Stopwatch.GetTimestamp();
                 var display = parkDisplay ?? controls;
+                var view = workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : singleParkUi ? PKForge.App.Views.WalkerScreen.IsOpen ? "Pokewalker" : "Park UI" : "Park";
+                DrawProfile.BeginFrame((dual ? "top: " : "") + view);
                 UiScaleSetting.ApplyToPainters(display.Width, display.Height);
                 var surface = display.BeginFrame(); surface.Canvas.Clear(SKColors.Black);
                 if (workspace.Screens.Active)
@@ -403,10 +405,12 @@ try
                 }
                 else if (dual) page.ParkView.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                 else page.ControlRoot.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
+                var built = Stopwatch.GetTimestamp();
                 display.Flush(); var drawn = Stopwatch.GetTimestamp();
                 display.Present();
-                performance.Add(false, workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : singleParkUi ? PKForge.App.Views.WalkerScreen.IsOpen ? "Pokewalker" : "Park UI" : "Park",
-                    timer.Elapsed.TotalMilliseconds, Stopwatch.GetElapsedTime(start, drawn).TotalMilliseconds, Stopwatch.GetElapsedTime(drawn).TotalMilliseconds, primaryInterval);
+                DrawProfile.Add("(build)", Stopwatch.GetElapsedTime(start, built).TotalMilliseconds);
+                DrawProfile.Add("(flush)", Stopwatch.GetElapsedTime(built, drawn).TotalMilliseconds); DrawProfile.EndFrame();
+                performance.Add(false, view, timer.Elapsed.TotalMilliseconds, Stopwatch.GetElapsedTime(start, drawn).TotalMilliseconds, Stopwatch.GetElapsedTime(drawn).TotalMilliseconds, primaryInterval);
             }
             // Keep one fast presentation pending after motion/menu activity ends, so the
             // final transparent frame (or closed menu) does not wait for the idle interval.
@@ -415,6 +419,8 @@ try
             if (dual && secondaryClock.Due(now, secondaryInterval))
             {
                 var start = Stopwatch.GetTimestamp();
+                var view = workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : PKForge.App.Views.WalkerScreen.IsOpen ? "Pokewalker" : activeControls ? "Park controls" : "Park journal";
+                DrawProfile.BeginFrame("bottom: " + view);
                 UiScaleSetting.ApplyToPainters(controls.Width, controls.Height);
                 var surface = controls.BeginFrame(); surface.Canvas.Clear(new SKColor(15, 25, 38));
                 if (workspace.Screens.Active) workspace.Screens.DrawControls(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls);
@@ -423,10 +429,12 @@ try
                     journal.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height - 70), controls);
                     page.ControlRoot.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls, page.ParkView);
                 }
+                var built = Stopwatch.GetTimestamp();
                 controls.Flush(); var drawn = Stopwatch.GetTimestamp();
                 controls.Present(); controlsPending = activeControls;
-                performance.Add(true, workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : PKForge.App.Views.WalkerScreen.IsOpen ? "Pokewalker" : activeControls ? "Park controls" : "Park journal",
-                    timer.Elapsed.TotalMilliseconds, Stopwatch.GetElapsedTime(start, drawn).TotalMilliseconds, Stopwatch.GetElapsedTime(drawn).TotalMilliseconds, secondaryInterval);
+                DrawProfile.Add("(build)", Stopwatch.GetElapsedTime(start, built).TotalMilliseconds);
+                DrawProfile.Add("(flush)", Stopwatch.GetElapsedTime(built, drawn).TotalMilliseconds); DrawProfile.EndFrame();
+                performance.Add(true, view, timer.Elapsed.TotalMilliseconds, Stopwatch.GetElapsedTime(start, drawn).TotalMilliseconds, Stopwatch.GetElapsedTime(drawn).TotalMilliseconds, secondaryInterval);
             }
             if (arguments.InputScript is { } script) library.RunScript(script, timer.Elapsed.TotalSeconds);
             Thread.Sleep(1);
@@ -470,6 +478,7 @@ try
         performance.Save(Path.Combine(ParkPlatform.DataDirectory, "performance.json"), (parkDisplay ?? controls).Gpu, dual, new Dictionary<string, object?>
         {
             ["upstream"] = Arguments.UpstreamVersion, ["portRevision"] = Arguments.PortRevision, ["module"] = typeof(Arguments).Module.ModuleVersionId,
+            ["profile"] = DrawProfile.Report(),
             ["displays"] = new[] { parkDisplay ?? controls, parkDisplay is null ? null : controls }.Where(d => d is not null)
                 .Select(d => new { width = d!.Width, height = d.Height, refreshRate = d.RefreshRate, swapInterval = d.SwapInterval, gpu = d.Gpu }).ToArray()
         });
