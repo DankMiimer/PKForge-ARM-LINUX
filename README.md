@@ -19,8 +19,8 @@ Other ARM64 ROCKNIX/KNULLI handhelds are experimental. The packages bundle .NET 
 
 ## Screenshots
 
-Captured on the two reference handhelds in November 2026, from 0.2.5-dev
-development builds, with demonstration data.
+Captured on the two reference handhelds in November 2026, from the 0.2.7-dev
+release archive, with demonstration data.
 
 **Anbernic RGDS** — both screens, top above bottom:
 
