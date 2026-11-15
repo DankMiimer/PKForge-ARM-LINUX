@@ -67,8 +67,75 @@ folders were removed.
   draw in this round. Memory rose from 245 to 400 MiB and stayed there for the
   last two minutes.
 
-Not covered by these rounds: touch, lid and resume, data-safety acceptance, the
-90-minute soak, and any look at the screens by a person other than the
+### 90-minute soak of the release archive — 15 November 2026
+
+The same archive ran for 90 minutes on each handheld in one automatic round:
+park for 40 minutes with a flight between two regions and a zoom change every
+three minutes, the Pokéwalker open from minute 40 to 80, and park again for
+the last ten. Both exited cleanly at 5,400 seconds, `userdata` matched its
+hashes and the test folders were removed. No crash, stall or overrun.
+
+| | RGDS | RG34XXSP |
+| --- | --- | --- |
+| Memory (resident) after 1 / 39 / 89 minutes | 328 / 523 / 567 MiB | 326 / 517 / 552 MiB |
+| Managed (.NET) heap, whole run | 11–32 MiB | 11–21 MiB |
+| Park alone, warm minutes | 29.9–30.0 FPS in every minute | 26.4–30.0 FPS; 11 of 30 minutes below 29.5 |
+| Park with the Pokéwalker open | 29.2–30.0 FPS (8 of 40 minutes below 29.5) | Pokéwalker covers the screen |
+| Pokéwalker | 44.9 FPS average, 39–53 per minute | 54.0 FPS average, 51.7–54.9 per minute |
+| Longest frame gap after start-up | 238 ms | 980 ms |
+
+- **Memory.** The managed heap stayed small and flat, so the growth is
+  native: sprite sheets, images and graphics buffers, rising mostly when new
+  content appears (each region's residents, the Pokéwalker). It slowed from
+  about 4 MiB a minute in the first ten minutes to under 1 MiB a minute in the
+  last 50, and moved within ±15 MiB in the last ten. No sign of unbounded
+  growth in 90 minutes, but it is not proven level either; about 550–580 MiB
+  is the working size of this scene. Devices with 1 GB of memory (RG DS Plus)
+  have less room than the reference handhelds.
+- **RG34XXSP park.** The two regions differ: one draws in 22–25 ms a frame,
+  the other in 30–32 ms, at the edge of the 33 ms budget. In that region the
+  cost rose over the run, to 34.8 ms at minute 39 and 33–36 ms in the last ten
+  minutes, which ran at 26.4–29.9 FPS. Not explained yet: the park's day phase
+  did not change, and the device was at about 60 °C at its normal clock limit
+  right after the run. Three frame gaps of 0.6–1.0 s occurred without input
+  (minutes 30, 36 and 37, in the lighter region), which pulled those minutes
+  to 27.2–29.1 FPS.
+- **RGDS Pokéwalker.** Both screens are drawn by one thread. Here the park
+  above took 23–25 ms a frame while the Pokéwalker was open (17–21 ms before),
+  longer than one 16.7 ms refresh, so Pokéwalker frames waited behind it. In
+  the six-minute round the park took 15–16 ms and the Pokéwalker held 59.8
+  FPS. The Pokéwalker's rate on the RGDS therefore depends on the park scene
+  above it; 60 FPS is reached in lighter scenes, not in every scene.
+
+### Park art drawn without copying — after the soak (not in a release yet)
+
+A CPU sampling profile of the release on the RG34XXSP (.NET EventPipe, no code
+change) showed the park scene spending most of its time copying pixels.
+SkiaSharp draws an `SKBitmap` by making an `SKImage` of it, and Skia copies the
+pixels of a bitmap that may still change. Every frame therefore copied the
+whole lit map ground and the whole animation sheet (up to 4 MB) of every
+resident in view. That is why the cost depended on which residents were on
+screen. The finished map art and sprite sheets are now marked immutable, so
+Skia shares their pixels; `ParkArtSharingTests` checks both the sharing and
+that the drawn pixels are unchanged.
+
+Measured with the release archive, then the same archive with the two changed
+assemblies placed over it, in the same 310-second round (2.5 minutes in each of
+the soak's two regions):
+
+| | Park draw, average | Slowest 5% of park frames |
+| --- | --- | --- |
+| RG34XXSP | 21.9 → 15.1 ms | 25.8 → 21.5 ms |
+| RGDS | 14.9 → 7.7 ms | 20.8 → 11.2 ms |
+
+Memory was unchanged within noise. In the six-minute park-then-Pokéwalker
+round on the RGDS with the change, the park drew in 8.0 ms and the Pokéwalker
+held 59.9 FPS with 361 late frames, against 16.4 ms and 2,699 late frames for
+the release. Not yet repeated: the 90-minute soak, including the RG34XXSP scene
+that drew in 30–36 ms.
+
+Not covered by these rounds: touch, lid and resume, data-safety acceptance, a
+soak through Home and the editors, and any look at the screens by a person other than the
 screenshots in the README. Start-up pauses of 200–700 ms remain in the first
 frames. BananaOS support in this revision was prepared from that system's
 source and has not run on it; see `HANDHELD_COMPATIBILITY.md`.
