@@ -1,5 +1,60 @@
 # ARM64 port validation
 
+## Frame timing and the Pokéwalker fix — 14 November 2026 (0.2.5-dev)
+
+Measured on the RGDS (ROCKNIX 20261001) and the RG34XXSP (KNULLI) with isolated
+installs beside the existing PKForge and disposable fixture data. From the
+second round on the rounds were automatic: the entry is started through the
+frontend's own launch interface, as from Ports, buttons are pressed by
+`--input-script`, and the run ends itself. Existing `userdata` matched its
+pre-install hashes after every round (1,678 and 1,199 entries). The builds were
+development packages of commit `b7c5b6f`, later with the changed assemblies of
+the following commits placed over them; none was a release archive.
+
+The performance log now times drawing, the buffer swap and the interval between
+presented frames apart, per display and per view. Earlier "draw" figures
+included the swap.
+
+- **Pacing.** The swap returns at once in the park on both devices (0.2–0.3 ms)
+  with swap interval 0 and 1 alike. Two experimental pacing modes changed
+  nothing in the park and one lowered the RGDS to 23–25 FPS; both were removed.
+  The RG34XXSP panel refreshes at 59.16 Hz and the RGDS panels at 60.10 Hz.
+- **Park.** Warm park-only minutes under the normal pacing: 30.0 FPS in three
+  consecutive minutes on each device. The first minute after opening the park
+  ran at 26.4–28.7 FPS on both. One park frame takes 11–13 ms
+  to draw on the RGDS and 22–27 ms on the RG34XXSP.
+- **Pokéwalker.** Each repaint of its screen, twice a second, took about 99 ms
+  on the RGDS (maximum 290 ms): the 96×64 LCD image was written with one native
+  call per pixel. Written in one copy, a repaint takes 9–10 ms on the RGDS and
+  about 20 ms on the RG34XXSP.
+
+| | RGDS before | RGDS after | RG34XXSP before | RG34XXSP after |
+| --- | --- | --- | --- | --- |
+| Pokéwalker screen, FPS (target 60) | 48.3 | 59.9 | 43–47 | 56.9 |
+| Pokéwalker frame, drawing time in ms | 9.3 | 3.4 | 10.6–13.2 | 4.6 |
+| Park late frames a minute, Pokéwalker open on the other screen | about 117 | about 10 | single screen | single screen |
+
+- **Hint bars and labels.** Laid out once and replayed. On the RG34XXSP the
+  park frame's status labels and border went from about 5 ms to about 2 ms a
+  frame, and the slowest 5% of park frames in the first minute from 34–36 ms
+  to 30.8 ms.
+
+On 15 November a package built from the revision's own commit `3b03d86`, with
+nothing placed over it, ran one automatic round on each handheld: three minutes
+of park, then the Pokéwalker. RGDS: 30.0 FPS in both warm park minutes and
+59.8 FPS on the Pokéwalker screen. RG34XXSP: 30.0 FPS in both warm park minutes
+and 57.8 FPS in the Pokéwalker. Both exited cleanly and `userdata` matched. The
+RGDS run ended at 309 of its 375 seconds after Home had opened; what opened it
+was not established (a button press on the device would do it). The release
+archives are built by CI from a later commit that changes only the label
+layout's font handling and its test.
+
+Not covered by these rounds: touch, lid and resume, data-safety acceptance, the
+90-minute soak, and any look at the screens by a person other than the
+screenshots in the README. Start-up pauses of 200–700 ms remain in the first
+frames. BananaOS support in this revision was prepared from that system's
+source and has not run on it; see `HANDHELD_COMPATIBILITY.md`.
+
 ## Upstream 3.2.0 integration — 13 November 2026
 
 New development pins v3.2.0. The feature/acceptance matrix is in

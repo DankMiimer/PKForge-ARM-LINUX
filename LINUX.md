@@ -1,16 +1,16 @@
 # PKForge for ARM64 Linux
 
-The 0.2.4 Preview is based on **PKForge v3.2.0**, commit
+The 0.2.5 Preview is based on **PKForge v3.2.0**, commit
 `c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a`. It reuses the release's park simulation,
 scene, interaction handlers, overlays, game rules, save engines and Bank format.
 It is an experimental preview; see `VALIDATION.md` for measured results and open
 release checks, and [3.2.0 support and open gates](UPSTREAM_3_2_0_SUPPORT.md) for
-each upstream change's Linux route. The 0.2.3 Preview and earlier used v3.1.1.
+each upstream change's Linux route. So was 0.2.4; the 0.2.3 Preview and earlier used v3.1.1.
 
 [Handheld compatibility](HANDHELD_COMPATIBILITY.md) separates verified hardware,
 previous trials, simulated firmware checks and unsupported userspaces.
 
-Linux revision `0.2.4-dev` extends the park preview with a native Home library,
+Linux revision `0.2.5-dev` extends the park preview with a native Home library,
 Pokémon and save editors, Bank organization, durable transfers/recovery, generation,
 offline events, collection tools, Showdown/QR and game-specific tools. This is a
 development checkpoint towards full v3.2.0 parity. `FEATURE_COVERAGE.md` records
@@ -20,13 +20,14 @@ has passed acceptance.
 
 ## Install
 
-Extract `PKForge-v3.2.0-linux-0.2.4-dev-arm64.zip` into the Ports directory:
+Extract `PKForge-v3.2.0-linux-0.2.5-dev-arm64.zip` into the Ports directory:
 
 | Firmware | Directory |
 | --- | --- |
 | ROCKNIX | `/roms/ports/` (normally `/storage/roms/ports/`) |
 | KNULLI | `/userdata/roms/ports/` |
 | dArkOS (ARM64, including compatible R36S community images) | `/roms/ports/` or `/roms2/ports/` |
+| BananaOS (RG DS, RG DS Plus; experimental, hardware unverified) | `roms/ports/` on the card (`\\<address>\banana\roms\ports` over its file sharing) |
 | muOS | Data: `/mmc/ports/pkforge/`; launchers: `/mnt/mmc/ROMS/Ports/` |
 
 The muOS launcher also recognizes `/mnt/mmc/ports/pkforge` and

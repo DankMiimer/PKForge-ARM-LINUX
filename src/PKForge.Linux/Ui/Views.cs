@@ -108,6 +108,13 @@ public class View : INotifyPropertyChanged
     public void Draw(SKCanvas canvas, SKRect area, GraphicsDevice device, View? excluded = null)
     {
         if (!IsVisible || this == excluded) return;
+        if (!DrawProfile.Enabled) { DrawArranged(canvas, area, device, excluded); return; }
+        var entered = DrawProfile.Enter(this);
+        try { DrawArranged(canvas, area, device, excluded); }
+        finally { DrawProfile.Leave(entered); }
+    }
+    private void DrawArranged(SKCanvas canvas, SKRect area, GraphicsDevice device, View? excluded)
+    {
         // A display recreation releases GPU/input ownership, then draws the retained
         // view tree on its new surface. Removed overlays are never drawn again.
         AttachSurface();
@@ -250,22 +257,53 @@ public sealed class Label : View
         if (LineBreakMode == LineBreakMode.TailTruncation) lines = lines.Select(line => LabelText.Fit(line, font, width)).ToList();
         return lines;
     }
+    // A plain label is measured, wrapped and drawn glyph by glyph. Its layout only changes with
+    // its text, font, colour or place, so each result is kept until one of those does: on a
+    // handheld the same work every frame cost several milliseconds of a park frame.
+    // Both faces load in the background and stand in as the system default until they arrive,
+    // so the faces themselves are part of what a result was made for.
+    private readonly record struct Shape(string Text, double FontSize, FontAttributes Attributes, Thickness Padding,
+        LineBreakMode LineBreak, int MaxLines, SKTypeface Face, SKTypeface Fallback);
+    private Shape Shaped => new(_text, FontSize, FontAttributes, Padding, LineBreakMode, MaxLines, PixelFont.Face, PixelFont.FallbackFace);
+    private (Shape Shape, float Width, float Height)? _height;
+    private (Shape Shape, float Measured)? _width;
+    private (Shape Shape, SKRect Bounds, Color Color, TextAlignment Horizontal, TextAlignment Vertical)? _drawn;
+    private SKPicture? _picture;
+    public override void ReleaseSurface() { _picture?.Dispose(); _picture = null; _drawn = null; base.ReleaseSurface(); }
     public override float NaturalHeight(float width)
     {
+        if (FormattedText is null && _height is { } known && known.Width == width && known.Shape == Shaped) return known.Height;
         using var font = Font(Text, FontSize, FontAttributes);
         var metrics = TextMetrics(font);
         var lineHeight = MathF.Ceiling(-metrics.Ascent) + MathF.Ceiling(metrics.Descent);
-        return (float)(Padding.Top + Padding.Bottom) + lineHeight * Lines(font, Math.Max(1, width - (float)(Padding.Left + Padding.Right))).Count;
+        var height = (float)(Padding.Top + Padding.Bottom) + lineHeight * Lines(font, Math.Max(1, width - (float)(Padding.Left + Padding.Right))).Count;
+        if (FormattedText is null) _height = (Shaped, width, height);
+        return height;
     }
     public override float NaturalWidth(float width)
     {
         var measured = 0f;
         if (FormattedText is { } formatted)
             foreach (var span in formatted.Spans) { using var spanFont = Font(span.Text, span.FontSize > 0 ? span.FontSize : FontSize, span.FontAttributes); measured += LabelText.Measure(span.Text, spanFont); }
-        else { using var font = Font(Text, FontSize, FontAttributes); measured = LabelText.Measure(Text, font); }
+        else if (_width is { } known && known.Shape == Shaped) measured = known.Measured;
+        else { using var font = Font(Text, FontSize, FontAttributes); measured = LabelText.Measure(Text, font); _width = (Shaped, measured); }
         return Math.Min(width, measured + (float)(Padding.Left + Padding.Right));
     }
     protected override void DrawContent(SKCanvas canvas, GraphicsDevice device, View? excluded)
+    {
+        if (FormattedText is not null) { Paint(canvas); return; }
+        var now = (Shaped, Bounds, TextColor, HorizontalTextAlignment, VerticalTextAlignment);
+        if (_picture is null || _drawn != now)
+        {
+            using var recorder = new SKPictureRecorder();
+            // The cull is only a hint, kept wide: a last line may reach below the label's own box.
+            Paint(recorder.BeginRecording(SKRect.Inflate(Bounds, 64, 64)));
+            _picture?.Dispose(); _picture = recorder.EndRecording(); _drawn = now;
+        }
+        canvas.DrawPicture(_picture);
+    }
+    /// <summary>Measures, wraps and draws the label afresh at its current place.</summary>
+    internal void Paint(SKCanvas canvas)
     {
         using var font = Font(Text, FontSize, FontAttributes);
         using var paint = new SKPaint { Color = TextColor.Skia, IsAntialias = true };

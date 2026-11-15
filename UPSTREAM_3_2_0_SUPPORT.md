@@ -1,6 +1,6 @@
 # Upstream 3.2.0 integration
 
-The next Linux preview, `0.2.4-dev`, pins PKForge v3.2.0 at
+The Linux previews from `0.2.4-dev` on pin PKForge v3.2.0 at
 `c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a`. Its PKHeX and Plugins
 submodules are pinned by the upstream tag. Published 0.2.3 Preview remains
 the v3.1.1 release; these changes do not replace its tag or assets.

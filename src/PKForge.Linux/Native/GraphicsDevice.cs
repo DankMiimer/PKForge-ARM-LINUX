@@ -11,6 +11,8 @@ public sealed class GraphicsDevice : IDisposable
     public int Width { get; private set; }
     public int Height { get; private set; }
     public int RefreshRate { get; } = 60;
+    /// <summary>The swap interval the driver reports, for the performance log.</summary>
+    public int SwapInterval { get; private set; }
     private readonly IntPtr _gl;
     private readonly GRContext? _context;
     private readonly GRGlInterface? _interface;
@@ -54,7 +56,10 @@ public sealed class GraphicsDevice : IDisposable
                 if (_gl != IntPtr.Zero)
                 {
                     Sdl.SDL_GL_MakeCurrent(Window, _gl);
+                    // Measured on both reference handhelds: at 30 FPS the swap returns at once
+                    // with interval 0 and 1 alike, so the software clock is the pacer.
                     Sdl.SDL_GL_SetSwapInterval(0);
+                    SwapInterval = Math.Max(0, Sdl.SDL_GL_GetSwapInterval());
                     _interface = GRGlInterface.CreateGles(Sdl.SDL_GL_GetProcAddress);
                     if (_interface is not null) _context = GRContext.CreateGl(_interface);
                 }
@@ -81,7 +86,7 @@ public sealed class GraphicsDevice : IDisposable
             }
         }
         WindowId = Sdl.SDL_GetWindowID(Window);
-        Console.WriteLine($"WINDOW {title}: SDL={driver}, Skia={(Gpu ? "GLES" : "raster")}");
+        Console.WriteLine($"WINDOW {title}: SDL={driver}, Skia={(Gpu ? "GLES" : "raster")}, refresh={RefreshRate} Hz, swap interval={SwapInterval}");
     }
     public void MakeCurrent()
     {

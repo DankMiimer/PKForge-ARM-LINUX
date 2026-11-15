@@ -53,6 +53,7 @@ internal static class Sdl
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern void SDL_GL_GetDrawableSize(IntPtr window, out int width, out int height);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern void SDL_GL_SwapWindow(IntPtr window);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GL_SetSwapInterval(int interval);
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GL_GetSwapInterval();
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_GL_GetProcAddress([MarshalAs(UnmanagedType.LPUTF8Str)] string name);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_CreateRenderer(IntPtr window, int index, uint flags);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern void SDL_DestroyRenderer(IntPtr renderer);

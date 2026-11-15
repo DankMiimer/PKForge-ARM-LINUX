@@ -21,6 +21,7 @@ the userspace, SDL backend, graphics stack and frontend environment matter.
 | RG34XXSP / KNULLI Scarab | Previous candidate ran on hardware | Previously tested; final 0.3.0 validation pending |
 | NextUI `tg5040`, `tg5050`, `h700` | Package layout, ABI and simulated launcher checks | Experimental; hardware unverified |
 | muOS, dArkOS, ArkOS, AmberELEC, SpruceOS | Requirements and simulated launcher environments only | Experimental; hardware unverified |
+| RG DS and RG DS Plus / BananaOS 0.5 | Source assessment of 14 November 2026 and simulated launcher checks; see below | Experimental; hardware unverified |
 | Other ROCKNIX/KNULLI handhelds | Must meet the same requirements | Hardware unverified |
 | 32-bit userspace, non-glibc Linux, glibc older than 2.29 | Incompatible with this runtime/package | Unsupported |
 
@@ -45,6 +46,35 @@ SDL window creation, frontend mappings and writable data location before use.
 | AmberELEC | The [inspected glibc recipe](https://github.com/AmberELEC/AmberELEC/blob/108db43ddd6d4e3c6f9d68da8ed03b49ef151aa0/packages/devel/glibc/package.mk) specifies 2.38. Native AArch64 images are ABI candidates. | Check the installed image/profile, firmware SDL/EGL and frontend return. Hardware unverified; a 32-bit compatibility layer does not run this package. |
 | SpruceOS | The [Flip profile](https://github.com/spruceUI/spruceOS/blob/dfc2148725348419b1595e518c3bfc02b445975e/spruce/scripts/platform/tina-stock/Flip.cfg) explicitly selects AArch64. Spruce runs over different stock/BaseOS userlands, so validate the selected base's libc and graphics libraries. | The [A30 profile](https://github.com/spruceUI/spruceOS/blob/dfc2148725348419b1595e518c3bfc02b445975e/spruce/scripts/platform/tina-stock/A30.cfg) selects armhf and is excluded. Do not generalize a Flip result to other Spruce devices. Hardware unverified. |
 | NextUI | Separate packages match the upstream [tg5040](https://github.com/LoveRetro/NextUI/blob/b6ec1343c0a2636ddaf2502fde52cff237c67377/workspace/tg5040/platform/makefile.env), [tg5050](https://github.com/LoveRetro/NextUI/blob/b6ec1343c0a2636ddaf2502fde52cff237c67377/workspace/tg5050/platform/makefile.env) and [h700](https://github.com/LoveRetro/NextUI/blob/b6ec1343c0a2636ddaf2502fde52cff237c67377/workspace/h700/platform/makefile.env) SDL2/GLES platforms. H700 explicitly selects its own patched SDL instead of TrimUI SDL. | All three remain experimental. Toolchain flags do not prove the installed libc floor or graphics compatibility. Never substitute one platform's SDL/graphics libraries for another's. |
+
+### BananaOS on the RG DS and RG DS Plus — assessed 14 November 2026
+
+[BananaOS](https://github.com/JorreFog/BananaLinux) is not a ROCKNIX build: it is a
+Buildroot system that uses ROCKNIX's kernel support, with its own menu and no
+compositor. Read from its source at that date, not run on hardware:
+
+- AArch64 with Bootlin's glibc toolchain, SDL 2.32.10 with KMSDRM and GLES on
+  Mesa/Panfrost, SDL2_mixer, bash and python3. Its own Pokémon tool is a
+  self-contained .NET application, so the runtime's requirements are met there.
+- Ports are `.sh` files in `roms/ports` on the card (`/storage/roms/ports`), run
+  with bash as on ROCKNIX. The card is exFAT, mounted with every file executable.
+- It starts a port for one panel: the top panel is SDL display 0
+  (`SDL_KMSDRM_FIRST`) and the bottom panel's backlight is switched off, recorded
+  in `/run/banana/panel-off`. PKForge draws on both, so `launch.sh` lights that
+  panel for the run and puts the note and the dark state back on exit. If it
+  cannot, PKForge runs on the lit panel alone. `--display-mode single` leaves the
+  panel dark.
+- Touch panels are assigned by their I2C wiring (or BananaOS's `BANANA_TOUCH`),
+  not by device order. Without PortMaster and without a controller database the
+  built-in pad gets PKForge's own RG DS mapping.
+- Save folders found on first start: `/data/saves`, `/data/roms/<system>` and
+  `/data/drastic/backup`. Link others from Home.
+- The RG DS Plus has two 1024×768 panels and 1 GB of memory. The interface scales
+  to that size in desktop captures. Memory use on that device is unmeasured.
+
+Not established without the hardware: two SDL windows on KMSDRM at once, the
+panel and touch order on the RG DS Plus, the board name its device tree reports,
+frame rate at 1024×768, and behaviour across sleep.
 
 PortMaster's device catalogue can help discover profiles and paths. Its stored
 libc versions are observations from particular images and may lag current

@@ -4,7 +4,7 @@ A native ARM64 Linux port of [PKForge](https://github.com/sofianeelhor/PKForge) 
 
 **[Download the Linux preview](https://github.com/DankMiimer/PKForge-ARM-LINUX/releases)** · [Installation and controls](LINUX.md) · [Feature coverage](FEATURE_COVERAGE.md) · [Validation](VALIDATION.md) · [Original project](https://github.com/sofianeelhor/PKForge)
 
-The current preview is Linux revision **0.2.4-dev**, based on upstream **v3.2.0**. See [3.2.0 support](UPSTREAM_3_2_0_SUPPORT.md) for integration and acceptance limits. The earlier **0.2.3-dev** packages use upstream **v3.1.1**. Full visual parity and every game/format path remain acceptance work; shared source and passing tests do not establish hardware acceptance.
+The current preview is Linux revision **0.2.5-dev**, based on upstream **v3.2.0**. See [3.2.0 support](UPSTREAM_3_2_0_SUPPORT.md) for integration and acceptance limits. It follows **0.2.4-dev**, the first v3.2.0 preview; the earlier **0.2.3-dev** packages use upstream **v3.1.1**. Full visual parity and every game/format path remain acceptance work; shared source and passing tests do not establish hardware acceptance.
 
 ![Native Linux save library on RG34XXSP](docs/screenshots/linux/home.png)
 
@@ -17,9 +17,26 @@ The current preview is Linux revision **0.2.4-dev**, based on upstream **v3.2.0*
 
 Other ARM64 ROCKNIX/KNULLI handhelds are experimental. The packages bundle .NET 10 and app-local ICU; ARM64 glibc 2.29+ and firmware SDL2 are required. Missing audio is nonfatal; GLES falls back to raster where the SDL backend supports it. KNULLI's Mali backend still needs working firmware EGL. Experimental packages also target muOS, dArkOS and NextUI; see LINUX.md for installation and validation status.
 
+## Screenshots
+
+Captured on the two reference handhelds in November 2026, from 0.2.5-dev
+development builds, with demonstration data.
+
+**Anbernic RGDS** — both screens, top above bottom:
+
+| Poképark and its journal | Pokéwalker | Boxes and storage tools | Summary and box overview |
+| --- | --- | --- | --- |
+| ![Poképark on the top screen with a resident's journal below](docs/screenshots/linux/rgds-park.png) | ![The park above and the Pokéwalker with a Pokémon on a walk below](docs/screenshots/linux/rgds-pokewalker.png) | ![A save box above and the storage tools menu below](docs/screenshots/linux/rgds-storage-tools.png) | ![A Pokémon's summary above and its box overview below](docs/screenshots/linux/rgds-summary.png) |
+
+**Anbernic RG34XXSP** — one screen:
+
+| Pokémon summary | Pokémon menu | Pokéwalker |
+| --- | --- | --- |
+| ![A Pokémon's summary page](docs/screenshots/linux/rg34-summary.png) | ![The Pokémon menu over a save box](docs/screenshots/linux/rg34-pokemon-menu.png) | ![The Pokéwalker with a Pokémon on a walk](docs/screenshots/linux/rg34-pokewalker.png) |
+
 ## Install and update
 
-1. Download `PKForge-v3.2.0-linux-0.2.4-dev-arm64.zip` from this fork's Releases page.
+1. Download `PKForge-v3.2.0-linux-0.2.5-dev-arm64.zip` from this fork's Releases page.
 2. Extract it into `/storage/roms/ports/` on ROCKNIX or `/userdata/roms/ports/` on KNULLI. Keep both launchers beside the `pkforge` folder.
 3. Refresh the Ports list. **PKForge** opens Home; **PKForge Pokepark** opens the park directly.
 
@@ -39,7 +56,7 @@ Revision 0.2.2 corrects Swellow's spinning flight and Donphan's upright Rollout 
 
 ## Verification and current limits
 
-The current desktop suite has **1,989 passing tests**; previous shared workflow/animation harness runs passed **71/71 cases on each reference handheld**. Earlier 31-minute hardware runs met the warm park target of at least 29.5 FPS in each measured park-only minute. Long-session memory stability, broader advanced-editor/format coverage and the remaining acceptance items are still open. These are historical hardware measurements, not guarantees for every device or scene.
+The desktop suites pass **3,383 tests** (1,437 Domain, 1,741 Engine, 77 Park, 128 Linux UI) and 17 launcher scenarios. In November 2026, frame timing on both reference handhelds was measured in automatic rounds with scripted input: warm park minutes ran at 30 FPS on both, and the Pokéwalker screen at 60 FPS on the RGDS and 57 FPS on the RG34XXSP. Long-session memory stability, broader advanced-editor/format coverage and the remaining acceptance items are still open. These are measurements of particular builds and scenes, not guarantees for every device.
 
 See [VALIDATION.md](VALIDATION.md) and [FEATURE_COVERAGE.md](FEATURE_COVERAGE.md) before relying on a particular editor or format. RGDS lid resume was owner-confirmed. The reference RG34XXSP uses shutdown on lid close, so its physical suspend/resume path was not exercised under that setting.
 
