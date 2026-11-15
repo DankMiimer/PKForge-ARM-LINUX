@@ -10,6 +10,10 @@ The current preview is Linux revision **0.2.7-dev**, based on upstream **v3.2.0*
 
 ## Reference handhelds
 
+![The RG34XXSP (left) and the RGDS (right) running the Poképark; the RGDS shows the resident's journal on its lower screen](docs/screenshots/linux/handhelds.jpg)
+
+*The two reference handhelds running the Poképark, November 2026: the RG34XXSP on the left, the RGDS on the right with the resident's journal on its lower screen. Photographed during a test run of a development build, with the frame-time readout shown at the top.*
+
 | Handheld | Firmware tested | Layout |
 | --- | --- | --- |
 | Anbernic RGDS | ROCKNIX 20261001 | Main view above; inspector, menus and park journal below; touch and gamepad |
