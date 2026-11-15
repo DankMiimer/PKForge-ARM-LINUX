@@ -34,7 +34,10 @@ if os.environ.get('STUB_HANG'):
     import signal, time
     signal.signal(signal.SIGTERM, signal.SIG_IGN)
 with open(os.environ['CAPTURE_FILE'], 'w') as f:
-    json.dump({'args': sys.argv[1:], 'mapping': os.environ.get('SDL_GAMECONTROLLERCONFIG', ''), 'video': os.environ.get('SDL_VIDEODRIVER', ''), 'pid': os.getpid()}, f)
+    panel = os.environ.get('PANEL_POWER')
+    note = os.environ.get('PKFORGE_BANANA_PANEL_NOTE')
+    json.dump({'args': sys.argv[1:], 'mapping': os.environ.get('SDL_GAMECONTROLLERCONFIG', ''), 'video': os.environ.get('SDL_VIDEODRIVER', ''), 'pid': os.getpid(),
+               'panel': open(panel).read().strip() if panel else None, 'note': os.path.exists(note) if note else None}, f)
 if os.environ.get('LIFECYCLE'):
     with open(os.environ['LIFECYCLE'], 'a') as f: f.write('app\\n')
 if os.environ.get('STUB_HANG'):
@@ -174,6 +177,73 @@ pm_finish() { printf 'finish\\n' >> "$LIFECYCLE"; }
     def test_explicit_video_backend_preserved(self):
         self.env["SDL_VIDEODRIVER"] = "mali"
         self.assertEqual("mali", self.run_launcher()["video"])
+
+    def banana_dark_panel(self, writable=True):
+        """BananaOS before a port: one panel's backlight off (4) and a note naming it."""
+        backlight = self.root / "sys class backlight" / "backlight0"
+        note = self.root / "run banana" / "panel-off"
+        note.parent.mkdir()
+        if writable:
+            backlight.mkdir(parents=True)
+            (backlight / "bl_power").write_text("4\n")
+        note.write_text(str(backlight) + "\n")
+        self.env.update(PKFORGE_BANANA_PANEL_NOTE=str(note), PANEL_POWER=str(backlight / "bl_power") if writable else "")
+        if not writable: del self.env["PANEL_POWER"]
+        return backlight, note
+
+    def test_bananaos_dark_panel_is_lit_for_the_run_and_put_back(self):
+        backlight, note = self.banana_dark_panel()
+        result = self.run_launcher(name="PKForge Pokepark.sh")
+        self.assertEqual(["--data-dir", str(self.ports / "pkforge/userdata"), "--display-mode", "auto", "--start-page", "park"], result["args"])
+        self.assertEqual("0", result["panel"])          # lit while PKForge ran
+        self.assertFalse(result["note"])                # so the firmware does not darken it after a wake
+        self.assertEqual("4", (backlight / "bl_power").read_text().strip())
+        self.assertEqual(str(backlight), note.read_text().strip())
+        self.assertIn("BananaOS: lit", (self.app.parent / "userdata/launcher.log").read_text())
+
+    def test_bananaos_panel_that_cannot_be_lit_means_one_screen(self):
+        _, note = self.banana_dark_panel(writable=False)
+        result = self.run_launcher()
+        self.assertEqual(["--display-mode", "single"], result["args"][-2:])
+        self.assertTrue(note.exists())
+        self.assertIn("using one screen", (self.app.parent / "userdata/launcher.log").read_text())
+
+    def test_bananaos_explicit_single_screen_leaves_the_panel_dark(self):
+        backlight, note = self.banana_dark_panel()
+        result = self.run_launcher(args=("--display-mode", "single"))
+        self.assertEqual("4", result["panel"])
+        self.assertTrue(result["note"])
+        self.assertEqual(["--data-dir", str(self.ports / "pkforge/userdata"), "--display-mode", "auto", "--display-mode", "single"], result["args"])
+
+    def test_bananaos_panel_is_put_back_when_the_launcher_is_stopped(self):
+        backlight, note = self.banana_dark_panel()
+        self.env["STUB_HANG"] = "1"
+        process = subprocess.Popen(["sh", str(self.app / "launch.sh")], env=self.env)
+        child = None
+        try:
+            deadline = time.monotonic() + 5
+            while not self.capture.exists() and time.monotonic() < deadline:
+                time.sleep(.02)
+            self.assertTrue(self.capture.exists(), "Application did not start")
+            child = json.loads(self.capture.read_text())["pid"]
+            self.assertEqual("0", (backlight / "bl_power").read_text().strip())
+            process.terminate()
+            self.assertEqual(143, process.wait(timeout=6))
+            self.assertEqual("4", (backlight / "bl_power").read_text().strip())
+            self.assertTrue(note.exists())
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=2)
+            if child:
+                try: os.kill(child, signal.SIGKILL)
+                except ProcessLookupError: pass
+
+    def test_card_without_permission_bits_needs_no_chmod(self):
+        # exFAT: the mount already presents the file as executable and refuses mode changes.
+        (self.app / "pkforge").chmod(0o755)
+        self.mock("chmod", "exit 1")
+        self.assertIsNotNone(self.run_launcher())
 
 
 if __name__ == "__main__":

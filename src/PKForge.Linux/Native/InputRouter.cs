@@ -50,6 +50,7 @@ internal sealed class InputRouter : IDisposable
         {
             if (Sdl.SDL_IsGameController(i) == 0) ImportEmulationStationMapping(i);
             if (Sdl.SDL_IsGameController(i) == 0) ImportNextUiMapping(i);
+            if (Sdl.SDL_IsGameController(i) == 0) ImportRgDsMapping(i);
             if (Sdl.SDL_IsGameController(i) == 0) { Console.WriteLine($"INPUT joystick {i}: no SDL controller mapping"); continue; }
             var controller = Sdl.SDL_GameControllerOpen(i);
             if (controller == IntPtr.Zero) continue;
@@ -131,6 +132,21 @@ internal sealed class InputRouter : IDisposable
                 return mapping;
         }
         return null;
+    }
+    /// <summary>The RG DS and RG DS Plus pad as PortMaster's database maps it (the mapping PKForge runs with on ROCKNIX).</summary>
+    internal const string RgDsBindings = "a:b1,b:b0,x:b2,y:b3,back:b8,start:b9,leftshoulder:b4,rightshoulder:b5,lefttrigger:b6,righttrigger:b7," +
+        "leftstick:b11,rightstick:b12,dpup:b13,dpdown:b14,dpleft:b15,dpright:b16," +
+        "-leftx:-a0,+leftx:+a0,-lefty:-a1,+lefty:+a1,-rightx:-a2,+rightx:+a2,-righty:-a3,+righty:+a3";
+    // A firmware with neither a controller database nor PortMaster (BananaOS before PortMaster is
+    // installed from its Store) leaves the built-in pad an unmapped joystick: no button would work.
+    private static void ImportRgDsMapping(int index)
+    {
+        var name = Marshal.PtrToStringUTF8(Sdl.SDL_JoystickNameForIndex(index)) ?? "";
+        if (name != "retrogame_joypad" || !RgdsTouch.IsRgDs()) return;
+        var buffer = new byte[33]; Sdl.SDL_JoystickGetGUIDString(Sdl.SDL_JoystickGetDeviceGUID(index), buffer, buffer.Length);
+        var guid = System.Text.Encoding.ASCII.GetString(buffer, 0, 32);
+        if (Sdl.SDL_GameControllerAddMapping($"{guid},{name},{RgDsBindings},platform:Linux,") >= 0)
+            Console.WriteLine($"INPUT RG DS fallback mapping: {name} GUID={guid}");
     }
     private static void ImportNextUiMapping(int index)
     {

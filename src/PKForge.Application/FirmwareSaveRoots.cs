@@ -55,6 +55,10 @@ public static partial class FirmwareSaveRoots
                 catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
             }
         }
+        // BananaOS mounts its card at /data: RetroArch's saves, the content folders, and DraStic's backups.
+        Add("/data/saves", EmulatorKind.RetroArch, "Firmware save folders");
+        foreach (var system in new[] { "gb", "gbc", "gba", "nds" }) Add("/data/roms/" + system, EmulatorKind.RetroArch, system + " content-adjacent saves");
+        Add("/data/drastic/backup", EmulatorKind.DraStic, "drastic");
         return roots.Values.ToArray();
     }
     [GeneratedRegex("^\\s*savefile_directory\\s*=\\s*\"([^\"]*)\"", RegexOptions.CultureInvariant)]

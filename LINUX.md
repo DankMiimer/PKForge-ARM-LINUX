@@ -27,6 +27,7 @@ Extract `PKForge-v3.2.0-linux-0.2.4-dev-arm64.zip` into the Ports directory:
 | ROCKNIX | `/roms/ports/` (normally `/storage/roms/ports/`) |
 | KNULLI | `/userdata/roms/ports/` |
 | dArkOS (ARM64, including compatible R36S community images) | `/roms/ports/` or `/roms2/ports/` |
+| BananaOS (RG DS, RG DS Plus; experimental, hardware unverified) | `roms/ports/` on the card (`\\<address>\banana\roms\ports` over its file sharing) |
 | muOS | Data: `/mmc/ports/pkforge/`; launchers: `/mnt/mmc/ROMS/Ports/` |
 
 The muOS launcher also recognizes `/mnt/mmc/ports/pkforge` and

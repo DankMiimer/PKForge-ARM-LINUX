@@ -21,7 +21,8 @@ case "$libc" in
         [ "$major" -gt 2 ] || { [ "$major" -eq 2 ] && [ "$minor" -ge 29 ]; } || fail 'glibc 2.29 or newer is required' ;;
 esac
 [ -f "$APPDIR/pkforge" ] || fail 'application files are missing'
-chmod +x "$APPDIR/pkforge" || fail 'the application filesystem must permit execution'
+# exFAT and FAT cards carry no permission bits: executable or not is the mount's choice, and chmod may be refused.
+[ -x "$APPDIR/pkforge" ] || chmod +x "$APPDIR/pkforge" || fail 'the application filesystem must permit execution'
 cd "$APPDIR" || exit 1
 # Preserve the firmware's patched SDL. ICU is selected explicitly by runtimeconfig.
 if [ -n "${SYSTEM_PATH:-}" ] && [ -d "$SYSTEM_PATH/lib" ]; then
@@ -58,6 +59,8 @@ for foreground in /run/muos/system/foreground_process /opt/muos/config/system/fo
 done
 restore="$DATADIR/.outputs-$$"
 child=
+banana_note=${PKFORGE_BANANA_PANEL_NOTE:-/run/banana/panel-off}
+banana_panel=
 cleanup() {
     if [ -n "$child" ]; then
         kill -TERM "$child" 2>/dev/null
@@ -75,6 +78,11 @@ cleanup() {
         done < "$restore"
         rm -f "$restore"
     fi
+    if [ -n "$banana_panel" ]; then
+        echo 4 > "$banana_panel/bl_power" 2>/dev/null
+        echo "$banana_panel" > "$banana_note" 2>/dev/null
+        banana_panel=
+    fi
 }
 trap cleanup 0
 trap 'exit 129' HUP
@@ -88,6 +96,29 @@ for argument in "$@"; do
     fi
     previous=$argument
 done
+# BananaOS (RG DS, RG DS Plus) runs a port for one panel: it switches the other panel's backlight off, notes
+# which in /run/banana/panel-off, and darkens it again after a wake while the note exists. PKForge draws on
+# both panels, so the dark one is lit for this run, and the note and the dark state are put back afterwards.
+# When that cannot be done, PKForge uses the lit panel alone rather than drawing its menus on a dark one.
+one_screen=
+if [ -z "${SDL_KMSDRM_FIRST:-}" ] && [ -r /etc/os-release ] && grep -q BananaOS /etc/os-release; then
+    export SDL_KMSDRM_FIRST="${BANANA_TOP:-DSI-2}"
+fi
+if [ "$single" = false ] && [ -r "$banana_note" ]; then
+    dark=$(head -n 1 "$banana_note" 2>/dev/null)
+    if [ -n "$dark" ] && [ -w "$dark/bl_power" ] && rm -f "$banana_note" 2>/dev/null; then
+        if echo 0 > "$dark/bl_power" 2>/dev/null; then
+            banana_panel=$dark
+            printf 'BananaOS: lit %s for the second screen\n' "$dark"
+        else
+            echo "$dark" > "$banana_note" 2>/dev/null
+            one_screen="--display-mode single"
+        fi
+    else
+        one_screen="--display-mode single"
+    fi
+    [ -z "$one_screen" ] || printf 'BananaOS: the second panel stays dark; using one screen\n'
+fi
 # Keep both internal outputs discoverable even when the saved app toggle is off,
 # so Settings can enable its second window during this session. The app applies
 # the saved opt-out; an explicit --display-mode single prevents panel activation.
@@ -108,7 +139,8 @@ if [ "$single" = false ] && [ "${DEVICE_HAS_DUAL_SCREEN:-}" = true ] && [ -n "${
 fi
 printf 'SDL video: %s; audio: %s; libraries: %s\n' "${SDL_VIDEODRIVER:-automatic}" "${SDL_AUDIODRIVER:-automatic}" "${LD_LIBRARY_PATH:-system}"
 ./pkforge --help >/dev/null || fail 'the bundled runtime could not initialize; details are above'
-./pkforge --data-dir "$DATADIR" --display-mode auto "$@" &
+# shellcheck disable=SC2086 # one_screen is empty or two words
+./pkforge --data-dir "$DATADIR" --display-mode auto "$@" $one_screen &
 child=$!
 wait "$child"
 result=$?

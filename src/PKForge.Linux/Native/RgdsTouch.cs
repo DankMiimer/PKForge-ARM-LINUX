@@ -5,25 +5,49 @@ using SkiaSharp.Views.Maui;
 namespace PKForge.Linux.Native;
 
 /// <summary>Two identical Goodix devices cannot be distinguished by Sway's identifier.
-/// Read their independent evdev streams instead, grabbing only for this app's lifetime.</summary>
+/// Read their independent evdev streams instead, grabbing only for this app's lifetime.
+/// Which stream is the top panel's comes from the hardware, not from the order the kernel met them in.</summary>
 internal sealed class RgdsTouch : IDisposable
 {
     private readonly TouchDevice _top, _bottom;
     private RgdsTouch(TouchDevice top, TouchDevice bottom) { _top = top; _bottom = bottom; }
+    /// <summary>An Anbernic RG DS or RG DS Plus, by the board's own name.</summary>
+    public static bool IsRgDs() => OperatingSystem.IsLinux() && File.Exists("/proc/device-tree/model") && IsRgDs(File.ReadAllText("/proc/device-tree/model"));
+    internal static bool IsRgDs(string model) => model.Contains("RG DS", StringComparison.OrdinalIgnoreCase) || model.Contains("RGDS", StringComparison.OrdinalIgnoreCase);
+    internal static bool IsTouchscreen(string name) => name.Contains("Goodix", StringComparison.OrdinalIgnoreCase) || name.Contains("touchscreen", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Which of two touchscreens is the top panel's and which the bottom's, from their sysfs paths.
+    /// A firmware hint (BananaOS's BANANA_TOUCH: part of the bottom one's path) decides first; then
+    /// the RG DS's wiring, where the bottom panel's controller is on the I2C bus at fe5e0000 (the top
+    /// one's at fe5c0000); otherwise the order given, as ROCKNIX numbers them.
+    /// </summary>
+    internal static (int Top, int Bottom, string By) Order(IReadOnlyList<string> paths, string? bottomHint)
+    {
+        foreach (var (part, by) in new[] { (bottomHint, "firmware hint"), ("fe5e0000.i2c", "wiring") })
+        {
+            if (string.IsNullOrWhiteSpace(part)) continue;
+            var bottom = paths.Select((path, index) => (path, index)).Where(p => p.path.Contains(part, StringComparison.Ordinal)).Select(p => p.index).ToArray();
+            if (bottom.Length == 1) return (1 - bottom[0], bottom[0], by);
+        }
+        return (0, 1, "order");
+    }
+
     public static RgdsTouch? TryCreate(bool dual)
     {
-        if (!dual || !OperatingSystem.IsLinux() || !File.Exists("/proc/device-tree/model") ||
-            !File.ReadAllText("/proc/device-tree/model").Contains("RG DS", StringComparison.Ordinal)) return null;
+        if (!dual || !IsRgDs()) return null;
         var devices = Directory.EnumerateDirectories("/sys/class/input", "event*")
-            .Where(p => File.Exists(Path.Combine(p, "device/name")) && File.ReadAllText(Path.Combine(p, "device/name")).Contains("Goodix", StringComparison.OrdinalIgnoreCase))
+            .Where(p => File.Exists(Path.Combine(p, "device/name")) && IsTouchscreen(File.ReadAllText(Path.Combine(p, "device/name"))))
             .OrderBy(p => int.Parse(Path.GetFileName(p)[5..], System.Globalization.CultureInfo.InvariantCulture)).ToArray();
         if (devices.Length != 2) return null;
+        var (first, second, by) = Order([.. devices.Select(p => Directory.ResolveLinkTarget(p, true)?.FullName ?? p)], Environment.GetEnvironmentVariable("BANANA_TOUCH"));
+        devices = [devices[first], devices[second]];
         TouchDevice? top = null;
         try
         {
             top = new TouchDevice("/dev/input/" + Path.GetFileName(devices[0]));
             var bottom = new TouchDevice("/dev/input/" + Path.GetFileName(devices[1]));
-            Console.WriteLine($"TOUCH independent panels: top={Path.GetFileName(devices[0])}, bottom={Path.GetFileName(devices[1])}");
+            Console.WriteLine($"TOUCH independent panels: top={Path.GetFileName(devices[0])}, bottom={Path.GetFileName(devices[1])} (by {by})");
             return new(top, bottom);
         }
         catch (IOException error) { top?.Dispose(); Console.Error.WriteLine("TOUCH SDL fallback: " + error.Message); return null; }
