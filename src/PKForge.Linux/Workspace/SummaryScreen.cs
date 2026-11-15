@@ -111,7 +111,8 @@ internal sealed class SummaryScreen(WorkspaceHost host, PokemonTarget target) : 
             _overviewHits.Add((rect, i));
         }
         NativePaint.Text(canvas, host.StorageBoxName(_target.InBank, _target.Box) + " · " + (_summary?.DisplayName ?? "Empty slot"), 12, bounds.Bottom - 48, 17, ColorTheme.Current.Ink, bounds.Width - 24);
-        NativePaint.Footer(canvas, bounds, host.Screens.Dual ? "Touch an occupied slot to view its summary." : "D-pad: Pokémon · A: actions · Select/B: summary");
+        if (host.Screens.Dual) NativePaint.Note(canvas, bounds, "Touch an occupied slot to view its summary.");
+        else NativePaint.Hints(canvas, bounds, ("✚", "Pokémon"), ("A", "Actions"), ("B", "Summary"));
     }
     private void SelectSlot(int index)
     {

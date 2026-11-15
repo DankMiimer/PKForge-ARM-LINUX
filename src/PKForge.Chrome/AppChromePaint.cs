@@ -94,9 +94,19 @@ public static class AppChromePaint
     public static SKFont HintFont(SKRect bounds, IReadOnlyList<(string Key, string Label)> prompts, SKTypeface face, float size)
     {
         var font = new SKFont(face, size);
-        var hits = PksmPaint.HintBarHitRects(bounds, prompts, font);
-        if (hits.Count > 0 && hits[^1].Right - hits[0].Left > bounds.Width - 12)
-            font.Size *= (bounds.Width - 12) / (hits[^1].Right - hits[0].Left);
+        var room = bounds.Width - 12;
+        // The 8-pixel gap after each key disc does not shrink with the font, so one proportional
+        // step left a long bar too wide: the park's eight prompts were cut off at both ends on the
+        // handhelds. Measure again until the prompts really fit.
+        for (var attempt = 0; attempt < 6; attempt++)
+        {
+            var hits = PksmPaint.HintBarHitRects(bounds, prompts, font);
+            if (hits.Count == 0) break;
+            var used = hits[^1].Right - hits[0].Left;
+            if (used <= room) break;
+            var fixedGaps = 8f * prompts.Count;
+            font.Size *= Math.Max(.5f, (room - fixedGaps) / Math.Max(1f, used - fixedGaps)) * .995f;
+        }
         return font;
     }
 }

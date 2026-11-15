@@ -115,10 +115,10 @@ public sealed class NativeListScreen(NativeScreenStack stack, string title, Func
     public void Leave() { _scroller?.Reset(); _touch = null; leave?.Invoke(); }
     public void Paint(SKCanvas canvas, SKRect bounds, bool secondary)
     {
-        NativePaint.Background(canvas, bounds, title);
         var rows = items(); _index = Math.Clamp(_index, 0, Math.Max(0, rows.Count - 1));
-        if (preview is not null && (secondary || _preview && !stack.Dual)) { preview(canvas, bounds, _index); NativePaint.Footer(canvas, bounds, "A: open · X: library · B: back"); return; }
-        if (secondary) { NativePaint.Paragraph(canvas, bounds, detail?.Invoke() ?? (rows.Count > 0 ? rows[_index].Label : "")); NativePaint.Footer(canvas, bounds, "D-pad: choose · A: open · B: back"); return; }
+        NativePaint.Background(canvas, bounds, title, secondary || rows.Count == 0 ? null : $"{_index + 1}/{rows.Count}");
+        if (preview is not null && (secondary || _preview && !stack.Dual)) { preview(canvas, bounds, _index); NativePaint.Hints(canvas, bounds, ("A", "Open"), ("X", "Library"), ("B", "Back")); return; }
+        if (secondary) { NativePaint.Paragraph(canvas, bounds, detail?.Invoke() ?? (rows.Count > 0 ? rows[_index].Label : "")); NativePaint.Hints(canvas, bounds, ("✚", "Choose"), ("A", "Open"), ("B", "Back")); return; }
         _list = new(bounds.Left + 12, bounds.Top + 64, bounds.Right - 12, bounds.Bottom - 45);
         _maximum = Math.Max(0, rows.Count * 46 - _list.Height);
         _scroll = Math.Clamp(_scroll, 0, _maximum);
@@ -141,7 +141,7 @@ public sealed class NativeListScreen(NativeScreenStack stack, string title, Func
             var thumb = scroller.Thumb(); if (scroller.HoldingThumb) thumb.Inflate(2, 0);
             canvas.DrawRoundRect(thumb, 2, 2, ink);
         }
-        NativePaint.Footer(canvas, bounds, $"A: open · X: details · B: back · L/R: page     {_index + 1}/{rows.Count}");
+        NativePaint.Hints(canvas, bounds, ("A", "Open"), ("X", "Details"), ("B", "Back"), ("LR", "Page"));
     }
     public bool Button(PadButton button)
     {
@@ -179,11 +179,39 @@ public sealed class NativeListScreen(NativeScreenStack stack, string title, Func
 
 internal static class NativePaint
 {
-    public static void Background(SKCanvas c, SKRect bounds, string title)
+    /// <summary>
+    /// The chrome of the newer screens (Home, storage): the status strip on top, the screen's name
+    /// in the box-name banner below it, the grid behind. It takes the same 54 pixels as the old
+    /// dark title bar it replaces, so nothing below moves.
+    /// </summary>
+    public static void Background(SKCanvas c, SKRect bounds, string title, string? count = null)
     {
         c.Clear(ColorTheme.Current.Deck);
-        AppChromePaint.Backdrop(c, bounds, 54);
-        AppChromePaint.Header(c, bounds, title, PixelFont.Face);
+        AppChromePaint.Backdrop(c, bounds, 26);
+        AppChromePaint.StatusStrip(c, bounds, PixelFont.Face);
+        AppChromePaint.TitleBanner(c, SKRect.Create(bounds.Left + 10, bounds.Top + 29, bounds.Width - 20, 23), title, PixelFont.Face, 15);
+        if (count is not null) Count(c, bounds, count);
+    }
+    /// <summary>A position such as "12/386", at the right of the status strip beside the battery.</summary>
+    public static void Count(SKCanvas c, SKRect bounds, string count)
+    {
+        using var font = Font(count, 13.5f); using var ink = new SKPaint { Color = Pksm.InkSoft, IsAntialias = true };
+        c.DrawText(count, bounds.Right - 46, bounds.Top + 18, SKTextAlign.Right, font, ink);
+    }
+    /// <summary>The hint bar of the newer screens, with key discs: 42 pixels at the bottom.</summary>
+    public static void Hints(SKCanvas c, SKRect bounds, params (string Key, string Label)[] prompts)
+    {
+        var bar = SKRect.Create(bounds.Left, bounds.Bottom - 42, bounds.Width, 42);
+        using var font = AppChromePaint.HintFont(bar, prompts, PixelFont.Face, 14);
+        PksmPaint.HintBar(c, bar, prompts, font);
+    }
+    /// <summary>A sentence in the hint bar's place, for a screen with nothing to press.</summary>
+    public static void Note(SKCanvas c, SKRect bounds, string text)
+    {
+        var bar = SKRect.Create(bounds.Left, bounds.Bottom - 42, bounds.Width, 42);
+        PksmPaint.Panel(c, SKRect.Inflate(bar, -3, -3));
+        using var font = Font(text, 14); using var ink = new SKPaint { Color = Pksm.Ink, IsAntialias = true };
+        c.DrawText(NativeText.Fit(text, font, bar.Width - 24), bar.MidX, bar.MidY + 5, SKTextAlign.Center, font, ink);
     }
     public static void Text(SKCanvas c, string text, float x, float y, float size, SKColor color, float maxWidth = float.PositiveInfinity)
     {
@@ -196,7 +224,6 @@ internal static class NativePaint
         Text(c, text, rect.Left + 12, rect.MidY + 6, 17, Pksm.Ink, rect.Width - 24);
     }
     public static SKFont Font(string text, float size) => new(text.All(c => PixelFont.Face.GetGlyph(c) != 0) ? PixelFont.Face : PixelFont.FallbackFace, size);
-    public static void Footer(SKCanvas c, SKRect bounds, string text) => Text(c, text, 12, bounds.Bottom - 15, 13, new SKColor(168, 200, 220), bounds.Width - 24);
     public static void Paragraph(SKCanvas c, SKRect bounds, string text)
     {
         using var font = Font(text, 17);

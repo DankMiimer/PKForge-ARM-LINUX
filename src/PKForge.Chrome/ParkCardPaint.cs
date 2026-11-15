@@ -388,15 +388,18 @@ public static class ParkCardPaint
             y += 50f * unit;
         }
         y += 6f * unit;
+        // A short lower screen ends here: what does not fit is left out, not drawn over the frame.
+        if (y > panel.Bottom - 30f * unit) return;
         Text(c, "MEMORY", panel.Left + 32f * unit, y, label, EditorPaint.Label, 200f * unit);
         foreach (var line in Wrap(journal.Memory, value, panel.Width - 272f * unit).Take(2))
         {
+            if (y > panel.Bottom - 30f * unit) return;
             Text(c, line, panel.Left + 240f * unit, y, value, EditorPaint.Value, panel.Width - 272f * unit);
             y += 42f * unit;
         }
 
         // The park's latest moments, newest first.
-        if (journal.Recent.Count == 0) return;
+        if (journal.Recent.Count == 0 || y + 68f * unit > panel.Bottom - 30f * unit) return;
         y += 16f * unit;
         var sectionHeight = 56f * unit;
         EditorPaint.PaintSection(c, SKRect.Create(panel.Left, y - sectionHeight / 2, panel.Width, sectionHeight), "In the park", face, unit);
