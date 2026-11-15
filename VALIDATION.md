@@ -177,6 +177,29 @@ and the test folders were removed.
 These match the measurements of the change made with the 0.2.5 archive and the
 two rebuilt assemblies above.
 
+### 0.2.7-dev release archive — 15 November 2026
+
+0.2.7-dev changes how screens are laid out, not how the park is drawn: hint
+bars always fit, the RGDS park pills move over the park on the upper screen,
+cartridge dates are shortened instead of cut, and the older native screens use
+the newer chrome. The published archive (commit `6c90557`, tag
+`linux-v0.2.7-dev`, verified against both) was downloaded from the draft and
+run on both handhelds before publication, installed in isolation. Every round
+exited cleanly, `userdata` matched its hashes afterwards and the test folders
+were removed.
+
+| | RGDS | RG34XXSP |
+| --- | --- | --- |
+| 45-second round (cold start): park / Pokéwalker | 28.9 / 57.4 FPS | 29.2 / 57.6 FPS |
+| Six-minute round: warm park minutes | 29.7–30.0 FPS | 29.9–30.0 FPS |
+| Six-minute round: park frame drawn in | 8.7 ms (p95 14.0) | 16.3 ms (p95 22.0) |
+| Six-minute round: Pokéwalker | 60.0 FPS, under the park | 58.5 FPS |
+
+A screenshot round on the RGDS showed the whole journal on the lower screen
+(through BONDS) with the "right now" pill over the park above; the README's
+screenshots were retaken from this archive. On the RGDS lower screen the park's
+eight button hints now fit, at about 10 pixels.
+
 Not covered by these rounds: touch, lid and resume, data-safety acceptance, a
 soak through Home and the editors, and any look at the screens by a person other than the
 screenshots in the README. Start-up pauses of 200–700 ms remain in the first
