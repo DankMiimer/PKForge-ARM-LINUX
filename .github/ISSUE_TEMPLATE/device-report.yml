@@ -1,0 +1,32 @@
+name: Device report
+description: How PKForge ran on your handheld (see TESTING.md).
+title: "Device report: <handheld> / <firmware>"
+labels: ["device report"]
+body:
+  - type: input
+    id: device
+    attributes:
+      label: Handheld and firmware
+      placeholder: "Anbernic RG35XXH, muOS"
+    validations:
+      required: true
+  - type: checkboxes
+    id: worked
+    attributes:
+      label: What worked
+      options:
+        - label: PKForge starts, fits the screen, and A/B match the hints
+        - label: The Poképark runs smoothly
+        - label: Start + Select returns to the menu
+  - type: textarea
+    id: notes
+    attributes:
+      label: What went wrong (if anything)
+      description: A photo or screenshot helps.
+  - type: textarea
+    id: log
+    attributes:
+      label: launcher.log
+      description: Drag `launcher.log` from `pkforge/userdata/` here.
+    validations:
+      required: true
