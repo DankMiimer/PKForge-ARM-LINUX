@@ -507,7 +507,7 @@ catch (Exception error)
 internal sealed record Arguments
 {
     public const string UpstreamVersion = "3.2.0";
-    public const string PortRevision = "0.2.6-dev";
+    public const string PortRevision = "0.2.7-dev";
     public const string HelpText = "PKForge 3.2.0\n--data-dir PATH --start-page home|park --display-mode auto|single|dual --swap-screens --software --windowed\n--save PATH --demo --headless --seconds N --screenshot\n--headless-width N --headless-height N (Home/workspace capture size)\n--headless-input \"A Right A\" (pad presses before the capture; hold:A / release:A split one)\n--phase Morning|Day|Evening|Night --weather Sunny|Cloudy|Rain|Storm\n--input-script PATH (timed controller actions for integration testing)";
     public string StartPage { get; init; } = "home";
     public string HeadlessScreen { get; init; } = "home";
