@@ -17,6 +17,23 @@ The current preview is Linux revision **0.2.4-dev**, based on upstream **v3.2.0*
 
 Other ARM64 ROCKNIX/KNULLI handhelds are experimental. The packages bundle .NET 10 and app-local ICU; ARM64 glibc 2.29+ and firmware SDL2 are required. Missing audio is nonfatal; GLES falls back to raster where the SDL backend supports it. KNULLI's Mali backend still needs working firmware EGL. Experimental packages also target muOS, dArkOS and NextUI; see LINUX.md for installation and validation status.
 
+## Screenshots
+
+Captured on the two reference handhelds in November 2026, from a development
+build after 0.2.4-dev, with demonstration data.
+
+**Anbernic RGDS** — both screens, top above bottom:
+
+| Poképark and its journal | Pokéwalker | Boxes and storage tools | Summary and box overview |
+| --- | --- | --- | --- |
+| ![Poképark on the top screen with a resident's journal below](docs/screenshots/linux/rgds-park.png) | ![The park above and the Pokéwalker with a Pokémon on a walk below](docs/screenshots/linux/rgds-pokewalker.png) | ![A save box above and the storage tools menu below](docs/screenshots/linux/rgds-storage-tools.png) | ![A Pokémon's summary above and its box overview below](docs/screenshots/linux/rgds-summary.png) |
+
+**Anbernic RG34XXSP** — one screen:
+
+| Pokémon summary | Pokémon menu | Pokéwalker |
+| --- | --- | --- |
+| ![A Pokémon's summary page](docs/screenshots/linux/rg34-summary.png) | ![The Pokémon menu over a save box](docs/screenshots/linux/rg34-pokemon-menu.png) | ![The Pokéwalker with a Pokémon on a walk](docs/screenshots/linux/rg34-pokewalker.png) |
+
 ## Install and update
 
 1. Download `PKForge-v3.2.0-linux-0.2.4-dev-arm64.zip` from this fork's Releases page.
