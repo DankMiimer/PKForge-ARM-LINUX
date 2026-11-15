@@ -29,6 +29,11 @@ Shell tests are separate from installed, frontend-launched, rendered and physica
 verified behavior. Package filenames do not claim every device using a firmware
 has been tested.
 
+Testers with other handhelds: [`TESTING.md`](TESTING.md) lists the steps and the
+files to send, and the **Device report** issue form collects them. A device
+reported working is added to the table above as tester-confirmed, with its
+firmware and PKForge versions.
+
 ## Firmware assessment — 12 November 2026
 
 These are compatibility assessments of the named upstream sources, not additional
