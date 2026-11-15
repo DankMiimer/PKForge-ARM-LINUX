@@ -39,6 +39,16 @@ included the swap.
   frame, and the slowest 5% of park frames in the first minute from 34–36 ms
   to 30.8 ms.
 
+On 15 November a package built from the revision's own commit `3b03d86`, with
+nothing placed over it, ran one automatic round on each handheld: three minutes
+of park, then the Pokéwalker. RGDS: 30.0 FPS in both warm park minutes and
+59.8 FPS on the Pokéwalker screen. RG34XXSP: 30.0 FPS in both warm park minutes
+and 57.8 FPS in the Pokéwalker. Both exited cleanly and `userdata` matched. The
+RGDS run ended at 309 of its 375 seconds after Home had opened; what opened it
+was not established (a button press on the device would do it). The release
+archives are built by CI from a later commit that changes only the label
+layout's font handling and its test.
+
 Not covered by these rounds: touch, lid and resume, data-safety acceptance, the
 90-minute soak, and any look at the screens by a person other than the
 screenshots in the README. Start-up pauses of 200–700 ms remain in the first
