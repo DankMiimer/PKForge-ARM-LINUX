@@ -316,6 +316,10 @@ public sealed partial class PokeparkSpriteService
             }
         }
         catch (Exception ex) when (IsDownloadFailure(ex)) { }
+        // Never written again. Drawing an SKBitmap makes an SKImage of it, and Skia copies the
+        // pixels of a mutable bitmap each time: the whole sheet (up to 4 MB) for every frame of
+        // every resident in view. An immutable bitmap is shared instead.
+        bitmap.SetImmutable();
         return new(bitmap, width, height, durations, durations.Sum(), feet, VisualBounds(bitmap, width, height));
     }
 

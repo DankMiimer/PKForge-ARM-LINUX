@@ -30,6 +30,8 @@ public sealed class ParkArt
             canvas.Clear(SKColors.Transparent);
             canvas.DrawBitmap(source, 0, 0, paint);
             if (over is not null) canvas.DrawBitmap(over, 0, 0, paint);
+            // Finished: a frame draws it without Skia first copying the whole bitmap (see Bitmap below).
+            bitmap.SetImmutable();
             return bitmap;
         }
         var ground = Tint(Ground, Shadows);
@@ -103,6 +105,9 @@ public sealed class ParkArt
         for (var y = 0; y < height; y++)
             Marshal.Copy(pixels, y * width * 4, target + y * bitmap.RowBytes, width * 4);
         bitmap.NotifyPixelsChanged();
+        // Drawing an SKBitmap goes through an SKImage, and Skia copies a mutable bitmap's pixels
+        // for every draw. These are never written again, so they are shared instead.
+        bitmap.SetImmutable();
         return bitmap;
     }
 }
