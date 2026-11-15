@@ -39,7 +39,10 @@ public sealed class PokeparkJournalView : SKCanvasView
     private void Paint(object? sender, SKPaintSurfaceEventArgs e)
     {
         var c = e.Surface.Canvas;
-        var unit = e.Info.Width / 1240f;
+        // Designed for a 1240×1080 lower screen. A wider, shorter one (the RG DS above its hint
+        // bar, 640×424) keeps the needs and the RIGHT NOW, LIKES and BONDS lines on it: they need
+        // about 860 design pixels of height. Taller screens are laid out exactly as before.
+        var unit = Math.Min(e.Info.Width / 1240f, e.Info.Height / 860f);
         PksmPaint.LogoGrid(c, new SKRect(0, 0, e.Info.Width, e.Info.Height), 24 * unit, 3 * unit);
         if (_state?.Resident is not { } mon) return;
         var bitmap = _sprites?.GetPortrait(mon.Species, mon.Form, mon.Shiny, ParkLife.PortraitFor(_state.Mood));

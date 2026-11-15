@@ -78,7 +78,7 @@ internal sealed class AutopilotRouteScreen(LivingDexPlan plan) : INativeScreen
         if (secondary) { NativePaint.Paragraph(canvas, bounds, $"{plan.CoveredBefore}/{plan.TargetCount} covered\n" + (plan.Steps.Count > 0 ? NativeForms.Describe(plan.Steps[Math.Clamp(_index, 0, plan.Steps.Count - 1)]) : "No moves required.")); return; }
         var steps = plan.Steps.Skip(_index).Take(7).ToArray();
         for (var i = 0; i < steps.Length; i++) NativePaint.Row(canvas, SKRect.Create(12, 66 + i * 48, bounds.Width - 24, 44), NativeForms.Display(steps[i]), i == 0);
-        NativePaint.Footer(canvas, bounds, "D-pad: route · B: back");
+        NativePaint.Hints(canvas, bounds, ("✚", "Route"), ("B", "Back"));
     }
     public bool Button(PadButton button)
     {

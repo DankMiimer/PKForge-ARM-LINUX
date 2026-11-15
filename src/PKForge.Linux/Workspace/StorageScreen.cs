@@ -359,7 +359,8 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
                 emptyText: "Empty slot · A: import or generate a Pokémon");
         }
         if (Host.Screens.DrawingDevice is { } device) _inspector.Draw(canvas, new(12, bounds.Top + 34, bounds.Right - 12, bounds.Bottom - 45), device);
-        NativePaint.Footer(canvas, bounds, bank ? "+: menu · −: page" : "+: menu");
+        if (bank) NativePaint.Hints(canvas, bounds, ("+", "Menu"), ("−", "Page"));
+        else NativePaint.Hints(canvas, bounds, ("+", "Menu"));
     }
 
     // ── Input ─────────────────────────────────────────────────────────────────

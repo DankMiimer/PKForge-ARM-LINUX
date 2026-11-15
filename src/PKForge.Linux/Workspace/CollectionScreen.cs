@@ -39,13 +39,17 @@ internal sealed class CollectionScreen(WorkspaceHost host, CollectionSnapshot sn
     }
     public void Paint(SKCanvas canvas, SKRect bounds, bool secondary)
     {
-        NativePaint.Background(canvas, bounds, (_shiny ? "Shiny " : "") + (_forms ? "Forms dex" : "Living dex") + (_generation is null ? " · All" : _generation == 0 ? " · This game" : " · Gen " + _generation));
-        if (_entries.Length == 0) { NativePaint.Paragraph(canvas, bounds, "No entries in this view. X: scope and view filters."); return; }
+        NativePaint.Background(canvas, bounds, (_shiny ? "Shiny " : "") + (_forms ? "Forms dex" : "Living dex") + (_generation is null ? " · All" : _generation == 0 ? " · This game" : " · Gen " + _generation),
+            secondary || _entries.Length == 0 ? null : $"{_index + 1}/{_entries.Length}");
+        if (_entries.Length == 0) { NativePaint.Paragraph(canvas, bounds, "No entries in this view. X: scope and view filters."); NativePaint.Hints(canvas, bounds, ("X", "Scope"), ("B", "Back")); return; }
         var selected = _entries[_index];
+        // A species' standard form has no name: no empty part between the dots.
+        var form = LivingDexCatalogBuilder.FormName(selected.Species, selected.Form);
         if (secondary)
         {
-            NativePaint.Paragraph(canvas, bounds, $"#{selected.Species} {names[selected.Species]}\n{LivingDexCatalogBuilder.FormName(selected.Species, selected.Form)}\n{(Owned(selected) ? "Owned" : "Missing")}\n" + string.Join('\n', snapshot.Members.Where(m => m.Species == selected.Species && (!_forms || m.Form == selected.Form) && (!_shiny || m.Shiny)).Select(m => m.Location).Distinct()));
-            NativePaint.Footer(canvas, bounds, "Select: all source locations · A: reference · X: scope"); return;
+            NativePaint.Paragraph(canvas, bounds, string.Join('\n', new[] { $"#{selected.Species} {names[selected.Species]}", form, Owned(selected) ? "Owned" : "Missing" }.Where(line => line.Length > 0)
+                .Concat(snapshot.Members.Where(m => m.Species == selected.Species && (!_forms || m.Form == selected.Form) && (!_shiny || m.Shiny)).Select(m => m.Location).Distinct())));
+            NativePaint.Hints(canvas, bounds, ("−", "All sources"), ("A", "Reference"), ("X", "Scope")); return;
         }
         const int columns = 6, visible = 30; var first = Math.Max(0, _index / columns * columns - 2 * columns); first = Math.Min(first, Math.Max(0, ((_entries.Length - 1) / columns - 4) * columns));
         var width = (bounds.Width - 24) / columns; var height = (bounds.Height - 145) / 5;
@@ -65,9 +69,12 @@ internal sealed class CollectionScreen(WorkspaceHost host, CollectionSnapshot sn
             if (i == _index) PksmPaint.Selection(canvas, rect);
             _hits.Add((rect, i));
         }
-        NativePaint.Text(canvas, names[selected.Species] + " · " + LivingDexCatalogBuilder.FormName(selected.Species, selected.Form) + (Owned(selected) ? " · Owned" : " · Missing"), 12, bounds.Height - 64, 17, ColorTheme.Current.Ink, bounds.Width - 24);
-        NativePaint.Footer(canvas, bounds, $"A: reference · Select: sources · X: scope · Y: missing · Start: Autopilot · {_index + 1}/{_entries.Length}");
+        NativePaint.Text(canvas, CollectionCaption(names[selected.Species], form, Owned(selected)), 12, bounds.Height - 64, 17, ColorTheme.Current.Ink, bounds.Width - 24);
+        NativePaint.Hints(canvas, bounds, ("A", "Reference"), ("−", "Sources"), ("X", "Scope"), ("Y", "Missing"), ("+", "Autopilot"));
     }
+    /// <summary>"Bulbasaur · Missing", "Rotom · Wash Rotom · Owned": the form only when it has a name.</summary>
+    internal static string CollectionCaption(string name, string form, bool owned) =>
+        string.Join(" · ", new[] { name, form, owned ? "Owned" : "Missing" }.Where(part => part.Length > 0));
     public bool Button(PadButton button)
     {
         switch (button)

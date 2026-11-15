@@ -269,7 +269,7 @@ try
             {
                 input.ClearHeld();
                 if (workspace.Screens.Active) workspace.Screens.Current?.Leave();
-                (parkDisplay ?? controls).MakeCurrent(); workspace.Screens.Primary.ReleaseSurface(); workspace.Screens.EffectRoot.ReleaseSurface(); page.ParkView.ReleaseSurface();
+                (parkDisplay ?? controls).MakeCurrent(); workspace.Screens.Primary.ReleaseSurface(); workspace.Screens.EffectRoot.ReleaseSurface(); page.ParkView.ReleaseSurface(); page.ReleaseUpperOverlay();
                 controls.MakeCurrent(); journal.ReleaseSurface(); workspace.ClosePages(); workspace.Screens.ControlRoot.ReleaseSurface(); page.ControlRoot.ReleaseSurface();
             });
             dual = displays.Dual;
@@ -277,6 +277,7 @@ try
             parkDisplay = displays.Secondary is not null ? displays.Primary : null;
             workspace.DualAvailable = displays.Available;
             workspace.Screens.SetDual(dual); page.ControlRoot.ExcludedInput = dual ? page.ParkView : null;
+            page.UseUpperScreenForPills(dual);
             controls.MakeCurrent();
             if (workspace.Screens.Active) workspace.Screens.Current?.Enter();
         }
@@ -289,6 +290,7 @@ try
         if (arguments.StartPage == "park" || arguments.Demo) page.Appear(); else workspace.OpenHome(welcome: true);
         Console.WriteLine($"WORKSPACE active={workspace.Screens.Active}, screen={workspace.Screens.Current?.GetType().Name}");
         page.ControlRoot.ExcludedInput = dual ? page.ParkView : null;
+        page.UseUpperScreenForPills(dual);
         using var touchPanels = RgdsTouch.TryCreate(displays.Available);
         using var lid = new LidMonitor();
         using var terminate = OperatingSystem.IsLinux() ? PosixSignalRegistration.Create(PosixSignal.SIGTERM, context => { context.Cancel = true; library.QuitRequested = true; }) : null;
@@ -403,7 +405,11 @@ try
                     if (dual) workspace.Screens.DrawPrimary(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                     else workspace.Screens.DrawControls(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                 }
-                else if (dual) page.ParkView.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
+                else if (dual)
+                {
+                    page.ParkView.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
+                    page.UpperOverlay?.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
+                }
                 else page.ControlRoot.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
                 var built = Stopwatch.GetTimestamp();
                 display.Flush(); var drawn = Stopwatch.GetTimestamp();
@@ -426,7 +432,7 @@ try
                 if (workspace.Screens.Active) workspace.Screens.DrawControls(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls);
                 else
                 {
-                    journal.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height - 70), controls);
+                    journal.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height - JournalSurface.HintBarReserve), controls);
                     page.ControlRoot.Draw(surface.Canvas, new(0, 0, controls.Width, controls.Height), controls, page.ParkView);
                 }
                 var built = Stopwatch.GetTimestamp();
@@ -450,7 +456,11 @@ try
                 if (dual) workspace.Screens.DrawPrimary(frame.Canvas, new(0, 0, display.Width, display.Height), display);
                 else workspace.Screens.DrawControls(frame.Canvas, new(0, 0, display.Width, display.Height), display);
             }
-            else if (dual) page.ParkView.Draw(frame.Canvas, new(0, 0, display.Width, display.Height), display);
+            else if (dual)
+            {
+                page.ParkView.Draw(frame.Canvas, new(0, 0, display.Width, display.Height), display);
+                page.UpperOverlay?.Draw(frame.Canvas, new(0, 0, display.Width, display.Height), display);
+            }
             else page.ControlRoot.Draw(frame.Canvas, new(0, 0, display.Width, display.Height), display);
             display.SaveScreenshot(Path.Combine(ParkPlatform.DataDirectory, "park.png"));
             display.Present();
@@ -463,7 +473,7 @@ try
             if (workspace.Screens.Active) workspace.Screens.DrawControls(frame.Canvas, new(0, 0, controls.Width, controls.Height), controls);
             else
             {
-                journal.Draw(frame.Canvas, new(0, 0, controls.Width, controls.Height - 70), controls);
+                journal.Draw(frame.Canvas, new(0, 0, controls.Width, controls.Height - JournalSurface.HintBarReserve), controls);
                 page.ControlRoot.Draw(frame.Canvas, new(0, 0, controls.Width, controls.Height), controls, page.ParkView);
             }
             controls.SaveScreenshot(Path.Combine(ParkPlatform.DataDirectory, "controls.png"));
@@ -547,7 +557,7 @@ internal sealed record Arguments
         if (value.DisplayMode is not ("auto" or "single" or "dual")) throw new ArgumentException("Invalid display mode.");
         if (value.StartPage is not ("home" or "park")) throw new ArgumentException("Invalid start page.");
         if (value.CaptureWidth is < 320 or > 3840 || value.CaptureHeight is < 240 or > 2160) throw new ArgumentException("Headless dimensions must be 320–3840 × 240–2160.");
-        if (value.HeadlessScreen is not ("home" or "home-preview" or "boxes" or "party" or "summary" or "summary-overview" or "collection" or "bank")) throw new ArgumentException("Invalid headless screen.");
+        if (value.HeadlessScreen is not ("home" or "home-preview" or "boxes" or "party" or "summary" or "summary-overview" or "collection" or "bank" or "item-bank")) throw new ArgumentException("Invalid headless screen.");
         if (value.Demo && !args.Contains("--data-dir")) throw new ArgumentException("--demo requires an explicit --data-dir to keep test residents separate.");
         if (value.HeadlessInput.Count > 0 && !value.Headless) throw new ArgumentException("--headless-input needs --headless.");
         return value;
@@ -576,6 +586,9 @@ internal static class DemoRoster
 internal sealed class JournalSurface : IDisposable
 {
     private readonly PokeparkJournalView _view = new();
+    /// <summary>The lower screen's strip below the journal: the park's 54-pixel hint bar. On two
+    /// screens nothing else sits there; the park's pills are drawn over the park above.</summary>
+    public const float HintBarReserve = 56;
     public void Draw(SKCanvas canvas, SKRect rect, GraphicsDevice device) => _view.Draw(canvas, rect, device);
     public void ReleaseSurface() => _view.ReleaseSurface();
     public void Dispose() { _view.Detach(); _view.ReleaseSurface(); }

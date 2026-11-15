@@ -26,12 +26,20 @@ public static class HomeCardText
         var save = saves[0];
         return string.IsNullOrEmpty(save.TrainerName) ? save.FileName : string.IsNullOrEmpty(save.PlayTime) ? save.TrainerName : $"{save.TrainerName} · {save.PlayTime}";
     }
-    public static string Detail(IReadOnlyList<DetectedSave> saves)
+    public static string Detail(IReadOnlyList<DetectedSave> saves) => DetailChoices(saves, DateTime.Now)[0];
+
+    /// <summary>The detail line, then shorter forms for a narrow cartridge, most informative first:
+    /// without the year for this year's saves, then the date alone.</summary>
+    public static IReadOnlyList<string> DetailChoices(IReadOnlyList<DetectedSave> saves, DateTime now)
     {
         var emulators = saves.Select(s => Emulator(s.Emulator)).Distinct().ToArray();
-        var parts = new List<string> { emulators.Length <= 2 ? string.Join(", ", emulators) : $"{emulators.Length} emulators" };
-        if (saves.Max(s => s.LastModified) is { } latest) parts.Add(latest.ToLocalTime().ToString("MMM d, yyyy"));
-        return string.Join(" · ", parts);
+        var who = emulators.Length <= 2 ? string.Join(", ", emulators) : $"{emulators.Length} emulators";
+        if (saves.Max(s => s.LastModified) is not { } latest) return [who];
+        var local = latest.ToLocalTime();
+        var choices = new List<string> { $"{who} · {local.ToString("MMM d, yyyy")}" };
+        if (local.Year == now.Year) choices.Add($"{who} · {local.ToString("MMM d")}");
+        choices.Add(local.ToString("MMM d, yyyy"));
+        return choices;
     }
     public static string Emulator(EmulatorKind kind) => kind switch
     {
@@ -123,7 +131,18 @@ public static class HomePaint
         var text = new SKRect(rect.Left + 11 * unit, rect.Top, rect.Right - 11 * unit, rect.Bottom);
         Text(c, HomeCardText.Title(save), text, rect.Top + 117 * unit, face, 14 * unit, Pksm.Ink, fallback);
         Text(c, HomeCardText.Trainer(saves), text, rect.Top + 136 * unit, face, 12.5f * unit, Pksm.Ink, fallback);
-        Text(c, HomeCardText.Detail(saves), text, rect.Top + 155 * unit, face, 12 * unit, Pksm.InkSoft, fallback);
+        // Android's line ("RetroArch · Oct 25, 2026") is wider than a handheld's cartridge: it loses
+        // the year (this year's saves), then the emulator, before anything is cut off.
+        var choices = HomeCardText.DetailChoices(saves, DateTime.Now);
+        var detail = choices.FirstOrDefault(d => Fits(d, text.Width, face, 12 * unit, fallback)) ?? choices[0];
+        Text(c, detail, text, rect.Top + 155 * unit, face, 12 * unit, Pksm.InkSoft, fallback);
+    }
+
+    private static bool Fits(string text, float width, SKTypeface face, float size, SKTypeface? fallback)
+    {
+        var actualFace = fallback is not null && text.Any(c => face.GetGlyph(c) == 0) ? fallback : face;
+        using var font = new SKFont(actualFace, size);
+        return font.MeasureText(text) <= width;
     }
 
     public static void Text(SKCanvas c, string text, SKRect rect, float baseline, SKTypeface face, float size, SKColor color, SKTypeface? fallback = null)
