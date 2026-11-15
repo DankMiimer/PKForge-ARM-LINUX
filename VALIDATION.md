@@ -107,7 +107,7 @@ hashes and the test folders were removed. No crash, stall or overrun.
   FPS. The Pokéwalker's rate on the RGDS therefore depends on the park scene
   above it; 60 FPS is reached in lighter scenes, not in every scene.
 
-### Park art drawn without copying — after the soak (not in a release yet)
+### Park art drawn without copying — 0.2.6-dev
 
 A CPU sampling profile of the release on the RG34XXSP (.NET EventPipe, no code
 change) showed the park scene spending most of its time copying pixels.

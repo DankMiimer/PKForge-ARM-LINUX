@@ -2,7 +2,7 @@ PKForge v3.2.0 adapted for ARM64 ROCKNIX and KNULLI with a native .NET 10 / SDL2
 
 ## Download and install
 
-Download **PKForge-v3.2.0-linux-0.2.5-dev-arm64.zip** and extract it into your firmware's Ports directory:
+Download **PKForge-v3.2.0-linux-0.2.6-dev-arm64.zip** and extract it into your firmware's Ports directory:
 
 - ROCKNIX: `/storage/roms/ports/`
 - KNULLI: `/userdata/roms/ports/`
@@ -12,23 +12,22 @@ Keep `PKForge.sh`, `PKForge Pokepark.sh` and the `pkforge` folder together. Refr
 
 For upgrades, close PKForge and preserve **all of `pkforge/userdata`**. The ZIP contains no personal data. OS power and lid settings remain unchanged.
 
-## New in 0.2.5-dev
+## New in 0.2.6-dev
 
-- **The Pokéwalker no longer stutters.** Each repaint of its screen, twice a second, held up all drawing for about 100 ms. With that fixed, the Pokéwalker screen went from 48 to 60 FPS on the RGDS and from 43–47 to 57 FPS on the RG34XXSP, and the park above it on the RGDS from about 117 late frames a minute to about 10.
-- **Less work per frame in menus and the park.** Hint bars and plain text labels are laid out once and reused instead of on every frame. On the RG34XXSP the slowest 5% of park frames in the first minute went from 34–36 ms to about 31 ms.
-- **BananaOS on the RG DS and RG DS Plus, experimental.** BananaOS starts a port with the bottom screen's backlight off; PKForge now lights it for its own run and restores it afterwards, tells the two touch panels apart by their wiring, maps the built-in pad when PortMaster is not installed, and finds BananaOS's save folders. **This was prepared from BananaOS's source and has not run on BananaOS or on an RG DS Plus.** `HANDHELD_COMPATIBILITY.md` lists what is unverified.
-- **A more detailed performance log.** Drawing, buffer swap and the time between frames are recorded apart, per screen and per view, including the second screen. `PKFORGE_PROFILE=1` adds where each frame's drawing time goes.
-- The README shows both handhelds with new screenshots.
+- **The park draws in about half the time.** Each frame used to copy the whole map ground and the whole animation sheet of every Pokémon in view before drawing them; the finished art is now shared instead of copied. In the same park round, drawing a frame went from 21.9 to 15.1 ms on the RG34XXSP and from 14.9 to 7.7 ms on the RGDS.
+- **The park holds 30 FPS on the RG34XXSP.** In a 90-minute run with 0.2.5, 11 of 30 park-only minutes fell below 29.5 FPS, down to 26 FPS when costly Pokémon were in view, with freezes of up to a second. With this change none did, and no frame gap after start-up exceeded 0.3 seconds.
+- **The Pokéwalker under the park stays at 60 FPS on the RGDS.** With 0.2.5 it dropped to about 45 FPS while a costly park scene was on the top screen; with this change it ran at 59.7–60.0 FPS in every minute of a 41-minute run, with the park above at 30 FPS.
+- `VALIDATION.md` records the first 90-minute runs on both reference handhelds, for 0.2.5 and for this change.
 
-Everything from 0.2.4-dev remains: upstream v3.2.0's Item Bank, Pokéwalker, painted menus, Bank groups and box locks, named snapshots and museum, the new save editors, transfer portals and evolution scenes, the data archive, and the settings for animation level, interface scale, Pokémon History and app music volume. Not available on Linux: Android launcher widgets and the optional two-way PKForge folder mirror. `UPSTREAM_3_2_0_SUPPORT.md` lists every upstream change with its Linux route and acceptance state.
+Everything from 0.2.5-dev remains, including the Pokéwalker fix, the lighter menus and the experimental BananaOS support for the RG DS and RG DS Plus (**prepared from BananaOS's source; not run on BananaOS or on an RG DS Plus**; see `HANDHELD_COMPATIBILITY.md`). Upstream v3.2.0's features are as in 0.2.4-dev; not available on Linux: Android launcher widgets and the optional two-way PKForge folder mirror. `UPSTREAM_3_2_0_SUPPORT.md` lists every upstream change with its Linux route and acceptance state.
 
 ## Tested and remaining limits
 
 Reference hardware: RGDS with ROCKNIX 20261001 and RG34XXSP with KNULLI. Other ARM64 handhelds remain experimental. .NET 10.0.3 is bundled; firmware SDL2 and system/graphics dependencies are required. SDL2_mixer and an audio device are optional.
 
-The desktop suites pass 3,383 tests (1,437 Domain, 1,741 Engine, 77 Park, 128 Linux UI) and 17 launcher scenarios. The frame rates above were measured on both reference handhelds on 14 November 2026. After a first round opened by hand, the rounds were automatic: the app is started through the frontend as from Ports, driven by scripted button presses, and ends itself. A package built from this revision's source then ran the same round on both: 30 FPS in the warm park minutes and 60 (RGDS) and 58 (RG34XXSP) FPS in the Pokéwalker. Existing `userdata` on both devices matched its pre-install hashes after every round. `VALIDATION.md` has the figures and how they were taken.
+The desktop suites pass 3,385 tests (1,437 Domain, 1,741 Engine, 77 Park, 130 Linux UI) and 17 launcher scenarios. The handheld figures above come from automatic rounds on 15 November 2026: the app is started through the frontend as from Ports, driven by scripted button presses, and ends itself. They were measured with the 0.2.5 release archive and with the same archive carrying this change's two rebuilt assemblies. Existing `userdata` on both devices matched its pre-install hashes after every round. `VALIDATION.md` has the figures and how they were taken.
 
-Known limits: the park scene itself takes about 13 ms a frame on the RGDS and 22–27 ms on the RG34XXSP, which holds 30 FPS when warm but with little room on the latter; the first minute after opening the park runs at 26–29 FPS on both. All 129 v3.2.0 visual and motion parity units, format and data-safety acceptance, touch and lid checks for this revision, and the 90-minute soak remain open. No firmware power or volume policy was changed.
+Known limits: the first minute after opening the park still runs at 28–29 FPS on both handhelds; on the RG34XXSP the costliest park scenes now take about 27 ms of the 33 ms a frame allows. Memory over 90 minutes rose to about 550–570 MiB and was nearly level in the last ten minutes; devices with 1 GB of memory have less room. The 90-minute runs covered the park and the Pokéwalker, not Home or the editors. All 129 v3.2.0 visual and motion parity units, format and data-safety acceptance, and touch and lid checks for this revision remain open. No firmware power or volume policy was changed.
 
 See the repository's `UPSTREAM_3_2_0_SUPPORT.md`, `VALIDATION.md` and `LINUX.md` for scope, controls and measured limitations. Official Android APKs remain available from [upstream PKForge](https://github.com/sofianeelhor/PKForge/releases).
 
