@@ -10,6 +10,9 @@ public sealed class LabelCacheTests
 {
     private static readonly SKRect Area = new(7, 5, 187, 91);
 
+    // The faces load in the background; a comparison made while one arrives would compare two fonts.
+    public LabelCacheTests() => Task.WhenAll(PKForge.App.Views.PixelFont.WarmAsync(), PKForge.App.Views.PixelFont.WarmFallbackAsync()).GetAwaiter().GetResult();
+
     private static byte[] Pixels(GraphicsDevice device)
     {
         using var image = device.CurrentSurface.Snapshot();

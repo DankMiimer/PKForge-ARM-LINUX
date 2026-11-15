@@ -260,9 +260,11 @@ public sealed class Label : View
     // A plain label is measured, wrapped and drawn glyph by glyph. Its layout only changes with
     // its text, font, colour or place, so each result is kept until one of those does: on a
     // handheld the same work every frame cost several milliseconds of a park frame.
+    // Both faces load in the background and stand in as the system default until they arrive,
+    // so the faces themselves are part of what a result was made for.
     private readonly record struct Shape(string Text, double FontSize, FontAttributes Attributes, Thickness Padding,
-        LineBreakMode LineBreak, int MaxLines, SKTypeface Face);
-    private Shape Shaped => new(_text, FontSize, FontAttributes, Padding, LineBreakMode, MaxLines, PixelFont.Face);
+        LineBreakMode LineBreak, int MaxLines, SKTypeface Face, SKTypeface Fallback);
+    private Shape Shaped => new(_text, FontSize, FontAttributes, Padding, LineBreakMode, MaxLines, PixelFont.Face, PixelFont.FallbackFace);
     private (Shape Shape, float Width, float Height)? _height;
     private (Shape Shape, float Measured)? _width;
     private (Shape Shape, SKRect Bounds, Color Color, TextAlignment Horizontal, TextAlignment Vertical)? _drawn;
