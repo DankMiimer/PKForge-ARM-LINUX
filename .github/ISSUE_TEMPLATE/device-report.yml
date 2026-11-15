@@ -1,69 +1,32 @@
 name: Device report
-description: How PKForge ran on your handheld (see TESTING.md for the steps).
+description: How PKForge ran on your handheld (see TESTING.md).
 title: "Device report: <handheld> / <firmware>"
 labels: ["device report"]
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thank you for testing. [TESTING.md](https://github.com/DankMiimer/PKForge-ARM-LINUX/blob/linux/TESTING.md) lists the steps.
-        Please attach `launcher.log` and `startup-diagnostics.json` from `pkforge/userdata/` at the end.
-        They contain no save contents, but an error message can show a save's file or folder name: have a quick look first.
   - type: input
     id: device
     attributes:
-      label: Handheld
-      placeholder: "Anbernic RG35XXH"
-    validations:
-      required: true
-  - type: input
-    id: firmware
-    attributes:
-      label: Firmware and its version
-      description: The version as the firmware's own information screen shows it.
-      placeholder: "muOS, version ..."
-    validations:
-      required: true
-  - type: input
-    id: version
-    attributes:
-      label: PKForge version
-      description: The download's name says it, for example 0.2.7-dev.
-      placeholder: "0.2.7-dev"
-    validations:
-      required: true
-  - type: dropdown
-    id: portmaster
-    attributes:
-      label: Is PortMaster installed?
-      options: ["Yes", "No", "Not sure"]
+      label: Handheld and firmware
+      placeholder: "Anbernic RG35XXH, muOS"
     validations:
       required: true
   - type: checkboxes
     id: worked
     attributes:
       label: What worked
-      description: Tick the steps that worked. Leave the others empty and describe them below.
       options:
-        - label: 1. It appears in Ports
-        - label: 2. It starts
-        - label: 3. The picture fits the screen and text is readable
-        - label: 4. A and B do what the button hints say
-        - label: 5. Home finds my games
-        - label: 6. A save opens; boxes and summaries work
-        - label: 7. The Poképark runs smoothly
-        - label: 8. The Pokéwalker opens
-        - label: 9. Start + Select returns to the firmware's menu
-        - label: 10. Settings and linked folders are kept after a restart
+        - label: PKForge starts, fits the screen, and A/B match the hints
+        - label: The Poképark runs smoothly
+        - label: Start + Select returns to the menu
   - type: textarea
-    id: problems
+    id: notes
     attributes:
-      label: What did not work, or looked wrong
-      description: The step, what you saw, and roughly how long it took to start. Photos or screenshots help.
+      label: What went wrong (if anything)
+      description: A photo or screenshot helps.
   - type: textarea
-    id: logs
+    id: log
     attributes:
-      label: Logs
-      description: Drag `launcher.log` and `startup-diagnostics.json` here (from `pkforge/userdata/`).
+      label: launcher.log
+      description: Drag `launcher.log` from `pkforge/userdata/` here.
     validations:
       required: true
