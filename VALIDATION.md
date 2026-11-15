@@ -131,8 +131,32 @@ the soak's two regions):
 Memory was unchanged within noise. In the six-minute park-then-Pokéwalker
 round on the RGDS with the change, the park drew in 8.0 ms and the Pokéwalker
 held 59.9 FPS with 361 late frames, against 16.4 ms and 2,699 late frames for
-the release. Not yet repeated: the 90-minute soak, including the RG34XXSP scene
-that drew in 30–36 ms.
+the release.
+
+The 90-minute soak was then repeated on both handhelds with the change (the
+release archive with the two assemblies placed over it, same script). Both
+exited cleanly and `userdata` matched its hashes.
+
+| | RG34XXSP release | RG34XXSP changed | RGDS release | RGDS changed |
+| --- | --- | --- | --- | --- |
+| Park-only minutes below 29.5 FPS | 11 of 30 | 0 of 32 | 6 of 89 | 0 of 79 |
+| Park draw, average (p95) | 28.6 (36.5) ms | 21.2 (26.3) ms | 21.4 (28.3) ms | 6.9 (13.0) ms |
+| Costliest park minute, average draw | 35.9 ms | 27.4 ms | 24.8 ms | 13.4 ms |
+| Frame gaps over 0.3 s after start-up | 3, up to 980 ms | none | none | none |
+| Pokéwalker | 54.0 FPS | 55.8 FPS | 44.9 FPS | not opened (below) |
+| Memory after 1 / 39 / 89 minutes | 326 / 517 / 552 MiB | 286 / 512 / 551 MiB | 328 / 523 / 567 MiB | 350 / 527 / 560 MiB |
+
+On the RGDS the scripted presses at minute 40 opened the park menu but did not
+reach the Pokéwalker, so its second screen showed the journal until minute 80,
+when the press meant to close the Pokéwalker opened the save library instead;
+Home was on the lower screen for the last ten minutes. A separate 45-minute
+round on the RGDS with the change therefore opened the Pokéwalker after three
+minutes of park, with the menu presses spaced out and screenshots confirming it
+open. In all 41 Pokéwalker minutes the Pokéwalker ran at 59.7–60.0 FPS and the
+park above it at 30.0 FPS with 0–5 late frames a minute (release soak: 44.9 FPS
+and 7–36 late park frames a minute). The run exited cleanly, `userdata` matched,
+and memory rose from 338 MiB after one minute to 521 MiB at the end. Memory
+is unchanged by the change; it was the copies, freed at once, that it removed.
 
 Not covered by these rounds: touch, lid and resume, data-safety acceptance, a
 soak through Home and the editors, and any look at the screens by a person other than the
