@@ -1,6 +1,6 @@
 # PKForge 3.2.0 Linux feature coverage
 
-Baseline: upstream v3.2.0 `c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a`, with its pinned submodules. Current Linux revision: `0.2.5-dev`. This is an implementation and verification ledger, **not a declaration of full parity**. The [3.2.0 integration matrix](UPSTREAM_3_2_0_SUPPORT.md) records new routes and remaining work. Device results below describe earlier builds; they do not validate the new baseline.
+Baseline: upstream v3.2.0 `c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a`, with its pinned submodules. Current Linux revision: `0.2.6-dev`. This is an implementation and verification ledger, **not a declaration of full parity**. The [3.2.0 integration matrix](UPSTREAM_3_2_0_SUPPORT.md) records new routes and remaining work. Device results below describe earlier builds; they do not validate the new baseline.
 
 `Implemented` means a native action reaches the real upstream engine/service. It does not mean every format or physical input combination has been tested. Engine tests, device workflow tests, and physical interaction checks are recorded separately.
 
