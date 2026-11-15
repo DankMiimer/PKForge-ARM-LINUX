@@ -158,6 +158,25 @@ and 7–36 late park frames a minute). The run exited cleanly, `userdata` matche
 and memory rose from 338 MiB after one minute to 521 MiB at the end. Memory
 is unchanged by the change; it was the copies, freed at once, that it removed.
 
+### 0.2.6-dev release archive — 15 November 2026
+
+The published 0.2.6-dev archive (`PKForge-v3.2.0-linux-0.2.6-dev-arm64.zip`,
+commit `ca30642`, built by CI at tag `linux-v0.2.6-dev` and verified against
+both with `verify-package.ps1`) was downloaded from the draft and run on both
+handhelds before publication, installed in isolation beside the existing
+PKForge. Every round exited cleanly, `userdata` matched its hashes afterwards
+and the test folders were removed.
+
+| | RGDS | RG34XXSP |
+| --- | --- | --- |
+| 45-second round (cold start, Pokéwalker from 20 s): park / Pokéwalker | 28.9 / 58.1 FPS | 28.6 / 57.4 FPS |
+| Six-minute round: warm park minutes | 29.8–30.0 FPS | 30.0 FPS |
+| Six-minute round: park frame drawn in | 7.8 ms (p95 11.8) | 16.8 ms (p95 23.2) |
+| Six-minute round: Pokéwalker | 60.0 FPS, under the park | 58.2 FPS |
+
+These match the measurements of the change made with the 0.2.5 archive and the
+two rebuilt assemblies above.
+
 Not covered by these rounds: touch, lid and resume, data-safety acceptance, a
 soak through Home and the editors, and any look at the screens by a person other than the
 screenshots in the README. Start-up pauses of 200–700 ms remain in the first
