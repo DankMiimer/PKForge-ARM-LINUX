@@ -49,6 +49,24 @@ was not established (a button press on the device would do it). The release
 archives are built by CI from a later commit that changes only the label
 layout's font handling and its test.
 
+Later on 15 November the published release archive itself
+(`PKForge-v3.2.0-linux-0.2.5-dev-arm64.zip`, commit `2fa3f70`, checksum as in
+the release's `SHA256SUMS.txt`) ran in automatic rounds on both handhelds,
+installed in isolation beside the existing PKForge. Every round exited cleanly,
+`userdata` matched its hashes afterwards (1,678 and 1,199 entries) and the test
+folders were removed.
+
+- **45-second round** (opens the Pokéwalker 20 seconds after start): RG34XXSP
+  park 29.0 FPS and Pokéwalker 57.4 FPS; RGDS park 28.8 FPS and Pokéwalker
+  50.3 FPS. This round measures a cold start: the RGDS park still takes about
+  21 ms a frame, and the Pokéwalker below it waits on those frames.
+- **Six-minute round on the RGDS** (park for three minutes, then the
+  Pokéwalker): 28.0 FPS in the first minute and 30.0 FPS in every warm minute
+  but one (29.8, the minute the Pokéwalker opened). Pokéwalker 59.8 FPS; the
+  park above it had 1–7 late frames a minute. Park frames took 15–16 ms to
+  draw in this round. Memory rose from 245 to 400 MiB and stayed there for the
+  last two minutes.
+
 Not covered by these rounds: touch, lid and resume, data-safety acceptance, the
 90-minute soak, and any look at the screens by a person other than the
 screenshots in the README. Start-up pauses of 200–700 ms remain in the first
