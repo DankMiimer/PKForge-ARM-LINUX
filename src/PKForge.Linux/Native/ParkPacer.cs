@@ -24,7 +24,9 @@ internal sealed class ParkPacer(double fastInterval, Action<string>? log = null)
     /// a warm RG DS ran a light scene at 54 with no late frame, smoother than a steady 30.
     /// </summary>
     public const double DropSlowness = 1.33, KeepSlowness = 1.2;
-    public const double FirstRetry = 20_000, LongestRetry = 120_000;
+    /// <summary>Waits between trials at 60: 20 s, doubling after each failed one, at most a minute
+    /// (two minutes kept a zoomed-back-in park at 30 for too long in the 0.2.8 release check).</summary>
+    public const double FirstRetry = 20_000, LongestRetry = 60_000;
 
     private double _last = double.NaN, _retryAt, _retryAfter = FirstRetry, _counted;
     private int _frames, _late;

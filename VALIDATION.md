@@ -36,8 +36,33 @@ automatic rounds; existing `userdata` matched its hashes after every round.
 A tester reported 0.2.7-dev running smoothly on an RG35XXH with muOS (Home; the
 park not yet tried). Its first try did nothing because it was the NextUI
 download, whose name carries the device's chip (`h700`). Not covered: our own
-run on muOS or ArkOS. The swap setting, the R2 pan switch, the software-rendering
-fallback and the launcher log are covered by desktop and launcher tests only.
+run on muOS or ArkOS. The swap setting, the R2 pan switch and the
+software-rendering fallback are covered by desktop and launcher tests only.
+
+### 0.2.8-dev release archive — 16 November 2026
+
+The published archive (commit `d837fe8`, tag `linux-v0.2.8-dev`, verified
+against both) was downloaded from the draft and run on both handhelds before
+publication, installed in isolation: a 45-second round with the Pokéwalker and
+a 400-second round zooming out and in twice. Every round exited cleanly and
+existing `userdata` matched its hashes.
+
+| | RGDS | RG34XXSP |
+| --- | --- | --- |
+| Park in the 400-second round | 50.9 FPS on average: 30 zoomed out, 54–60 zoomed in | 30 zoomed out, 60 zoomed in |
+| Pokéwalker (45-second round) | 56.3 FPS, under the park | 57.7 FPS |
+| Memory after six minutes of park | 335 MiB (sprites 31 MiB) | 256 MiB (sprites 17 MiB) |
+| `PKForge-launcher.log` | ROCKNIX, PortMaster in `/roms/ports/PortMaster`, clean exit | KNULLI, PortMaster in `/userdata/system/.local/share/PortMaster`, clean exit |
+
+After several failed trials at 60 the pacer waited up to two minutes before the
+next, so a park zoomed back in could stay at 30 that long; the next revision
+waits at most a minute.
+
+A 90-minute soak of the same archive was stopped after 14 minutes (the app was
+asked to quit and exited cleanly; `userdata` matched). At minute 13 the RGDS used
+304 MiB (sprites 44 MiB), against about 451 MiB at the same point of the soak
+before unused sprite poses were released, and the RG34XXSP 271 MiB (sprites
+21 MiB). Both held full clock speed; the RGDS ran at 75–77 °C.
 
 ## Frame timing and the Pokéwalker fix — 14 November 2026 (0.2.5-dev)
 
