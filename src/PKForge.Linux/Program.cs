@@ -589,7 +589,7 @@ static IEnumerable<string> ReportSettings(Arguments arguments)
     yield return "Swap A and B: " + (FaceButtonSwap.On ? "on" : "off");
     yield return "Park frame rate: " + PresentationClock.ParkMode switch { ParkRate.Fixed30 => "30", ParkRate.Fixed60 => "60", _ => "automatic" };
     yield return $"Opened: {(arguments.StartPage == "park" || arguments.Demo ? "Pokepark" : "Home")}; screens: {arguments.DisplayMode}{(arguments.SwapScreens ? ", swapped" : "")}{(arguments.Windowed ? ", windowed" : "")}";
-    var environment = new[] { "SDL_VIDEODRIVER", "SDL_AUDIODRIVER", "SDL_GAMECONTROLLERCONFIG_FILE", "MALLOC_ARENA_MAX" }
+    var environment = new[] { "SDL_VIDEODRIVER", "SDL_AUDIODRIVER", "SDL_GAMECONTROLLERCONFIG_FILE", "MALLOC_ARENA_MAX", "MALLOC_MMAP_THRESHOLD_" }
         .Concat(Environment.GetEnvironmentVariables().Keys.Cast<string>().Where(name => name.StartsWith("PKFORGE_", StringComparison.Ordinal)).Order(StringComparer.Ordinal))
         .Select(name => (name, value: Environment.GetEnvironmentVariable(name))).Where(pair => !string.IsNullOrEmpty(pair.value)).ToArray();
     if (environment.Length > 0) yield return "Environment: " + string.Join(", ", environment.Select(pair => pair.name + "=" + pair.value));
