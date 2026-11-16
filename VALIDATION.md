@@ -1,5 +1,43 @@
 # ARM64 port validation
 
+## 60 FPS park and other handhelds — 15–16 November 2026 (0.2.8-dev)
+
+Measured on the RGDS (ROCKNIX 20261001) and the RG34XXSP (KNULLI) with the
+0.2.7-dev release archive and the changed assemblies placed over it, in
+automatic rounds; existing `userdata` matched its hashes after every round.
+
+- **60 FPS.** Presented at 60, a park frame took about 10 ms on both handhelds
+  in a light scene; the RG34XXSP's took less than at 30 (16 ms), as its CPU
+  stays clocked up. Zoomed out, the RGDS ran at 44–46 FPS (16–20 ms a frame)
+  and the RG34XXSP at about 40 (22 ms).
+- **RGDS late frames.** At 60 the lower-screen journal repainted four times a
+  second at about 9 ms (its needs array was new on every update) and the pills
+  over the park cost 1.8 ms a frame. With both fixed, late park frames in the
+  same five-minute round fell from 897 to 259, and from 154–161 to 15–20 in each
+  warm minute.
+- **90 minutes at a fixed 60** (before the automatic rate and the sprite
+  release): both exited cleanly. RGDS 51.6 FPS overall (59.4–60 zoomed in,
+  44–46 zoomed out, 46–52 with the Pokéwalker below); RG34XXSP 50.5 overall,
+  mostly 59.5. Memory at the end: 548 and 380 MiB. The RGDS started hot (80 °C),
+  peaked at 87.5 °C and throttled to 1416–1608 MHz in its first ten minutes,
+  then held 68–74 °C at full clock; the RG34XXSP stayed at 50–62 °C.
+- **Automatic rate** (400-second round, zoomed out and in twice): both dropped
+  to 30 when zoomed out (RGDS 39–45 FPS at 60, RG34XXSP 34–48) and returned to
+  60 when zoomed in (55–61 and 60).
+- **Memory.** Skia's GPU cache held about 12 MiB (its limit is now 48 MiB).
+  Decoded sprite poses were the growth: 124 MiB on the RGDS after six minutes.
+  With unused poses released they stayed at 30–43 MiB, and the RGDS process
+  at 379 MiB after six minutes; with `MALLOC_ARENA_MAX=2` (set by the launcher)
+  340 MiB. The RG34XXSP held 17 MiB of sprites and 274 MiB in all.
+- **Screen sizes.** Home, boxes, summary, collection, storage tools, the park,
+  its resident card and its options were rendered at 480×320, 640×480 and
+  720×720 (headless captures and a windowed run of the Linux build): all fit.
+
+Not covered: any run on muOS, ArkOS or the testers' handhelds; the first muOS
+report was a start that did nothing, cause unknown. The swap setting, the
+software-rendering fallback and the launcher log are covered by desktop and
+launcher tests only.
+
 ## Frame timing and the Pokéwalker fix — 14 November 2026 (0.2.5-dev)
 
 Measured on the RGDS (ROCKNIX 20261001) and the RG34XXSP (KNULLI) with isolated
