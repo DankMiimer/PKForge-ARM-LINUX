@@ -21,7 +21,7 @@ $zip = [IO.Compression.ZipFile]::OpenRead($binary)
 try {
     $names = @($zip.Entries.FullName)
     if ($names -match '(^|/)(userdata|pkforge-full-test|\.git|TestResults|bin|obj)(/|$)' -or $names -match '\.(sav|srm|apk|pdb|log|key|p12)$') { throw 'Binary contains personal, test or development data.' }
-    $requiredFiles = @('app/pkforge', 'app/launch.sh', 'app/port-version.json', 'app/libSkiaSharp.so', 'app/libicuuc.so.72.1.0.3', 'app/libicui18n.so.72.1.0.3', 'app/libicudata.so.72.1.0.3', 'app/asset-manifest.json', 'app/native-dependencies.json', 'LICENSE', 'ATTRIBUTION.md', 'BUILDINFO.json') | ForEach-Object { $prefix + $_ }
+    $requiredFiles = @('app/pkforge', 'app/launch.sh', 'app/port-version.json', 'app/libSkiaSharp.so', 'app/libicuuc.so.72.1.0.3', 'app/libicui18n.so.72.1.0.3', 'app/libicudata.so.72.1.0.3', 'app/asset-manifest.json', 'app/native-dependencies.json', 'app/assets/notices/upstream-ui-attribution.md', 'app/assets/notices/upstream-showdown-attribution.md', 'app/assets/notices/upstream-gameart-attribution.md', 'LICENSE', 'ATTRIBUTION.md', 'BUILDINFO.json') | ForEach-Object { $prefix + $_ }
     foreach ($required in @($launchers) + @($requiredFiles)) {
         if (-not $zip.GetEntry($required)) { throw "Missing binary entry: $required" }
     }

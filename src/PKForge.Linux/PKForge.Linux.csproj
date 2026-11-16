@@ -34,6 +34,8 @@
     <Content Include="../PKForge.App/Resources/UI/pksm/*.png" Link="assets/ui/pksm/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../PKForge.App/Resources/UI/design/*.png" Link="assets/ui/design/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../PKForge.App/Resources/UI/ATTRIBUTION.md" Link="assets/notices/upstream-ui-attribution.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/Showdown/ATTRIBUTION.md" Link="assets/notices/upstream-showdown-attribution.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../PKForge.App/Resources/GameArt/ATTRIBUTION.md" Link="assets/notices/upstream-gameart-attribution.md" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../external/PKHeX/PKHeX.Drawing.Misc/Resources/img/ribbons/*.png" Link="assets/ribbons/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../external/PKHeX/PKHeX.Drawing.Misc/Resources/img/box/**/*.png" Link="assets/wallpapers/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../PKForge.Park/PKForge.Park.csproj" />

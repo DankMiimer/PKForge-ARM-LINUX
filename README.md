@@ -6,6 +6,12 @@ A native ARM64 Linux port of [PKForge](https://github.com/sofianeelhor/PKForge) 
 
 The current preview is Linux revision **0.2.9-dev**, based on upstream **v3.2.0**. See [3.2.0 support](UPSTREAM_3_2_0_SUPPORT.md) for integration and acceptance limits. It follows **0.2.8-dev**; **0.2.4-dev** was the first v3.2.0 preview, and the earlier **0.2.3-dev** packages use upstream **v3.1.1**. Full visual parity and every game/format path remain acceptance work; shared source and passing tests do not establish hardware acceptance.
 
+## Unofficial port
+
+This is an unofficial community port. sofianeelhor and the PKForge team don't make or support it, so please report problems with it [here](https://github.com/DankMiimer/PKForge-ARM-LINUX/issues), not upstream. An official Linux version is planned upstream; when it ships, this README will point to it first. One person supports this port, as time allows, on the two reference handhelds below.
+
+The port was developed with AI assistance (Claude Code). Every release is tested on both reference handhelds; see [Verification and current limits](#verification-and-current-limits).
+
 ![Native Linux save library on RG34XXSP](docs/screenshots/linux/home.png)
 
 ## Reference handhelds
@@ -87,6 +93,6 @@ Release assets are written to `dist/`: binary ZIP, complete source ZIP, `SHA256S
 
 ## Credits and license
 
-PKForge and its original design, simulation and application are by **sofianeelhor** and upstream contributors. This fork reuses the pinned PKHeX engine and Auto Legality Mod, Skia rendering and upstream assets. Credits include spritedmistery, AlchemyBats, PMDCollab/SpriteCollab artists, PKSM, Pokémon Showdown/Smogon, PokeAPI and the other projects listed in [Attribution](packaging/linux/ATTRIBUTION.md) and the original README. Runtime and asset notices are included in the package.
+PKForge, its simulation and application are by **sofianeelhor** and upstream contributors. The app's design is by **[spritedmistery](https://www.instagram.com/spritedmistery/)**: the PKForge logo, the app's look, its color schemes and logos, its buttons, and the Poképark's map. This fork reuses the pinned PKHeX engine and Auto Legality Mod, Skia rendering and upstream assets. Credits also include AlchemyBats, SteamGridDB community artists, PMDCollab/SpriteCollab artists, PKSM, Pokémon Showdown/Smogon, PokeAPI and the other projects listed in [Attribution](packaging/linux/ATTRIBUTION.md) and the original README. Runtime and asset notices are included in the package.
 
 The code retains the upstream GPLv3-or-later licensing; see [LICENSE](LICENSE). Third-party assets and libraries retain their respective licenses and attribution. Pokémon names and artwork belong to their respective owners. This project is not affiliated with Nintendo, Creatures Inc., GAME FREAK or The Pokémon Company.
