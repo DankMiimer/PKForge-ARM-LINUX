@@ -1,5 +1,26 @@
 # ARM64 port validation
 
+## Native memory after zooming — 16 November 2026 (after 0.2.9-dev)
+
+The RGDS memory that varied between runs with 0.2.9's zoomed-out drawing (below)
+was native memory glibc kept after the app had freed it. A sample of the RGDS
+process's memory map during the 400-second zoom round showed no graphics-driver
+mappings; the growth was in the ordinary heap (15 to 75–83 MiB) and anonymous
+memory (40 to 70–100 MiB). A `malloc_trim` once a minute gave back 20–33 MiB
+each time, but the memory refilled within the minute: after a large block is
+freed, glibc raises the size it takes directly from the system, so later large
+temporary buffers stayed in the heap.
+
+The launcher now sets `MALLOC_MMAP_THRESHOLD_=262144` (unless already set), next
+to `MALLOC_ARENA_MAX=2`. Same round, published 0.2.9 archive, the setting passed
+in by the QA tool; existing `userdata` unchanged after every round:
+
+| Minutes 1–6 | RGDS | RG34XXSP |
+| --- | --- | --- |
+| 0.2.9 as published | 336–371 MiB | 300–353 MiB |
+| Fixed threshold | 329–339 and 329–342 MiB (two rounds) | 257–274 MiB |
+| Park, warm minutes, fixed threshold | 59.7–60.0 FPS | 59.3–59.6 FPS |
+
 ## Zoomed-out park at 60 — 16 November 2026 (0.2.9-dev)
 
 Measured on the RGDS (ROCKNIX 20261001) and the RG34XXSP (KNULLI) with the

@@ -37,7 +37,8 @@ with open(os.environ['CAPTURE_FILE'], 'w') as f:
     panel = os.environ.get('PANEL_POWER')
     note = os.environ.get('PKFORGE_BANANA_PANEL_NOTE')
     json.dump({'args': sys.argv[1:], 'mapping': os.environ.get('SDL_GAMECONTROLLERCONFIG', ''), 'video': os.environ.get('SDL_VIDEODRIVER', ''), 'pid': os.getpid(),
-               'panel': open(panel).read().strip() if panel else None, 'note': os.path.exists(note) if note else None}, f)
+               'panel': open(panel).read().strip() if panel else None, 'note': os.path.exists(note) if note else None,
+               'malloc': [os.environ.get('MALLOC_ARENA_MAX'), os.environ.get('MALLOC_MMAP_THRESHOLD_')]}, f)
 if os.environ.get('LIFECYCLE'):
     with open(os.environ['LIFECYCLE'], 'a') as f: f.write('app\\n')
 if os.environ.get('STUB_HANG'):
@@ -48,7 +49,7 @@ sys.exit(int(os.environ.get('APP_EXIT', '0')))
         self.bin.mkdir()
         self.mock("uname", "printf '%s\\n' aarch64")
         self.mock("getconf", "case $1 in LONG_BIT) echo 64;; *) echo 'glibc 2.33';; esac")
-        self.env = {k: v for k, v in os.environ.items() if not k.startswith(("PKFORGE_", "SDL_", "WAYLAND", "DEVICE_", "SWAY", "CFW_"))}
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith(("PKFORGE_", "SDL_", "WAYLAND", "DEVICE_", "SWAY", "CFW_", "MALLOC_"))}
         self.env.update(PATH=str(self.bin) + os.pathsep + os.environ["PATH"], HOME=str(self.root / "home"), CAPTURE_FILE=str(self.capture), XDG_RUNTIME_DIR=str(self.root), APP_EXIT="0")
 
     def mock(self, name, body):
@@ -212,6 +213,12 @@ pm_finish() { printf 'finish\\n' >> "$LIFECYCLE"; }
     def test_explicit_video_backend_preserved(self):
         self.env["SDL_VIDEODRIVER"] = "mali"
         self.assertEqual("mali", self.run_launcher()["video"])
+
+    def test_allocator_settings_have_defaults_and_keep_the_users(self):
+        # Two pools and a fixed 256 KiB large-block threshold keep freed native memory from staying resident.
+        self.assertEqual(["2", "262144"], self.run_launcher()["malloc"])
+        self.env.update(MALLOC_ARENA_MAX="4", MALLOC_MMAP_THRESHOLD_="1048576")
+        self.assertEqual(["4", "1048576"], self.run_launcher()["malloc"])
 
     def banana_dark_panel(self, writable=True):
         """BananaOS before a port: one panel's backlight off (4) and a note naming it."""

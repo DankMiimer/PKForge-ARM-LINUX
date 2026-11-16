@@ -47,6 +47,11 @@ fi
 # glibc keeps freed native memory in one pool per thread; .NET and Skia use many threads. Two
 # pools kept about 40 MiB less resident on the RG DS after six minutes of park (1 GB handhelds).
 export MALLOC_ARENA_MAX="${MALLOC_ARENA_MAX:-2}"
+# After a large block is freed, glibc raises the size it takes from the system directly, so later
+# large temporary buffers (sprite decoding, the graphics driver's texture copies) stay in the heap
+# once freed. A fixed 256 KiB returns them at once: the zoomed-out RG DS park stayed at 329-339 MiB
+# instead of 341-371.
+export MALLOC_MMAP_THRESHOLD_="${MALLOC_MMAP_THRESHOLD_:-262144}"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/var/run}"
 if [ "$XDG_RUNTIME_DIR" = /var/run ] && [ -d /var/run/0-runtime-dir ]; then export XDG_RUNTIME_DIR=/var/run/0-runtime-dir; fi
 if [ -z "${SDL_VIDEODRIVER:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
