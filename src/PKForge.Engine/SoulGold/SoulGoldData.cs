@@ -201,15 +201,20 @@ internal sealed class SoulGoldData
         return stats;
     }
 
-    /// <summary>Nature multiplier for stat 1..5 (Atk/Def/SpA/SpD/Spe): 110 on the
-    /// nature's raised stat (nature/5), 90 on its lowered one (nature%5).</summary>
+    /// <summary>Nature multiplier for app stat 1..5 (Atk/Def/SpA/SpD/Spe): 110 on the
+    /// nature's raised stat (nature/5), 90 on its lowered one (nature%5). Natures number
+    /// their stats Atk, Def, Spe, SpA, SpD, so app index 3 (SpA) is nature stat 3, Spe is 2.
+    /// (Until the next revision the app index was used as is, so a Speed nature raised
+    /// Sp. Atk; stats recomputed after an edit then differed from the game's.)</summary>
     private static int NatureStatMultiplier(int nature, int stat)
     {
+        ReadOnlySpan<int> natureIndex = [-1, 0, 1, 3, 4, 2];
         var raised = nature / 5;
         var lowered = nature % 5;
-        if (raised == lowered || (raised != stat - 1 && lowered != stat - 1))
+        var index = natureIndex[stat];
+        if (raised == lowered || (raised != index && lowered != index))
             return 100;
-        return raised == stat - 1 ? 110 : 90;
+        return raised == index ? 110 : 90;
     }
 
     public static int GenderOf(uint pid, int ratio) => ratio switch
