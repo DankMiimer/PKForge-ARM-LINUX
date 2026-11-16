@@ -343,6 +343,8 @@ try
         if (DrawProfile.Enabled) PKForge.Chrome.ParkDrawTiming.Report = DrawProfile.Add;
         // Measurements: PKFORGE_PARK_DIRECT=0 keeps the world bitmap at scale 1 as before 0.2.9.
         if (Environment.GetEnvironmentVariable("PKFORGE_PARK_DIRECT") == "0") PKForge.Chrome.ParkLowRes.DirectAtScaleOne = false;
+        var parkShownAt = -1.0;
+        var parkSettled = false;
         var primaryClock = new PresentationClock();
         var secondaryClock = new PresentationClock();
         var controlsPending = false;
@@ -463,7 +465,28 @@ try
                     report.FirstFrameSeconds = (DateTime.Now - Process.GetCurrentProcess().StartTime).TotalSeconds;
                     report.Write();
                 }
-                if (view == "Park") parkPacer.Presented(timer.Elapsed.TotalMilliseconds); else parkPacer.Paused();
+                if (view == "Park")
+                {
+                    // Settling once per opening of the park: while its sprites load, at most 30 s
+                    // (the first 2 s count too, in case loading starts after the first frame).
+                    var at = timer.Elapsed.TotalMilliseconds;
+                    if (parkShownAt < 0) parkShownAt = at;
+                    var since = at - parkShownAt;
+                    var settling = !parkSettled && since < ParkPacer.SettleLimit && (sprites.IsLoading || since < 2000);
+                    if (!settling && !parkSettled)
+                    {
+                        parkSettled = true;
+                        Console.WriteLine($"PARK settled {since / 1000:0.0} s after the park opened" + (sprites.IsLoading ? " (sprites still loading)" : ": sprites loaded"));
+                    }
+                    parkPacer.Settling = settling;
+                    parkPacer.Presented(at);
+                }
+                else
+                {
+                    parkPacer.Paused();
+                    // Its menus and the Pokéwalker leave the park open; Home and the editors close it.
+                    if (view is not ("Park UI" or "Pokewalker")) { parkShownAt = -1; parkSettled = false; }
+                }
                 DrawProfile.Add("(build)", Stopwatch.GetElapsedTime(start, built).TotalMilliseconds);
                 DrawProfile.Add("(flush)", Stopwatch.GetElapsedTime(built, drawn).TotalMilliseconds); DrawProfile.EndFrame();
                 performance.Add(false, view, timer.Elapsed.TotalMilliseconds, Stopwatch.GetElapsedTime(start, drawn).TotalMilliseconds, Stopwatch.GetElapsedTime(drawn).TotalMilliseconds, primaryInterval);
