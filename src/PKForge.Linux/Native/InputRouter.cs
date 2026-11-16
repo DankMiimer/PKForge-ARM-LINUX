@@ -19,6 +19,7 @@ internal sealed class InputRouter : IDisposable
     {
         _router = router;
         _quit = quit;
+        if (FaceButtonSwap.On) Console.WriteLine("INPUT A/B and X/Y swapped by Settings → Swap A and B");
         OpenControllers();
     }
     public static void PrepareMappings()
@@ -189,6 +190,7 @@ internal sealed class InputRouter : IDisposable
                 4 => PadButton.Select, 6 => PadButton.Start, 9 => PadButton.L, 10 => PadButton.R,
                 11 => PadButton.Up, 12 => PadButton.Down, 13 => PadButton.Left, 14 => PadButton.Right, _ => null
             };
+            if (button is { } face) button = FaceButtonSwap.Apply(face);
             pressed = e.Type == Sdl.ControllerDown;
         }
         if (e.Type is Sdl.KeyDown or Sdl.KeyUp)

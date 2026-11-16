@@ -19,6 +19,77 @@ public sealed class AnimationTests
         Assert.Equal(ui, PKForge.Linux.Native.PresentationClock.UiInterval(0));
         Assert.Equal(ui, PKForge.Linux.Native.PresentationClock.UiInterval(120));
     }
+    [Theory]
+    [InlineData(null, "Auto")]
+    [InlineData("", "Auto")]
+    [InlineData("45", "Auto")]
+    [InlineData("60", "Fixed60")]
+    [InlineData("30", "Fixed30")]
+    [InlineData(" 30 ", "Fixed30")]
+    public void The_park_rate_is_automatic_unless_fixed(string? value, string expected) =>
+        Assert.Equal(expected, PKForge.Linux.Native.PresentationClock.ParseParkMode(value).ToString());
+
+    // The host presents a park frame every pacer interval, or later when the device needs longer
+    // (cost: milliseconds for frame i). Returns the time at the end.
+    private static double Run(PKForge.Linux.Native.ParkPacer pacer, double now, double seconds, Func<int, double> cost)
+    {
+        var end = now + seconds * 1000;
+        for (var i = 0; now < end; i++) { now += Math.Max(pacer.Interval, cost(i)); pacer.Presented(now); }
+        return now;
+    }
+
+    [Fact]
+    public void The_park_stays_at_60_while_frames_arrive_on_time()
+    {
+        var pacer = new PKForge.Linux.Native.ParkPacer(1000.0 / 60);
+        Run(pacer, 0, 60, _ => 10);
+        Assert.True(pacer.Fast);
+    }
+
+    [Fact]
+    public void The_park_drops_to_30_when_frames_are_late_and_returns_when_it_can()
+    {
+        var log = new List<string>();
+        var pacer = new PKForge.Linux.Native.ParkPacer(1000.0 / 60, log.Add);
+        // Every third frame takes two refreshes (a zoomed-out RG DS park ran at about 41 FPS).
+        var now = Run(pacer, 0, 3, i => i % 3 == 0 ? 33.4 : 10);
+        Assert.False(pacer.Fast);
+        Assert.Equal(1000.0 / 30, pacer.Interval, 3);
+        now = Run(pacer, now, 15, i => i % 3 == 0 ? 33.4 : 10);
+        Assert.False(pacer.Fast);                              // no retry before 20 s
+        // Zoomed in again: the next trial at 60 is on time and kept.
+        Run(pacer, now, 10, _ => 10);
+        Assert.True(pacer.Fast);
+        Assert.Contains(log, line => line.StartsWith("PARK 30 FPS", StringComparison.Ordinal));
+        Assert.Contains(log, line => line.StartsWith("PARK 60 FPS", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Even_but_slow_frames_drop_to_30()
+    {
+        // 24 ms a frame, evenly: about 41 a second with no frame late by the 1.5× rule (the
+        // zoomed-out RG DS park in the maintainer's photo showed 41).
+        var pacer = new PKForge.Linux.Native.ParkPacer(1000.0 / 60);
+        Run(pacer, 0, 3, _ => 24);
+        Assert.False(pacer.Fast);
+        // 18.5 ms (54 a second, a warm RG DS in a light scene, no late frame) stays at 60.
+        var steady = new PKForge.Linux.Native.ParkPacer(1000.0 / 60);
+        Run(steady, 0, 30, _ => 18.5);
+        Assert.True(steady.Fast);
+    }
+
+    [Fact]
+    public void A_device_that_cannot_hold_60_stays_at_30_and_tries_less_often()
+    {
+        var log = new List<string>();
+        var pacer = new PKForge.Linux.Native.ParkPacer(1000.0 / 60, log.Add);
+        Run(pacer, 0, 100, i => i % 2 == 0 ? 33.4 : 20);       // a slow handheld, for 100 s
+        Assert.False(pacer.Fast);
+        // Trials after 20, then 40, then 80 s: at most three in 100 s, each one failing.
+        var trials = log.Count(line => line.StartsWith("PARK 30 FPS", StringComparison.Ordinal)) - 1;
+        Assert.InRange(trials, 1, 3);
+        Assert.DoesNotContain(log, line => line.StartsWith("PARK 60 FPS", StringComparison.Ordinal));
+    }
     [Fact]
     public async Task Fade_has_intermediate_values_and_completes_only_at_its_end()
     {

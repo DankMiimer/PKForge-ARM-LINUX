@@ -31,17 +31,23 @@ public sealed class CompatibilityTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Pan_modifier_handles_either_press_order_and_stops_on_release(bool directionFirst)
+    public void Pan_mode_toggles_with_R2_and_handles_either_press_order(bool directionFirst)
     {
         var router = new GamepadRouter(); var camera = new Camera(); router.Push(camera);
+        var changes = new List<bool>(); router.PanChanged += changes.Add;
         if (directionFirst) router.Dispatch(PadButton.Right);
         router.Dispatch(PadButton.R2); router.Dispatch(PadButton.Right); router.DispatchStick(0, 0, 0, 0);
         Assert.Equal((1f, 0f), camera.Pan);
         Assert.Equal(directionFirst ? 1 : 0, camera.Buttons.Count);
         router.DispatchRelease(PadButton.Right); Assert.Equal((0f, 0f), camera.Pan);
+        // Letting go of R2 keeps panning: it is a switch, not a hold.
+        router.DispatchRelease(PadButton.R2);
         router.Dispatch(PadButton.Left); Assert.Equal((-1f, 0f), camera.Pan);
-        router.DispatchRelease(PadButton.R2); Assert.Equal((0f, 0f), camera.Pan);
+        router.DispatchRelease(PadButton.Left);
+        // R2 again turns it off: the D-pad goes back to the screen.
+        router.Dispatch(PadButton.R2); Assert.Equal((0f, 0f), camera.Pan);
         router.Dispatch(PadButton.Down); Assert.Contains(PadButton.Down, camera.Buttons);
+        Assert.Equal([true, false], changes);
     }
     [Fact]
     public void Modal_and_disconnect_reset_do_not_resume_a_held_camera_chord()

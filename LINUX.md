@@ -1,16 +1,16 @@
 # PKForge for ARM64 Linux
 
-The 0.2.7 Preview is based on **PKForge v3.2.0**, commit
+The 0.2.8 Preview is based on **PKForge v3.2.0**, commit
 `c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a`. It reuses the release's park simulation,
 scene, interaction handlers, overlays, game rules, save engines and Bank format.
 It is an experimental preview; see `VALIDATION.md` for measured results and open
 release checks, and [3.2.0 support and open gates](UPSTREAM_3_2_0_SUPPORT.md) for
-each upstream change's Linux route. So were 0.2.4 to 0.2.6; the 0.2.3 Preview and earlier used v3.1.1.
+each upstream change's Linux route. So were 0.2.4 to 0.2.7; the 0.2.3 Preview and earlier used v3.1.1.
 
 [Handheld compatibility](HANDHELD_COMPATIBILITY.md) separates verified hardware,
 previous trials, simulated firmware checks and unsupported userspaces.
 
-Linux revision `0.2.7-dev` extends the park preview with a native Home library,
+Linux revision `0.2.8-dev` extends the park preview with a native Home library,
 Pokémon and save editors, Bank organization, durable transfers/recovery, generation,
 offline events, collection tools, Showdown/QR and game-specific tools. This is a
 development checkpoint towards full v3.2.0 parity. `FEATURE_COVERAGE.md` records
@@ -20,7 +20,9 @@ has passed acceptance.
 
 ## Install
 
-Extract `PKForge-v3.2.0-linux-0.2.7-dev-arm64.zip` into the Ports directory:
+Extract `PKForge-v3.2.0-linux-0.2.8-dev-arm64.zip` into the Ports directory. This
+one ZIP is for every firmware except NextUI, whatever the handheld's chip: the
+`nextui-…` ZIPs (including `nextui-h700`) only work on the NextUI firmware.
 
 | Firmware | Directory |
 | --- | --- |
@@ -28,13 +30,15 @@ Extract `PKForge-v3.2.0-linux-0.2.7-dev-arm64.zip` into the Ports directory:
 | KNULLI | `/userdata/roms/ports/` |
 | dArkOS (ARM64, including compatible R36S community images) | `/roms/ports/` or `/roms2/ports/` |
 | BananaOS (RG DS, RG DS Plus; experimental, hardware unverified) | `roms/ports/` on the card (`\\<address>\banana\roms\ports` over its file sharing) |
-| muOS | Data: `/mmc/ports/pkforge/`; launchers: `/mnt/mmc/ROMS/Ports/` |
+| muOS | Data: `ports/pkforge/` at the card's top level (`/mnt/mmc/ports/`, or `/mnt/sdcard/ports/` on a second card); launchers: `ROMS/Ports/` on the same card |
 
-The muOS launcher also recognizes `/mnt/mmc/ports/pkforge` and
-`/mnt/sdcard/ports/pkforge`. A sibling `pkforge` folder takes precedence. Set
-`PKFORGE_HOME` to the directory containing `app` for another card layout.
+The launcher also looks in `/mmc/ports/pkforge` and in the `ports` folder of the
+card PortMaster uses. A sibling `pkforge` folder takes precedence. Set
+`PKFORGE_HOME` to the directory containing `app` for another card layout. Every
+start writes `PKForge-launcher.log` beside the launcher: where it looked for the
+`pkforge` folder, the firmware PortMaster reported, and how the app ended.
 
-For NextUI choose `nextui-<platform>-arm64.zip`: `tg5040` for TrimUI
+Only for the NextUI firmware, choose `nextui-<platform>-arm64.zip`: `tg5040` for TrimUI
 Brick/Brick Pro/Smart Pro, `tg5050` for Smart Pro S, or `h700` for Anbernic H700.
 Extract at the SD-card root. It installs `Tools/<platform>/PKForge.pak` and
 `PKForge Pokepark.pak`; keep both together. Both share `.userdata/shared/pkforge`,
@@ -102,11 +106,18 @@ set `PKFORGE_CONTROLLER_LAYOUT=sdl` to retain SDL's original face-button semanti
 | D-pad left / right | Select residents |
 | D-pad up / down | Zoom |
 | Left stick | Pan the camera, when available |
-| Hold R2 + D-pad | Pan without sticks; normal D-pad actions resume on release |
+| R2 | Pan mode on or off: while on, the D-pad moves the camera (no holding a trigger down) |
 | Right stick | Zoom, when available |
 | Start | Options |
 | Select | Spectate |
 | Hold Start + Select | Exit cleanly |
+
+The park is drawn at the panel's rate, up to 60 frames a second. Where a scene
+cannot hold it (more than 15% of frames late, or slower than about 45 a second),
+the park drops to a steady 30 and tries 60 again after 20 seconds, then less
+often. Set `PKFORGE_PARK_FPS=30` or `=60` (for example in the launcher) to fix the
+rate. If the A and B buttons do the opposite of the on-screen hints, turn on
+Settings → **Swap A and B**.
 
 Touch supports the upstream drag, pinch, tap, pat and care gestures. On the RGDS,
 the park is on the top panel and its journal, menus and touch buttons are below.

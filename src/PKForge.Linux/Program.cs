@@ -217,8 +217,9 @@ try
         var scene = new PokeparkScene(services.GetRequiredService<ISpriteService>(), services.GetRequiredService<PokeparkSpriteService>())
         { Residents = services.GetRequiredService<PokeparkService>().LoadRoster(), PhaseOverride = arguments.Phase, WeatherOverride = arguments.Weather };
         scene.LoadArtAsync().GetAwaiter().GetResult();
-        using var surface = SKSurface.Create(new SKImageInfo(640, 480));
-        for (var i = 0; i < 120; i++) scene.Draw(surface.Canvas, 640, 480, i * 33L);
+        // --headless-width/--headless-height (default 640×480) show the park at another screen's size.
+        using var surface = SKSurface.Create(new SKImageInfo(arguments.CaptureWidth, arguments.CaptureHeight));
+        for (var i = 0; i < 120; i++) scene.Draw(surface.Canvas, arguments.CaptureWidth, arguments.CaptureHeight, i * 33L);
         using var image = surface.Snapshot(); using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         File.WriteAllBytes(Path.Combine(ParkPlatform.DataDirectory, "headless.png"), data.ToArray());
         Console.WriteLine($"HEADLESS PASS: {scene.Residents.Count} residents, map and simulation rendered.");
@@ -235,6 +236,8 @@ try
     try
     {
         Console.WriteLine($"PKForge {Arguments.UpstreamVersion} ARM64 port; CLR={Environment.Version}; OS={RuntimeInformation.OSDescription}; SDL={Marshal.PtrToStringUTF8(Sdl.SDL_GetCurrentVideoDriver())}");
+        var startup = new StartupGuard(ParkPlatform.DataDirectory, Arguments.PortRevision);
+        var softwareStart = startup.Begin();
         using var displays = new DisplaySession<GraphicsDevice>(() =>
         {
             var targets = new List<DisplayTarget>();
@@ -244,7 +247,7 @@ try
         }, (index, secondary) =>
         {
             var title = (index == 1 ? "[w2] " : "") + (secondary ? "PKForge Controls" : "PKForge Park");
-            var device = new GraphicsDevice(title, index, arguments.Software || !ParkCanvas.UsesGpu, !arguments.Windowed);
+            var device = new GraphicsDevice(title, index, arguments.Software || softwareStart || !ParkCanvas.UsesGpu, !arguments.Windowed);
             try { device.BeginFrame(); return device; }
             catch { device.Dispose(); throw; }
         }, arguments.DisplayMode, arguments.SwapScreens, Console.WriteLine);
@@ -289,6 +292,10 @@ try
         page.PrepareBenchmark(arguments.Phase, arguments.Weather, arguments.Seconds > 0);
         if (arguments.StartPage == "park" || arguments.Demo) page.Appear(); else workspace.OpenHome(welcome: true);
         Console.WriteLine($"WORKSPACE active={workspace.Screens.Active}, screen={workspace.Screens.Current?.GetType().Name}");
+        Console.WriteLine($"PARK frame rate: {PresentationClock.ParkMode switch { ParkRate.Fixed30 => "30 FPS (PKFORGE_PARK_FPS)", ParkRate.Fixed60 => "60 FPS (PKFORGE_PARK_FPS)", _ => "auto, 60 FPS or 30 while frames arrive late" }}");
+        services.GetRequiredService<GamepadRouter>().PanChanged += on =>
+            page.Scene.Notify(on ? "Pan on: the D-pad moves the camera · R2 again to stop" : "Pan off");
+        var parkPacer = new ParkPacer(PresentationClock.UiInterval((parkDisplay ?? controls).RefreshRate), Console.WriteLine);
         page.ControlRoot.ExcludedInput = dual ? page.ParkView : null;
         page.UseUpperScreenForPills(dual);
         using var touchPanels = RgdsTouch.TryCreate(displays.Available);
@@ -304,7 +311,16 @@ try
         services.GetRequiredService<SdlMusicPlayer>().Initialize();
         var gamepadRouter = services.GetRequiredService<GamepadRouter>();
         var timer = Stopwatch.StartNew();
-        var performance = new FrameStatistics();
+        var sprites = services.GetRequiredService<PokeparkSpriteService>();
+        var performance = new FrameStatistics
+        {
+            MemoryNote = () =>
+            {
+                var (species, animations, bytes) = sprites.Decoded();
+                var gpu = displays.Primary.GpuCacheBytes + (displays.Secondary?.GpuCacheBytes ?? 0);
+                return $"; sprites={species} species, {animations} animations, {bytes / 1048576.0:F1} MiB; managed={GC.GetTotalMemory(false) / 1048576.0:F1} MiB; gpu cache={gpu / 1048576.0:F1} MiB";
+            }
+        };
         var primaryClock = new PresentationClock();
         var secondaryClock = new PresentationClock();
         var controlsPending = false;
@@ -391,7 +407,12 @@ try
             // RG34XXSP). Twice a second keeps the simulation stepping until the park shows again.
             var parkHidden = singleParkUi && PKForge.App.Views.WalkerScreen.IsOpen;
             page.ParkPaintInterval = parkHidden ? TimeSpan.FromSeconds(0.5) : singleParkUi ? TimeSpan.FromSeconds(1.0 / 30) : TimeSpan.Zero;
-            var primaryInterval = workspace.Screens.Active || singleParkUi ? PresentationClock.UiInterval((parkDisplay ?? controls).RefreshRate) : 1000.0 / 30;
+            var panelInterval = PresentationClock.UiInterval((parkDisplay ?? controls).RefreshRate);
+            parkPacer.FastInterval = panelInterval;
+            var primaryInterval = workspace.Screens.Active || singleParkUi ? panelInterval : PresentationClock.ParkMode switch
+            {
+                ParkRate.Fixed30 => ParkPacer.SlowInterval, ParkRate.Fixed60 => panelInterval, _ => parkPacer.Interval
+            };
             if (primaryClock.Due(now, primaryInterval))
             {
                 var start = Stopwatch.GetTimestamp();
@@ -414,6 +435,8 @@ try
                 var built = Stopwatch.GetTimestamp();
                 display.Flush(); var drawn = Stopwatch.GetTimestamp();
                 display.Present();
+                startup.FirstFrame();
+                if (view == "Park") parkPacer.Presented(timer.Elapsed.TotalMilliseconds); else parkPacer.Paused();
                 DrawProfile.Add("(build)", Stopwatch.GetElapsedTime(start, built).TotalMilliseconds);
                 DrawProfile.Add("(flush)", Stopwatch.GetElapsedTime(built, drawn).TotalMilliseconds); DrawProfile.EndFrame();
                 performance.Add(false, view, timer.Elapsed.TotalMilliseconds, Stopwatch.GetElapsedTime(start, drawn).TotalMilliseconds, Stopwatch.GetElapsedTime(drawn).TotalMilliseconds, primaryInterval);
@@ -507,7 +530,7 @@ catch (Exception error)
 internal sealed record Arguments
 {
     public const string UpstreamVersion = "3.2.0";
-    public const string PortRevision = "0.2.7-dev";
+    public const string PortRevision = "0.2.8-dev";
     public const string HelpText = "PKForge 3.2.0\n--data-dir PATH --start-page home|park --display-mode auto|single|dual --swap-screens --software --windowed\n--save PATH --demo --headless --seconds N --screenshot\n--headless-width N --headless-height N (Home/workspace capture size)\n--headless-input \"A Right A\" (pad presses before the capture; hold:A / release:A split one)\n--phase Morning|Day|Evening|Night --weather Sunny|Cloudy|Rain|Storm\n--input-script PATH (timed controller actions for integration testing)";
     public string StartPage { get; init; } = "home";
     public string HeadlessScreen { get; init; } = "home";

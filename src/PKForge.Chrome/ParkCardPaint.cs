@@ -450,11 +450,14 @@ public static class ParkCardPaint
 
     /// <summary>A need as five icons, each worth 20 points, a half icon for 10 (like Minecraft's
     /// hunger bar); the empty ones are drawn as an outline.</summary>
+    /// <summary>A need as the journal draws it: 0 to 10 half icons. Values that round alike look alike.</summary>
+    public static int NeedHalves(float value) => (int)MathF.Round(Math.Clamp(value, 0, 100) / 10);
+
     private static void NeedIcons(SKCanvas c, int need, float left, float midY, float step, float px, float value)
     {
         var glyph = NeedGlyphs[need % NeedGlyphs.Length];
         var (fill, light, second) = NeedColors[need % NeedColors.Length];
-        var halves = (int)MathF.Round(Math.Clamp(value, 0, 100) / 10);
+        var halves = NeedHalves(value);
         var top = midY - glyph.Length * px / 2;
         using var paint = new SKPaint { IsAntialias = false };
         for (var icon = 0; icon < 5; icon++)

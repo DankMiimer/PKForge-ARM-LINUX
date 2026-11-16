@@ -79,6 +79,8 @@ internal sealed class FrameStatistics
     public const double LateFactor = 1.5;
     /// <summary>A longer gap is a pause (suspend, a blocking dialog), not a frame interval.</summary>
     public const double PauseMilliseconds = 1000;
+    /// <summary>Appended to each minute's log line, for example what the sprite cache holds.</summary>
+    public Func<string>? MemoryNote { get; set; }
     private readonly Display _primary = new(), _secondary = new();
     private readonly SortedDictionary<int, MinuteWindow> _windows = [];
 
@@ -102,7 +104,7 @@ internal sealed class FrameStatistics
         window.Frames++; window.DrawTotal += render + swap; window.RenderTotal += render; window.SwapTotal += swap;
         if (interval is { } gap) { window.IntervalMaximum = Math.Max(window.IntervalMaximum, gap); if (gap > target * LateFactor) window.Late++; }
         window.Views[view] = window.Views.GetValueOrDefault(view) + 1;
-        if (window.Frames == 1) Console.WriteLine($"MINUTE {minute}: RSS={window.RssMiB:F1} MiB; view={view}");
+        if (window.Frames == 1) Console.WriteLine($"MINUTE {minute}: RSS={window.RssMiB:F1} MiB; view={view}{MemoryNote?.Invoke()}");
     }
 
     /// <summary>The PERFORMANCE document. Fields from earlier revisions keep their names and meaning.</summary>

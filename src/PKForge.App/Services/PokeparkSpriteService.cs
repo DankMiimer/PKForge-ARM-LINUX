@@ -32,7 +32,13 @@ public sealed partial class PokeparkSpriteService
     private sealed record Animation(SKBitmap Bitmap, int Width, int Height, int[] Durations, int TotalDurationMs, SKPoint[] Feet, SKRect Bounds)
     {
         public int Rows => Bitmap.Height / Height;
+        /// <summary>When a frame of it was last asked for (Environment.TickCount64).</summary>
+        public long LastUsed { get; set; } = Environment.TickCount64;
     }
+
+    /// <summary>After a frame is handed out: a host may release animations nobody has shown for a
+    /// while (the Linux port does on 1 GB handhelds). Without an implementation this is nothing.</summary>
+    partial void AfterFrame();
 
     private sealed class Sheet(string key, string directory, Dictionary<string, XElement> definitions, string credits, int shadowSize)
     {
@@ -88,7 +94,9 @@ public sealed partial class PokeparkSpriteService
             {
                 animation = fallback; name = "Idle";
             }
+            if (animation is not null) animation.LastUsed = Environment.TickCount64;
         }
+        AfterFrame();
         if (animation is null) return null;
         // A fallback to Idle loops even for a one-shot pose: a frozen Idle looks broken.
         var loops = ParkPoses.Loops(pose) || name is "Idle" or "Walk";
@@ -127,6 +135,7 @@ public sealed partial class PokeparkSpriteService
                 if (sheet.Loading.Add(candidate)) _ = LoadAnimationAsync(sheet, candidate);
             }
             animation ??= sheet.Animations.GetValueOrDefault("Idle") ?? sheet.Animations.GetValueOrDefault("Walk");
+            if (animation is not null) animation.LastUsed = Environment.TickCount64;
         }
         if (animation is null) return null;
         var row = animation.Rows == 1 ? 0 : ((direction % 8) + 8) % 8;
