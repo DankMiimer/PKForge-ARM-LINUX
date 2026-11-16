@@ -293,6 +293,8 @@ try
         if (arguments.StartPage == "park" || arguments.Demo) page.Appear(); else workspace.OpenHome(welcome: true);
         Console.WriteLine($"WORKSPACE active={workspace.Screens.Active}, screen={workspace.Screens.Current?.GetType().Name}");
         Console.WriteLine($"PARK frame rate: {PresentationClock.ParkMode switch { ParkRate.Fixed30 => "30 FPS (PKFORGE_PARK_FPS)", ParkRate.Fixed60 => "60 FPS (PKFORGE_PARK_FPS)", _ => "auto, 60 FPS or 30 while frames arrive late" }}");
+        services.GetRequiredService<GamepadRouter>().PanChanged += on =>
+            page.Scene.Notify(on ? "Pan on: the D-pad moves the camera · R2 again to stop" : "Pan off");
         var parkPacer = new ParkPacer(PresentationClock.UiInterval((parkDisplay ?? controls).RefreshRate), Console.WriteLine);
         page.ControlRoot.ExcludedInput = dual ? page.ParkView : null;
         page.UseUpperScreenForPills(dual);

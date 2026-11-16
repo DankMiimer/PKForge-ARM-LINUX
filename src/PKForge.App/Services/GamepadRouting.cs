@@ -83,11 +83,23 @@ public sealed class GamepadRouter
         return true;
     }
 
+#if PKFORGE_LINUX
+    /// <summary>Pan mode turned on (true) or off by R2.</summary>
+    public event Action<bool>? PanChanged;
+#endif
+
     public bool Dispatch(PadButton button)
     {
         if (button == PanModifier)
         {
+#if PKFORGE_LINUX
+            // A press turns pan mode on, the next turns it off: holding a trigger down while
+            // steering wears it out, above all on handhelds without sticks (a tester's report).
+            _pan = !_pan && _stack.LastOrDefault() is IPadStickHandler;
+            PanChanged?.Invoke(_pan);
+#else
             _pan = _stack.LastOrDefault() is IPadStickHandler;
+#endif
             RefreshStick(); return true;
         }
         if (_stack.LastOrDefault() is IPadStickHandler && IsDirection(button))
@@ -107,7 +119,9 @@ public sealed class GamepadRouter
     /// <summary>Tells the top-most screen a button was released, when it listens for that.</summary>
     public void DispatchRelease(PadButton button)
     {
+#if !PKFORGE_LINUX
         if (button == PanModifier) { _pan = false; RefreshStick(); }
+#endif
         if (IsDirection(button)) { _directions.Remove(button); if (_pan) RefreshStick(); }
         if (_stack.Count > 0 && _stack[^1] is IPadReleaseHandler handler)
             handler.OnPadReleased(button);

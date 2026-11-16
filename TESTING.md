@@ -9,8 +9,9 @@ only copy.
 ## 1. Install
 
 Download `PKForge-v3.2.0-linux-<version>-arm64.zip` from the
-[latest release](https://github.com/DankMiimer/PKForge-ARM-LINUX/releases/latest)
-and extract it:
+[latest release](https://github.com/DankMiimer/PKForge-ARM-LINUX/releases/latest).
+It is the one for every firmware below, whatever the chip: the `nextui-…` files
+(such as `nextui-h700`) only work on the NextUI firmware. Extract it:
 
 | Firmware | Where |
 | --- | --- |

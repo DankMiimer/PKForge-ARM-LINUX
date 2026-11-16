@@ -2,13 +2,15 @@ PKForge v3.2.0 adapted for ARM64 ROCKNIX and KNULLI with a native .NET 10 / SDL2
 
 ## Download and install
 
-Download **PKForge-v3.2.0-linux-0.2.8-dev-arm64.zip** and extract it into your firmware's Ports directory:
+Download **PKForge-v3.2.0-linux-0.2.8-dev-arm64.zip**. It is the download for every firmware except NextUI, whatever your handheld's chip: the `nextui-…` files (including `nextui-h700`) only work on the NextUI firmware. Extract it into your firmware's Ports directory:
 
 - ROCKNIX: `/storage/roms/ports/`
 - KNULLI: `/userdata/roms/ports/`
+- muOS (experimental): the `pkforge` folder into `ports/` at the card's top level, the two `.sh` files into `ROMS/Ports/`
+- ArkOS, dArkOS (experimental): `/roms/ports/`
 - BananaOS (RG DS, RG DS Plus; experimental): `roms/ports/` on the card
 
-Keep `PKForge.sh`, `PKForge Pokepark.sh` and the `pkforge` folder together. Refresh the game list. PKForge opens Home; PKForge Pokepark opens the park directly. Close the emulator before editing a save.
+`TESTING.md` has three quick steps for trying it on another handheld. Keep `PKForge.sh`, `PKForge Pokepark.sh` and the `pkforge` folder together (on muOS, as above). Refresh the game list. PKForge opens Home; PKForge Pokepark opens the park directly. Close the emulator before editing a save.
 
 For upgrades, close PKForge and preserve **all of `pkforge/userdata`**. The ZIP contains no personal data. OS power and lid settings remain unchanged.
 
@@ -18,6 +20,7 @@ For upgrades, close PKForge and preserve **all of `pkforge/userdata`**. The ZIP 
 - **Smoother RGDS park at 60.** The lower-screen journal no longer repaints four times a second, and the pills over the park are no longer laid out on every frame: late frames in the warm park fell from about 155 to about 18 a minute.
 - **Ready for more handhelds** (first testers: RG35XXH, RG35XX Plus and RG CubeXX on muOS, RG351P on ArkOS):
   - **Settings → Swap A and B**, for firmware that maps the buttons the other way round.
+  - **R2 now switches pan mode on and off** in the park (the D-pad moves the camera while it is on), instead of being held down while steering: holding a trigger wears it out, above all on handhelds without sticks. Suggested by the first muOS tester.
   - If a graphics driver fails before PKForge's first frame twice in a row, the next start uses software rendering by itself.
   - Sprite poses not shown for a while are released (the RGDS held 124 MiB of them after six minutes, now 30–43 MiB), and the launcher keeps glibc from holding freed memory in many pools: about 340 MiB in all after six minutes of park on the RGDS, 275 MiB on the RG34XXSP.
   - `PKForge.sh` leaves `PKForge-launcher.log` beside itself on every start, saying where it looked for the `pkforge` folder and how the app ended, and finds the folder on the card PortMaster uses (muOS with two cards).
@@ -32,7 +35,7 @@ Reference hardware: RGDS with ROCKNIX 20261001 and RG34XXSP with KNULLI. Other A
 
 The desktop suites pass 3,423 tests (1,437 Domain, 1,741 Engine, 77 Park, 168 Linux UI) and 20 launcher scenarios. On 15–16 November 2026 both reference handhelds ran automatic rounds: the app is started through the frontend as from Ports, driven by scripted button presses, and ends itself; existing `userdata` matched its pre-install hashes after every round. Both ran 90 minutes at a fixed 60 FPS without a fault before the automatic rate and the sprite release were added; the RGDS throttled for its first ten minutes after starting hot and then held 68–74 °C. `VALIDATION.md` has the figures.
 
-Known limits: muOS, ArkOS and the other firmware have only been checked in simulation; the first muOS report was a start that did nothing, and its cause is not known yet (the launcher log added here will show it). Zoomed-out park views run at 30 on both reference handhelds, as does the first minute after opening the park. On the RGDS lower screen the park's eight button hints are small (about 10 pixels). Long runs through Home and the editors, all 129 v3.2.0 visual and motion parity units, format and data-safety acceptance, and touch and lid checks remain open. No firmware power or volume policy was changed.
+Known limits: the first tester reports 0.2.7 running smoothly on an RG35XXH with muOS (its first try failed only because it was the NextUI download); the park has not been tried there yet, and ArkOS and the other firmware have only been checked in simulation. Zoomed-out park views run at 30 on both reference handhelds, as does the first minute after opening the park. On the RGDS lower screen the park's eight button hints are small (about 10 pixels). Long runs through Home and the editors, all 129 v3.2.0 visual and motion parity units, format and data-safety acceptance, and touch and lid checks remain open. No firmware power or volume policy was changed.
 
 See the repository's `UPSTREAM_3_2_0_SUPPORT.md`, `VALIDATION.md` and `LINUX.md` for scope, controls and measured limitations. Official Android APKs remain available from [upstream PKForge](https://github.com/sofianeelhor/PKForge/releases).
 

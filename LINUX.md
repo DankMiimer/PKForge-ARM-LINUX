@@ -20,7 +20,9 @@ has passed acceptance.
 
 ## Install
 
-Extract `PKForge-v3.2.0-linux-0.2.8-dev-arm64.zip` into the Ports directory:
+Extract `PKForge-v3.2.0-linux-0.2.8-dev-arm64.zip` into the Ports directory. This
+one ZIP is for every firmware except NextUI, whatever the handheld's chip: the
+`nextui-…` ZIPs (including `nextui-h700`) only work on the NextUI firmware.
 
 | Firmware | Directory |
 | --- | --- |
@@ -36,7 +38,7 @@ card PortMaster uses. A sibling `pkforge` folder takes precedence. Set
 start writes `PKForge-launcher.log` beside the launcher: where it looked for the
 `pkforge` folder, the firmware PortMaster reported, and how the app ended.
 
-For NextUI choose `nextui-<platform>-arm64.zip`: `tg5040` for TrimUI
+Only for the NextUI firmware, choose `nextui-<platform>-arm64.zip`: `tg5040` for TrimUI
 Brick/Brick Pro/Smart Pro, `tg5050` for Smart Pro S, or `h700` for Anbernic H700.
 Extract at the SD-card root. It installs `Tools/<platform>/PKForge.pak` and
 `PKForge Pokepark.pak`; keep both together. Both share `.userdata/shared/pkforge`,
@@ -104,7 +106,7 @@ set `PKFORGE_CONTROLLER_LAYOUT=sdl` to retain SDL's original face-button semanti
 | D-pad left / right | Select residents |
 | D-pad up / down | Zoom |
 | Left stick | Pan the camera, when available |
-| Hold R2 + D-pad | Pan without sticks; normal D-pad actions resume on release |
+| R2 | Pan mode on or off: while on, the D-pad moves the camera (no holding a trigger down) |
 | Right stick | Zoom, when available |
 | Start | Options |
 | Select | Spectate |

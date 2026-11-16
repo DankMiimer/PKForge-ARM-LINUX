@@ -33,10 +33,11 @@ automatic rounds; existing `userdata` matched its hashes after every round.
   its resident card and its options were rendered at 480×320, 640×480 and
   720×720 (headless captures and a windowed run of the Linux build): all fit.
 
-Not covered: any run on muOS, ArkOS or the testers' handhelds; the first muOS
-report was a start that did nothing, cause unknown. The swap setting, the
-software-rendering fallback and the launcher log are covered by desktop and
-launcher tests only.
+A tester reported 0.2.7-dev running smoothly on an RG35XXH with muOS (Home; the
+park not yet tried). Its first try did nothing because it was the NextUI
+download, whose name carries the device's chip (`h700`). Not covered: our own
+run on muOS or ArkOS. The swap setting, the R2 pan switch, the software-rendering
+fallback and the launcher log are covered by desktop and launcher tests only.
 
 ## Frame timing and the Pokéwalker fix — 14 November 2026 (0.2.5-dev)
 
