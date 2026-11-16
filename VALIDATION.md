@@ -1,6 +1,6 @@
 # ARM64 port validation
 
-## Zoomed-out park at 60 — 16 November 2026 (next revision)
+## Zoomed-out park at 60 — 16 November 2026 (0.2.9-dev)
 
 Measured on the RGDS (ROCKNIX 20261001) and the RG34XXSP (KNULLI) with the
 0.2.8-dev release archive and the changed assemblies placed over it, in
