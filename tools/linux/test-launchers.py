@@ -153,11 +153,13 @@ pm_finish() { printf 'finish\\n' >> "$LIFECYCLE"; }
         process = subprocess.Popen(["sh", str(self.app / "launch.sh")], env=self.env)
         child = None
         try:
+            # The stub opens the file before it writes its JSON: wait for the whole of it, not
+            # just the file (a slow runner once read it empty, in the 0.2.9 release build).
             deadline = time.monotonic() + 5
-            while not self.capture.exists() and time.monotonic() < deadline:
-                time.sleep(.02)
-            self.assertTrue(self.capture.exists(), "Application did not start")
-            child = json.loads(self.capture.read_text())["pid"]
+            while child is None and time.monotonic() < deadline:
+                try: child = json.loads(self.capture.read_text())["pid"]
+                except (FileNotFoundError, json.JSONDecodeError): time.sleep(.02)
+            self.assertIsNotNone(child, "Application did not start")
             process.terminate()
             self.assertEqual(143, process.wait(timeout=6))
             with self.assertRaises(ProcessLookupError):
@@ -254,11 +256,13 @@ pm_finish() { printf 'finish\\n' >> "$LIFECYCLE"; }
         process = subprocess.Popen(["sh", str(self.app / "launch.sh")], env=self.env)
         child = None
         try:
+            # The stub opens the file before it writes its JSON: wait for the whole of it, not
+            # just the file (a slow runner once read it empty, in the 0.2.9 release build).
             deadline = time.monotonic() + 5
-            while not self.capture.exists() and time.monotonic() < deadline:
-                time.sleep(.02)
-            self.assertTrue(self.capture.exists(), "Application did not start")
-            child = json.loads(self.capture.read_text())["pid"]
+            while child is None and time.monotonic() < deadline:
+                try: child = json.loads(self.capture.read_text())["pid"]
+                except (FileNotFoundError, json.JSONDecodeError): time.sleep(.02)
+            self.assertIsNotNone(child, "Application did not start")
             self.assertEqual("0", (backlight / "bl_power").read_text().strip())
             process.terminate()
             self.assertEqual(143, process.wait(timeout=6))
