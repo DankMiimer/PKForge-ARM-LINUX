@@ -90,6 +90,16 @@ public sealed class AnimationTests
         Assert.InRange(trials, 1, 3);
         Assert.DoesNotContain(log, line => line.StartsWith("PARK 60 FPS", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void Waits_between_trials_grow_to_a_minute_and_no_longer()
+    {
+        var log = new List<string>();
+        var pacer = new PKForge.Linux.Native.ParkPacer(1000.0 / 60, log.Add);
+        Run(pacer, 0, 400, i => i % 2 == 0 ? 33.4 : 20);
+        Assert.Contains(log, line => line.EndsWith("trying 60 again in 60 s", StringComparison.Ordinal));
+        Assert.DoesNotContain(log, line => line.EndsWith("in 80 s", StringComparison.Ordinal) || line.EndsWith("in 120 s", StringComparison.Ordinal));
+    }
     [Fact]
     public async Task Fade_has_intermediate_values_and_completes_only_at_its_end()
     {
