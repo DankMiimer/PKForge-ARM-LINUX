@@ -208,7 +208,19 @@ missing Mali EGL/GLES SONAMEs use private compatibility links.
 
 `userdata/launcher.log` records preflight/startup failures; graphical startup also
 writes `startup-diagnostics.json`. Controller names and mapping selection appear
-in the log, which rotates at 1 MiB. `app/native-dependencies.json` records native
+in the log, which rotates at 1 MiB.
+
+`userdata/pkforge-report.txt` is the one file to send with a device report. It
+lists the firmware, board, glibc, memory, SDL version and drivers, displays,
+GPU or software drawing (and why), each controller with its mapping state and
+GUID, the settings that change behaviour, each screen's time, frame rate and late
+frames, memory over the run, the park's 30/60 switches and every distinct warning
+or error. It is rewritten at start, at the first frame, every minute and at exit,
+so a run that was killed or hung still leaves one; "Ended" says which. It holds no
+saves, Pokémon or trainer names: paths are cut to their first two folders (or
+`<userdata>/…`) and save-like file names become `<file>`.
+
+`app/native-dependencies.json` records native
 hashes, required symbol versions and NuGet provenance. Packaging rejects a higher
 glibc requirement or a wrong CPU architecture.
 

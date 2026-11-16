@@ -25,9 +25,13 @@ body:
       label: What went wrong (if anything)
       description: A photo or screenshot helps.
   - type: textarea
-    id: log
+    id: report
     attributes:
-      label: launcher.log
-      description: Drag `launcher.log` from `pkforge/userdata/` here.
+      label: pkforge-report.txt
+      description: >-
+        Drag `pkforge-report.txt` from `pkforge/userdata/` here (it holds no saves or
+        names). Version 0.2.8 and earlier have no report: drag `launcher.log` from
+        the same folder. If PKForge did not start, drag `PKForge-launcher.log` from
+        beside `PKForge.sh` instead.
     validations:
       required: true

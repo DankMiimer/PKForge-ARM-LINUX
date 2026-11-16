@@ -23,9 +23,16 @@ Arguments arguments;
 try { arguments = Arguments.Parse(args); }
 catch (ArgumentException error) { Console.Error.WriteLine(error.Message + "\n" + Arguments.HelpText); return 2; }
 if (arguments.Help) { Console.WriteLine(Arguments.HelpText); return 0; }
+DeviceReport? report = null;
 try
 {
     ParkPlatform.Configure(arguments.DataDirectory, Path.Combine(AppContext.BaseDirectory, "assets"));
+    // The tester's one file to send: every line on standard error is also a problem in it.
+    report = new DeviceReport(ParkPlatform.DataDirectory,
+        [(ParkPlatform.DataDirectory, "<userdata>"), (AppContext.BaseDirectory, "<app>"), (Environment.GetEnvironmentVariable("HOME") ?? "", "~")]);
+    Console.SetError(TextWriter.Synchronized(new LineTap(Console.Error, report.Problem)));
+    report.Section("Device", DeviceReport.DeviceLines);
+    report.Section("Settings", () => ReportSettings(arguments));
     ParkPlatform.Dispatch = UiDispatcher.Instance.Dispatch;
     var collection = new ServiceCollection();
     collection.AddSingleton<ISaveEngine>(_ => new SaveEngine { History = PokemonHistorySetting.Active });
@@ -231,8 +238,13 @@ try
     Sdl.SDL_SetHint("SDL_TOUCH_MOUSE_EVENTS", "0");
     Sdl.SDL_SetHint("SDL_MOUSE_TOUCH_EVENTS", "0");
     InputRouter.PrepareMappings();
-    if (Sdl.SDL_Init(Sdl.InitVideo | Sdl.InitController | Sdl.InitEvents) != 0) throw new InvalidOperationException(Sdl.Error);
+    report.Write();
+    if (Sdl.SDL_Init(Sdl.InitVideo | Sdl.InitController | Sdl.InitEvents) != 0) throw new InvalidOperationException("SDL could not start: " + Sdl.Error);
     Sdl.SDL_ShowCursor(0);
+    Func<IEnumerable<string>>? screensInUse = null;
+    report.Section("Graphics", () => ReportGraphics(screensInUse));
+    report.Section("Controllers", DeviceReport.ControllerLines);
+    report.Write();
     try
     {
         Console.WriteLine($"PKForge {Arguments.UpstreamVersion} ARM64 port; CLR={Environment.Version}; OS={RuntimeInformation.OSDescription}; SDL={Marshal.PtrToStringUTF8(Sdl.SDL_GetCurrentVideoDriver())}");
@@ -299,6 +311,9 @@ try
         page.ControlRoot.ExcludedInput = dual ? page.ParkView : null;
         page.UseUpperScreenForPills(dual);
         using var touchPanels = RgdsTouch.TryCreate(displays.Available);
+        screensInUse = () => ReportScreens(parkDisplay ?? controls, parkDisplay is null ? null : controls, displays.Available,
+            arguments.Software ? "--software was given" : softwareStart ? "GPU drawing failed to start twice before (software-rendering.txt)" : !ParkCanvas.UsesGpu ? "GPU drawing is turned off" : null,
+            touchPanels is not null);
         using var lid = new LidMonitor();
         using var terminate = OperatingSystem.IsLinux() ? PosixSignalRegistration.Create(PosixSignal.SIGTERM, context => { context.Cancel = true; library.QuitRequested = true; }) : null;
         using var pause = OperatingSystem.IsLinux() ? PosixSignalRegistration.Create((PosixSignal)10, context => { context.Cancel = true; UiDispatcher.Instance.Dispatch(App.Suspend); }) : null;
@@ -319,8 +334,12 @@ try
                 var (species, animations, bytes) = sprites.Decoded();
                 var gpu = displays.Primary.GpuCacheBytes + (displays.Secondary?.GpuCacheBytes ?? 0);
                 return $"; sprites={species} species, {animations} animations, {bytes / 1048576.0:F1} MiB; managed={GC.GetTotalMemory(false) / 1048576.0:F1} MiB; gpu cache={gpu / 1048576.0:F1} MiB";
-            }
+            },
+            MinuteStarted = _ => report?.Write()
         };
+        report.Section("This run", () => performance.Summary().Append(PresentationClock.ParkMode != ParkRate.Auto
+            ? $"Park rate: fixed by PKFORGE_PARK_FPS"
+            : $"Park rate: automatic; dropped to 30 FPS {DeviceReport.Times(parkPacer.Drops)}, back to 60 {DeviceReport.Times(parkPacer.Recoveries)}, {(parkPacer.Fast ? "at 60" : "at 30")} last"));
         var primaryClock = new PresentationClock();
         var secondaryClock = new PresentationClock();
         var controlsPending = false;
@@ -436,6 +455,11 @@ try
                 display.Flush(); var drawn = Stopwatch.GetTimestamp();
                 display.Present();
                 startup.FirstFrame();
+                if (report.FirstFrameSeconds is null)
+                {
+                    report.FirstFrameSeconds = (DateTime.Now - Process.GetCurrentProcess().StartTime).TotalSeconds;
+                    report.Write();
+                }
                 if (view == "Park") parkPacer.Presented(timer.Elapsed.TotalMilliseconds); else parkPacer.Paused();
                 DrawProfile.Add("(build)", Stopwatch.GetElapsedTime(start, built).TotalMilliseconds);
                 DrawProfile.Add("(flush)", Stopwatch.GetElapsedTime(built, drawn).TotalMilliseconds); DrawProfile.EndFrame();
@@ -515,6 +539,8 @@ try
             ["displays"] = new[] { parkDisplay ?? controls, parkDisplay is null ? null : controls }.Where(d => d is not null)
                 .Select(d => new { width = d!.Width, height = d.Height, refreshRate = d.RefreshRate, swapInterval = d.SwapInterval, gpu = d.Gpu }).ToArray()
         });
+        report.Ended = arguments.Seconds > 0 && !library.QuitRequested ? $"cleanly, after the {arguments.Seconds} s asked for" : "cleanly";
+        report.Write();
         Console.WriteLine("Clean exit.");
     }
     finally { Sdl.SDL_Quit(); }
@@ -522,9 +548,49 @@ try
 }
 catch (Exception error)
 {
+    // The report gets the short form; the full exception still reaches launcher.log and crash.txt.
+    report?.Crashed(error);
+    Console.Error.Flush();
+    Console.SetError(new StreamWriter(Console.OpenStandardError()) { AutoFlush = true });
     Console.Error.WriteLine(error);
     if (ParkPlatform.DataDirectory.Length > 0) File.WriteAllText(Path.Combine(ParkPlatform.DataDirectory, "crash.txt"), error.ToString());
+    report?.Write();
     return 1;
+}
+
+static IEnumerable<string> ReportSettings(Arguments arguments)
+{
+    yield return "Swap A and B: " + (FaceButtonSwap.On ? "on" : "off");
+    yield return "Park frame rate: " + PresentationClock.ParkMode switch { ParkRate.Fixed30 => "30", ParkRate.Fixed60 => "60", _ => "automatic" };
+    yield return $"Opened: {(arguments.StartPage == "park" || arguments.Demo ? "Pokepark" : "Home")}; screens: {arguments.DisplayMode}{(arguments.SwapScreens ? ", swapped" : "")}{(arguments.Windowed ? ", windowed" : "")}";
+    var environment = new[] { "SDL_VIDEODRIVER", "SDL_AUDIODRIVER", "SDL_GAMECONTROLLERCONFIG_FILE", "MALLOC_ARENA_MAX" }
+        .Concat(Environment.GetEnvironmentVariables().Keys.Cast<string>().Where(name => name.StartsWith("PKFORGE_", StringComparison.Ordinal)).Order(StringComparer.Ordinal))
+        .Select(name => (name, value: Environment.GetEnvironmentVariable(name))).Where(pair => !string.IsNullOrEmpty(pair.value)).ToArray();
+    if (environment.Length > 0) yield return "Environment: " + string.Join(", ", environment.Select(pair => pair.name + "=" + pair.value));
+}
+
+static IEnumerable<string> ReportGraphics(Func<IEnumerable<string>>? screensInUse)
+{
+    Sdl.SDL_GetVersion(out var version);
+    yield return $"SDL {version.Major}.{version.Minor}.{version.Patch}; video {Marshal.PtrToStringUTF8(Sdl.SDL_GetCurrentVideoDriver()) ?? "none"}; audio {Marshal.PtrToStringUTF8(Sdl.SDL_GetCurrentAudioDriver()) ?? "not started"}";
+    for (var i = 0; i < Sdl.SDL_GetNumVideoDisplays(); i++)
+    {
+        var size = Sdl.SDL_GetDisplayBounds(i, out var area) == 0 ? $"{area.W}×{area.H}" : "size unknown";
+        var rate = Sdl.SDL_GetCurrentDisplayMode(i, out var mode) == 0 && mode.RefreshRate > 0 ? $" at {mode.RefreshRate} Hz" : "";
+        yield return $"Display {i}: {size}{rate}";
+    }
+    if (screensInUse is null) { yield return "No PKForge window opened yet"; yield break; }
+    foreach (var line in screensInUse()) yield return line;
+}
+
+static IEnumerable<string> ReportScreens(GraphicsDevice main, GraphicsDevice? second, bool secondAvailable, string? softwareReason, bool touch)
+{
+    static string Describe(GraphicsDevice device) => $"{device.Width}×{device.Height}, {device.RefreshRate} Hz, {(device.Gpu ? "GPU (GLES)" : "software")}";
+    yield return (second is null ? "Screen: " : "Top screen: ") + Describe(main);
+    if (second is not null) yield return "Bottom screen: " + Describe(second);
+    else if (secondAvailable) yield return "Second screen: found, not in use";
+    if (!main.Gpu) yield return "Software drawing: " + (softwareReason ?? "the GPU could not be used (see Problems)");
+    if (touch) yield return "Touch: RG DS panels found";
 }
 
 internal sealed record Arguments

@@ -45,6 +45,9 @@ internal static class Sdl
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GetDisplayBounds(int display, out Rect rect);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GetCurrentDisplayMode(int display, out DisplayMode mode);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_GetCurrentVideoDriver();
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_GetCurrentAudioDriver();
+    [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern void SDL_GetVersion(out Version version);
+    [StructLayout(LayoutKind.Sequential)] public struct Version { public byte Major, Minor, Patch; }
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_ShowCursor(int toggle);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern int SDL_GL_SetAttribute(int attribute, int value);
     [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)] public static extern IntPtr SDL_GL_CreateContext(IntPtr window);
