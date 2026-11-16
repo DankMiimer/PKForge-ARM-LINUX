@@ -36,15 +36,20 @@ Refresh the game list.
 Fill in the
 [Device report](https://github.com/DankMiimer/PKForge-ARM-LINUX/issues/new?template=device-report.yml)
 (or post in the PKForge Discord) with your handheld, firmware, what worked, and
-`launcher.log` from `pkforge/userdata/`. A photo of anything that looks wrong helps.
+`pkforge-report.txt` from `pkforge/userdata/` (version 0.2.8 and earlier have no
+report: send `launcher.log` from the same folder). A photo of anything that looks
+wrong helps.
 
-The log holds no save contents. An error message in it can show a save's file or
-folder name, so glance at it before posting publicly.
+The report says what your handheld is and how this run went (screens, frame rate,
+memory, controllers, any errors). It holds no saves, Pokémon or trainer names, and
+file paths in it are shortened, so it is fine to post publicly. It describes the
+last run, so send it before starting PKForge again.
 
 ## If it does not start
 
 Send `PKForge-launcher.log`, which appears beside `PKForge.sh` after each try: it
-says where PKForge looked for its folder and how it ended. If there is also a
-`launcher.log` in `pkforge/userdata/`, send that too; its last lines usually say
-why (for example `PKForge cannot start: a 32-bit userspace cannot run this ARM64
-package`).
+says where PKForge looked for its folder and how it ended. If there is a
+`pkforge-report.txt` or `launcher.log` in `pkforge/userdata/`, send those too;
+the log's last lines usually say why (for example `PKForge cannot start: a 32-bit
+userspace cannot run this ARM64 package`). The log can name your save files, so
+glance at it before posting it publicly.

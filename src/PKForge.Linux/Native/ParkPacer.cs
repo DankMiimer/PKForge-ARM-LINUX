@@ -35,6 +35,9 @@ internal sealed class ParkPacer(double fastInterval, Action<string>? log = null)
     /// <summary>The panel's frame interval, up to 60 a second (it can change when displays do).</summary>
     public double FastInterval { get; set; } = fastInterval;
     public bool Fast { get; private set; } = true;
+    /// <summary>How often the park dropped to 30, and how often a trial at 60 was kept (for the device report).</summary>
+    public int Drops { get; private set; }
+    public int Recoveries { get; private set; }
     public double Interval => Fast ? FastInterval : SlowInterval;
 
     /// <summary>A park frame was presented at <paramref name="now"/> milliseconds.</summary>
@@ -60,12 +63,12 @@ internal sealed class ParkPacer(double fastInterval, Action<string>? log = null)
         {
             // A failed trial waits longer before the next one.
             _retryAfter = _trial ? Math.Min(LongestRetry, _retryAfter * 2) : FirstRetry;
-            Fast = false; _retryAt = now + _retryAfter;
+            Fast = false; _retryAt = now + _retryAfter; Drops++;
             log?.Invoke($"PARK 30 FPS: {1000 / (_counted / _frames):0} FPS with {ratio:P0} of frames late at 60; trying 60 again in {_retryAfter / 1000:0} s");
         }
         else if (_trial)
         {
-            _retryAfter = FirstRetry;
+            _retryAfter = FirstRetry; Recoveries++;
             log?.Invoke($"PARK 60 FPS: {1000 / (_counted / _frames):0} FPS with {ratio:P0} of frames late");
         }
         _trial = false; _frames = _late = 0; _counted = 0;

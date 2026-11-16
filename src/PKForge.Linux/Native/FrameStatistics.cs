@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 
 namespace PKForge.Linux.Native;
@@ -81,6 +82,8 @@ internal sealed class FrameStatistics
     public const double PauseMilliseconds = 1000;
     /// <summary>Appended to each minute's log line, for example what the sprite cache holds.</summary>
     public Func<string>? MemoryNote { get; set; }
+    /// <summary>Called when the first frame of a new minute arrives, with that minute's number.</summary>
+    public Action<int>? MinuteStarted { get; set; }
     private readonly Display _primary = new(), _secondary = new();
     private readonly SortedDictionary<int, MinuteWindow> _windows = [];
 
@@ -104,7 +107,41 @@ internal sealed class FrameStatistics
         window.Frames++; window.DrawTotal += render + swap; window.RenderTotal += render; window.SwapTotal += swap;
         if (interval is { } gap) { window.IntervalMaximum = Math.Max(window.IntervalMaximum, gap); if (gap > target * LateFactor) window.Late++; }
         window.Views[view] = window.Views.GetValueOrDefault(view) + 1;
-        if (window.Frames == 1) Console.WriteLine($"MINUTE {minute}: RSS={window.RssMiB:F1} MiB; view={view}{MemoryNote?.Invoke()}");
+        if (window.Frames == 1)
+        {
+            Console.WriteLine($"MINUTE {minute}: RSS={window.RssMiB:F1} MiB; view={view}{MemoryNote?.Invoke()}");
+            MinuteStarted?.Invoke(minute);
+        }
+    }
+
+    /// <summary>
+    /// The device report's account of the run: time, frame rate and late frames per screen
+    /// (busiest first), then memory at the start of the first minute, its peak and now.
+    /// </summary>
+    public IEnumerable<string> Summary(double? currentRssMiB = null)
+    {
+        static IEnumerable<string> Screens(Display display)
+        {
+            foreach (var (view, track) in display.Views.OrderByDescending(pair => pair.Value.Interval.Total))
+            {
+                var fps = track.Interval.Total > 0 ? track.Interval.Count * 1000 / track.Interval.Total : 0;
+                var late = track.Interval.Count > 0 ? (double)track.Late / track.Interval.Count : 0;
+                yield return string.Create(CultureInfo.InvariantCulture,
+                    $"{view}: {DeviceReport.Duration(track.Interval.Total / 1000)}, {fps:0.0} FPS, {late * 100:0}% of frames late, drawing {track.Render.Average:0.0} ms (95% within {track.Render.Percentile(.95):0.0})");
+            }
+        }
+        if (_primary.All.Render.Count == 0) { yield return "no frames drawn"; yield break; }
+        foreach (var line in Screens(_primary)) yield return (_secondary.All.Render.Count > 0 ? "Top screen, " : "") + line;
+        foreach (var line in Screens(_secondary)) yield return "Bottom screen, " + line;
+        var now = currentRssMiB ?? Process.GetCurrentProcess().WorkingSet64 / 1048576.0;
+        if (_windows.Count > 0)
+        {
+            var first = _windows.First();
+            var peak = _windows.MaxBy(pair => pair.Value.RssMiB);
+            var peakMiB = Math.Max(peak.Value.RssMiB, now);
+            yield return string.Create(CultureInfo.InvariantCulture, $"Memory: {first.Value.RssMiB:0} MiB at minute {first.Key}, peak {peakMiB:0} MiB")
+                + (peakMiB > peak.Value.RssMiB ? " (now)" : $" (minute {peak.Key})") + string.Create(CultureInfo.InvariantCulture, $", {now:0} MiB now");
+        }
     }
 
     /// <summary>The PERFORMANCE document. Fields from earlier revisions keep their names and meaning.</summary>
