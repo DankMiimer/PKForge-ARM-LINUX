@@ -79,12 +79,24 @@ internal sealed class SoulGoldMon
         StringConverter3.SetString(span, value, length - 1, jp: false);
     }
 
-    /// <summary>language:3 + hiddenNatureModifier:5; the effective nature is
-    /// the modifier (the PID no longer decides it).</summary>
+    /// <summary>language:3 + hiddenNatureModifier:5. As in pokeemerald-expansion, the
+    /// effective nature is the PID's nature XOR the modifier: 0 keeps the PID's nature, and a
+    /// mint stores the difference, so the PID (shininess, identity) never changes. A real
+    /// Soul Gold save shows it: every modifier 0, and the game's stored stats follow PID % 25.
+    /// (Until the next revision the modifier was read as the nature itself, so every Pokémon
+    /// without a mint showed as Hardy and stats recomputed after an edit lost its nature.)</summary>
     public int Nature
     {
-        get => _buffer[Offset + 0x14] >> 3;
-        set => _buffer[Offset + 0x14] = (byte)((_buffer[Offset + 0x14] & 0x07) | ((value % 25) << 3));
+        get
+        {
+            var nature = (int)(Pid % 25) ^ (_buffer[Offset + 0x14] >> 3);
+            return nature < 25 ? nature : (int)(Pid % 25);
+        }
+        set
+        {
+            var modifier = (value % 25) ^ (int)(Pid % 25);
+            _buffer[Offset + 0x14] = (byte)((_buffer[Offset + 0x14] & 0x07) | (modifier << 3));
+        }
     }
 
     public int Language
@@ -313,8 +325,10 @@ internal sealed class SoulGoldMon
             {
                 for (var i = 0; i < 6; i++) raw[i] = _buffer[Secure + 0x18 + i];
             }
-            // Both stores keep the GBA order HP, Atk, Def, Spe, SpA, SpD.
-            return [raw[0], raw[1], raw[2], raw[5], raw[3], raw[4]];
+            // Both stores keep the GBA order HP, Atk, Def, Spe, SpA, SpD; app order takes SpA,
+            // SpD, then Spe. (Until the next revision this used the setter's permutation, which
+            // showed Spe's EVs as SpD and so on; stats recomputed after an edit were wrong.)
+            return [raw[0], raw[1], raw[2], raw[4], raw[5], raw[3]];
         }
         set
         {
