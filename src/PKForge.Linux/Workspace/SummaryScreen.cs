@@ -95,10 +95,12 @@ internal sealed class SummaryScreen(WorkspaceHost host, PokemonTarget target) : 
         var count = SlotCount;
         var columns = _target.Box < 0 ? 2 : 6; var rows = (count + columns - 1) / columns;
         var width = (bounds.Width - 24) / columns; var height = Math.Min(70, (bounds.Height - 120) / rows);
+        // Above the box name line; a tall screen centers the grid in that space.
+        var top = TallScreenLayout.CenteredTop(bounds, 65, bounds.Bottom - 70, rows * height);
         _overviewHits.Clear();
         for (var i = 0; i < count; i++)
         {
-            var rect = SKRect.Create(12 + i % columns * width, 65 + i / columns * height, width - 4, height - 4);
+            var rect = SKRect.Create(12 + i % columns * width, top + i / columns * height, width - 4, height - 4);
             using var fill = new SKPaint { Color = ColorTheme.Current.Well }; canvas.DrawRoundRect(rect, 4, 4, fill);
             if (i == _target.Slot) StoragePaint.Pointer(canvas, rect, .4f);
             var slot = Slots.FirstOrDefault(s => s.Slot == i);
