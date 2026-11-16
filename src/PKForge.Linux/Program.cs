@@ -340,6 +340,9 @@ try
         report.Section("This run", () => performance.Summary().Append(PresentationClock.ParkMode != ParkRate.Auto
             ? $"Park rate: fixed by PKFORGE_PARK_FPS"
             : $"Park rate: automatic; dropped to 30 FPS {DeviceReport.Times(parkPacer.Drops)}, back to 60 {DeviceReport.Times(parkPacer.Recoveries)}, {(parkPacer.Fast ? "at 60" : "at 30")} last"));
+        if (DrawProfile.Enabled) PKForge.Chrome.ParkDrawTiming.Report = DrawProfile.Add;
+        // Measurements: PKFORGE_PARK_DIRECT=0 keeps the world bitmap at scale 1 as before 0.2.9.
+        if (Environment.GetEnvironmentVariable("PKFORGE_PARK_DIRECT") == "0") PKForge.Chrome.ParkLowRes.DirectAtScaleOne = false;
         var primaryClock = new PresentationClock();
         var secondaryClock = new PresentationClock();
         var controlsPending = false;

@@ -191,6 +191,7 @@ public sealed class PokeparkScene(ISpriteService sprites, PokeparkSpriteService 
 
     private void DrawFrame(SKCanvas c, int width, int height, long time, bool labels, bool ambient)
     {
+        var mark = ParkDrawTiming.Start();
         c.Clear(Background);
         var map = Map;
         ParkArt? art;
@@ -209,6 +210,7 @@ public sealed class PokeparkScene(ISpriteService sprites, PokeparkSpriteService 
             _lastLifeMs = System.Diagnostics.Stopwatch.GetElapsedTime(lifeStart).TotalMilliseconds;
             _lifeMs += (_lastLifeMs - _lifeMs) * .05;
         }
+        mark = ParkDrawTiming.Mark("park: clear and simulation", mark);
         var actors = _life.Actors.Where(a => !a.Indoors && !a.Hidden && !a.InShadow && !a.Submerged).ToArray();
         var selectedId = SelectedIndex >= 0 && SelectedIndex < Residents.Count ? Residents[SelectedIndex].Id : null;
         var camera = ParkCamera.Fit(map, width, height, new SKPoint(map.Width / 2f, map.Height / 2f));
@@ -228,7 +230,9 @@ public sealed class PokeparkScene(ISpriteService sprites, PokeparkSpriteService 
         // The world at its own resolution, scaled up once (see ParkLowRes).
         var screen = c;
         var lowRes = ambient ? _lowResAmbient : _lowRes;
-        c = lowRes.Begin(camera, map.Width, map.Height, width, height, Background);
+        mark = ParkDrawTiming.Mark("park: camera", mark);
+        c = lowRes.Begin(camera, map.Width, map.Height, width, height, Background, screen);
+        mark = ParkDrawTiming.Mark("park: world clear", mark);
         using var p = new SKPaint { IsAntialias = false, Color = SKColors.White };
         // The day's light: the map's art is kept tinted (redrawn only when the light changes), the
         // sprites are tinted as they are drawn.
@@ -237,7 +241,9 @@ public sealed class PokeparkScene(ISpriteService sprites, PokeparkSpriteService 
         using var mapPaint = new SKPaint { IsAntialias = false, Color = SKColors.White };
         var visible = camera.Visible(width, height);
         var lit = art?.LitBy(lightColor);
+        mark = ParkDrawTiming.Mark("park: light", mark);
         if (lit is { } lit0) ParkPaint.Ground(c, lit0.Ground, visible, mapPaint);
+        mark = ParkDrawTiming.Mark("park: ground", mark);
         p.ColorFilter = light;
         var heads = new float[actors.Length];
         // A flyer in the air leaves its shadow on the ground, in depth order, and is drawn over everything.
@@ -251,7 +257,9 @@ public sealed class PokeparkScene(ISpriteService sprites, PokeparkSpriteService 
         if (ParkSky.Campfire(c, p, _life.Campfire, _life.Now, time) is { } fire) layers.Add(fire);
         if (_life.Chronicle.Dam > 0 && _life.DamSpot is { } dam)
             layers.Add((dam.Y + 10, () => ParkProps.DrawDam(c, p, dam.X + 12, dam.Y + 10, _life.Chronicle.Dam)));
+        mark = ParkDrawTiming.Mark("park: sorting", mark);
         ParkPaint.InDepthOrder(c, lit?.Pieces ?? [], visible, mapPaint, layers);
+        mark = ParkDrawTiming.Mark("park: depth order (all)", mark);
         DrawGlows(c, actors, now);
         DrawBall(c, p, time);
         p.ColorFilter = null;
@@ -289,7 +297,9 @@ public sealed class PokeparkScene(ISpriteService sprites, PokeparkSpriteService 
                 ParkEmotes.Draw(c, p, actor.Emote, actor.X + 5, heads[k] - 1, time - actor.EmoteSince);
             if (labels && actor.Resident.Id == selectedId) named = actor;
         }
+        mark = ParkDrawTiming.Mark("park: effects, sky and emotes", mark);
         lowRes.End(screen, camera);
+        mark = ParkDrawTiming.Mark("park: scale-up", mark);
         // The name tag is text: drawn at the screen's own resolution, over the scaled-up world.
         if (named is not null && !Screensaver)
             DrawLabel(screen, p, named.Resident.Name, (named.X - camera.Left) * camera.Scale, (named.Y - named.Altitude - camera.Top) * camera.Scale, width, height);
@@ -302,6 +312,8 @@ public sealed class PokeparkScene(ISpriteService sprites, PokeparkSpriteService 
             p.Color = new SKColor(255, 250, 220, (byte)(150 * flash));
             c.DrawRect(0, 0, width, height, p);
         }
+        ParkDrawTiming.Mark("park: names and banner", mark);
+        ParkDrawTiming.Report?.Invoke("park: world pixels (count)", (width / camera.Scale + 2) * (height / camera.Scale + 2));
     }
 
     // After dark the Fire types' flames, Ampharos's tail, Lanturn's lure and the like light up the
