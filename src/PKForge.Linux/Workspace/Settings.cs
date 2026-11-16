@@ -14,7 +14,8 @@ public sealed partial class WorkspaceHost
     {
         while (true)
         {
-            var choice = await Dialogs.MenuAsync("Settings", "PKForge 3.2.0 · Linux preview", "Hardcore: " + (HardcoreMode.IsOn ? "ON" : "OFF"), "HaX: " + (HaXMode.IsOn ? "ON" : "OFF"), "Color theme", "Animations", "Interface scale", "Pokémon History", "PKForge data archive", "Music", "Offline sprite pack", "Linked folders", "Scan report", "Recover unfinished operation", "Export diagnostics", "About / credits", "Box background", "Show hidden saves", "Generation ownership", "Bank / transfer history", "Second screen: " + (SecondScreenMode.UserOff ? "OFF" : "ON"));
+            var choice = await Dialogs.MenuAsync("Settings", "PKForge 3.2.0 · Linux preview", "Hardcore: " + (HardcoreMode.IsOn ? "ON" : "OFF"), "HaX: " + (HaXMode.IsOn ? "ON" : "OFF"), "Color theme", "Animations", "Interface scale", "Pokémon History", "PKForge data archive", "Music", "Offline sprite pack", "Linked folders", "Scan report", "Recover unfinished operation", "Export diagnostics", "About / credits", "Box background", "Show hidden saves", "Generation ownership", "Bank / transfer history", "Second screen: " + (SecondScreenMode.UserOff ? "OFF" : "ON"),
+                "Swap A and B: " + (PKForge.Linux.Native.FaceButtonSwap.On ? "ON" : "OFF"));
             if (choice is null) return;
             if (choice == "PKForge data archive") { await DataArchiveAsync(); continue; }
             if (choice == "Interface scale")
@@ -40,6 +41,13 @@ public sealed partial class WorkspaceHost
             {
                 SecondScreenRequested?.Invoke(SecondScreenMode.UserOff);
                 await Dialogs.MessageAsync("Second screen", !DualAvailable ? "This device uses the single-screen layout." : Screens.Dual ? "Main view above; inspector and controls below." : "PKForge uses the top screen. The lower screen is available to other applications.");
+            }
+            else if (choice.StartsWith("Swap A and B:", StringComparison.Ordinal))
+            {
+                PKForge.Linux.Native.FaceButtonSwap.On = !PKForge.Linux.Native.FaceButtonSwap.On;
+                await Dialogs.MessageAsync("Swap A and B", PKForge.Linux.Native.FaceButtonSwap.On
+                    ? "A and B (and X and Y) are swapped. Turn this off again here if the buttons now do the opposite of the hints."
+                    : "A and B (and X and Y) work as the firmware maps them.");
             }
             else if (choice.StartsWith("Hardcore:", StringComparison.Ordinal))
             {

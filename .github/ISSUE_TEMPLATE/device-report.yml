@@ -18,6 +18,7 @@ body:
         - label: PKForge starts, fits the screen, and A/B match the hints
         - label: The Poképark runs smoothly
         - label: Start + Select returns to the menu
+        - label: I had to turn on Settings → Swap A and B
   - type: textarea
     id: notes
     attributes:

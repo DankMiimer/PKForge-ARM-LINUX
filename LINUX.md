@@ -28,11 +28,13 @@ Extract `PKForge-v3.2.0-linux-0.2.7-dev-arm64.zip` into the Ports directory:
 | KNULLI | `/userdata/roms/ports/` |
 | dArkOS (ARM64, including compatible R36S community images) | `/roms/ports/` or `/roms2/ports/` |
 | BananaOS (RG DS, RG DS Plus; experimental, hardware unverified) | `roms/ports/` on the card (`\\<address>\banana\roms\ports` over its file sharing) |
-| muOS | Data: `/mmc/ports/pkforge/`; launchers: `/mnt/mmc/ROMS/Ports/` |
+| muOS | Data: `ports/pkforge/` at the card's top level (`/mnt/mmc/ports/`, or `/mnt/sdcard/ports/` on a second card); launchers: `ROMS/Ports/` on the same card |
 
-The muOS launcher also recognizes `/mnt/mmc/ports/pkforge` and
-`/mnt/sdcard/ports/pkforge`. A sibling `pkforge` folder takes precedence. Set
-`PKFORGE_HOME` to the directory containing `app` for another card layout.
+The launcher also looks in `/mmc/ports/pkforge` and in the `ports` folder of the
+card PortMaster uses. A sibling `pkforge` folder takes precedence. Set
+`PKFORGE_HOME` to the directory containing `app` for another card layout. Every
+start writes `PKForge-launcher.log` beside the launcher: where it looked for the
+`pkforge` folder, the firmware PortMaster reported, and how the app ended.
 
 For NextUI choose `nextui-<platform>-arm64.zip`: `tg5040` for TrimUI
 Brick/Brick Pro/Smart Pro, `tg5050` for Smart Pro S, or `h700` for Anbernic H700.
@@ -107,6 +109,10 @@ set `PKFORGE_CONTROLLER_LAYOUT=sdl` to retain SDL's original face-button semanti
 | Start | Options |
 | Select | Spectate |
 | Hold Start + Select | Exit cleanly |
+
+The park is drawn at the panel's rate, up to 60 frames a second, on both screens of
+the RGDS. Set `PKFORGE_PARK_FPS=30` (for example in the launcher) to draw it at 30
+instead, for a slower handheld or a cooler, longer-lasting battery.
 
 Touch supports the upstream drag, pinch, tap, pat and care gestures. On the RGDS,
 the park is on the top panel and its journal, menus and touch buttons are below.

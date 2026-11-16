@@ -73,6 +73,39 @@ sys.exit(int(os.environ.get('APP_EXIT', '0')))
         self.ports = separated
         self.run_launcher()
 
+    def test_launcher_leaves_a_log_beside_itself(self):
+        self.env["APP_EXIT"] = "3"
+        self.run_launcher(expected=3)
+        log = (self.ports / "PKForge-launcher.log").read_text()
+        self.assertIn("Application: " + str(self.ports / "pkforge"), log)
+        self.assertIn("PortMaster: not found", log)
+        self.assertIn("Ended with status 3", log)
+
+    def test_missing_application_folder_is_logged_with_the_places_searched(self):
+        shutil.move(self.ports / "pkforge", self.root / "elsewhere")
+        self.run_launcher(expected=1)
+        log = (self.ports / "PKForge-launcher.log").read_text()
+        self.assertIn("The pkforge folder was not found. Looked in:", log)
+        self.assertIn(str(self.ports / "pkforge"), log)
+        self.assertIn("/mnt/mmc/ports/pkforge", log)
+
+    def test_portmaster_card_directory_finds_a_split_install(self):
+        # muOS: launchers in ROMS/Ports, the app in ports/ on the card PortMaster chose.
+        card = self.root / "mnt" / "sdcard"
+        (card / "ports").mkdir(parents=True)
+        shutil.move(self.ports / "pkforge", card / "ports" / "pkforge")
+        separated = self.root / "ROMS" / "Ports"
+        separated.mkdir(parents=True)
+        shutil.copyfile(self.ports / "PKForge.sh", separated / "PKForge.sh")
+        self.ports = separated
+        pm = self.root / "PortMaster"
+        pm.mkdir()
+        (pm / "control.txt").write_text(f"CFW_NAME=muOS\ndirectory='{str(card)[1:]}'\nget_controls() {{ sdl_controllerconfig=firmware; }}\n")
+        self.env.update(controlfolder=str(pm))
+        result = self.run_launcher()
+        self.assertEqual(["--data-dir", str(card / "ports/pkforge/userdata"), "--display-mode", "auto"], result["args"])
+        self.assertIn("firmware: muOS", (separated / "PKForge-launcher.log").read_text())
+
     def test_direct_park_entry_and_exit_status(self):
         self.env["APP_EXIT"] = "7"
         result = self.run_launcher("PKForge Pokepark.sh", expected=7)

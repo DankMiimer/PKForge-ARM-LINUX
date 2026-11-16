@@ -40,6 +40,8 @@ public sealed class GraphicsDevice : IDisposable
         if (Sdl.SDL_GetCurrentDisplayMode(display, out var mode) == 0 && mode.RefreshRate > 0) RefreshRate = mode.RefreshRate;
         var width = 640; var height = 480;
         if (Sdl.SDL_GetDisplayBounds(display, out var bounds) == 0) { width = bounds.W; height = bounds.H; }
+        // Development: a windowed run at another handheld's screen size (PKFORGE_WINDOW_SIZE=480x320).
+        if (!fullscreen && WindowSize(Environment.GetEnvironmentVariable("PKFORGE_WINDOW_SIZE")) is { } size) (width, height) = size;
         Sdl.SDL_GL_SetAttribute(21, 4); // SDL_GL_CONTEXT_PROFILE_ES
         Sdl.SDL_GL_SetAttribute(17, 2);
         Sdl.SDL_GL_SetAttribute(18, 0);
@@ -62,6 +64,15 @@ public sealed class GraphicsDevice : IDisposable
                     SwapInterval = Math.Max(0, Sdl.SDL_GL_GetSwapInterval());
                     _interface = GRGlInterface.CreateGles(Sdl.SDL_GL_GetProcAddress);
                     if (_interface is not null) _context = GRContext.CreateGl(_interface);
+                    if (_context is not null)
+                    {
+                        // Skia keeps GPU textures for reuse up to a budget. The park uploads a new
+                        // frame of its world every frame, so the cache fills to the budget; on these
+                        // handhelds GPU memory is ordinary RAM and counts towards the app.
+                        var before = _context.GetResourceCacheLimit();
+                        _context.SetResourceCacheLimit(GpuCacheLimit);
+                        Console.WriteLine($"GPU cache limit: {GpuCacheLimit / 1048576} MiB (Skia default {before / 1048576} MiB)");
+                    }
                 }
             }
             if (_context is null)
@@ -87,6 +98,25 @@ public sealed class GraphicsDevice : IDisposable
         }
         WindowId = Sdl.SDL_GetWindowID(Window);
         Console.WriteLine($"WINDOW {title}: SDL={driver}, Skia={(Gpu ? "GLES" : "raster")}, refresh={RefreshRate} Hz, swap interval={SwapInterval}");
+    }
+    /// <summary>The GPU texture budget: 48 MiB, or PKFORGE_GPU_CACHE_MB (8–512) for measurements.</summary>
+    public static long GpuCacheLimit { get; } =
+        int.TryParse(Environment.GetEnvironmentVariable("PKFORGE_GPU_CACHE_MB"), out var mb) && mb is >= 8 and <= 512 ? mb * 1048576L : 48 * 1048576L;
+    /// <summary>What Skia's GPU cache holds now, in bytes (0 when drawing in software).</summary>
+    public long GpuCacheBytes
+    {
+        get
+        {
+            if (_context is null) return 0;
+            _context.GetResourceCacheUsage(out _, out var bytes);
+            return bytes;
+        }
+    }
+    internal static (int Width, int Height)? WindowSize(string? value)
+    {
+        var parts = (value ?? "").Split('x');
+        return parts.Length == 2 && int.TryParse(parts[0], out var w) && int.TryParse(parts[1], out var h) && w is >= 320 and <= 3840 && h is >= 240 and <= 2160
+            ? (w, h) : null;
     }
     public void MakeCurrent()
     {

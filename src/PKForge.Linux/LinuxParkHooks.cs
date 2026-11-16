@@ -39,10 +39,14 @@ public sealed partial class PokeparkPage
             _bottom.Children.Insert(0, _nowPill);
         }
     }
+    private ReplayedOverlay? _replayedOverlay;
     /// <summary>What the upper screen draws over the park on two screens; nothing while the
-    /// screensaver hides the pills, as it does on one screen.</summary>
-    public View? UpperOverlay => _asleep || _upperOverlay is null ? null : _upperOverlay;
-    public void ReleaseUpperOverlay() => _upperOverlay?.ReleaseSurface();
+    /// screensaver hides the pills, as it does on one screen. Laid out and drawn afresh only when
+    /// the pills change: at 60 frames a second doing it every frame took 1.8 ms of each frame.</summary>
+    public View? UpperOverlay => _asleep || _upperOverlay is null ? null
+        : _replayedOverlay ??= new ReplayedOverlay(_upperOverlay, () => (_now.Text, _elsewhere.Text, _elsewhere.IsVisible, _nowPill.IsVisible,
+            _status.Text, _statusPill.IsVisible, _statusPill.Opacity));
+    public void ReleaseUpperOverlay() { if (_replayedOverlay is not null) _replayedOverlay.ReleaseSurface(); else _upperOverlay?.ReleaseSurface(); }
     public void PrepareBenchmark(ParkDayPhase? phase, ParkWeather? weather, bool showPerformance)
     {
         _scene.PhaseOverride = phase; _scene.WeatherOverride = weather;
@@ -65,4 +69,26 @@ public sealed partial class PokeparkPage
     }
     private Task FindLinuxSourceAsync(ParkPokemon mon) =>
         IPlatformApplication.Current!.Services.GetRequiredService<ParkLibrary>().ShowSourceAsync(mon);
+}
+
+/// <summary>Draws a view tree once into a picture and replays it until what it shows (a key from
+/// the caller), its place or an animation in it changes.</summary>
+internal sealed class ReplayedOverlay(View content, Func<object> state) : View
+{
+    private SkiaSharp.SKPicture? _picture;
+    private object? _drawnFor;
+    private SkiaSharp.SKRect _drawnIn;
+    internal int Recordings { get; private set; }
+    protected override void DrawContent(SkiaSharp.SKCanvas canvas, PKForge.Linux.Native.GraphicsDevice device, View? excluded)
+    {
+        var key = state();
+        if (_picture is null || _drawnIn != Bounds || !Equals(key, _drawnFor) || content.HasActiveAnimations)
+        {
+            using var recorder = new SkiaSharp.SKPictureRecorder();
+            content.Draw(recorder.BeginRecording(Bounds), Bounds, device, excluded);
+            _picture?.Dispose(); _picture = recorder.EndRecording(); _drawnFor = key; _drawnIn = Bounds; Recordings++;
+        }
+        canvas.DrawPicture(_picture);
+    }
+    public override void ReleaseSurface() { _picture?.Dispose(); _picture = null; content.ReleaseSurface(); base.ReleaseSurface(); }
 }

@@ -44,6 +44,9 @@ if [ -r /usr/lib/aarch64-linux-gnu/libMali.so ]; then
     done
     [ ! -d "$compat" ] || export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$compat"
 fi
+# glibc keeps freed native memory in one pool per thread; .NET and Skia use many threads. Two
+# pools kept about 40 MiB less resident on the RG DS after six minutes of park (1 GB handhelds).
+export MALLOC_ARENA_MAX="${MALLOC_ARENA_MAX:-2}"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/var/run}"
 if [ "$XDG_RUNTIME_DIR" = /var/run ] && [ -d /var/run/0-runtime-dir ]; then export XDG_RUNTIME_DIR=/var/run/0-runtime-dir; fi
 if [ -z "${SDL_VIDEODRIVER:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then

@@ -23,7 +23,14 @@ public sealed class PokeparkJournalView : SKCanvasView
         var services = IPlatformApplication.Current?.Services;
         _state = services?.GetService<PokeparkJournalState>();
         _sprites = services?.GetService<PokeparkSpriteService>();
-        _changed = (_, _) => MainThread.BeginInvokeOnMainThread(InvalidateSurface);
+        // The park sets the needs four times a second, each time a new array, so every update read
+        // as a change and the whole journal was painted again. Their icons change only when a need
+        // crosses a half icon; anything else that changes repaints as before.
+        _changed = (_, e) =>
+        {
+            if (e.PropertyName == nameof(PokeparkJournalState.Needs) && !NeedsLookDifferent()) return;
+            MainThread.BeginInvokeOnMainThread(InvalidateSurface);
+        };
         if (_state is not null) _state.PropertyChanged += _changed;
         PaintSurface += PaintGuard.Wrap("PokeparkJournalView.Paint", Paint);
     }
@@ -36,8 +43,19 @@ public sealed class PokeparkJournalView : SKCanvasView
         _portrait = null;
     }
 
+    private int[] _paintedNeeds = [];
+    private bool NeedsLookDifferent()
+    {
+        var needs = _state?.Needs ?? [];
+        if (needs.Length != _paintedNeeds.Length) return true;
+        for (var i = 0; i < needs.Length; i++)
+            if (ParkCardPaint.NeedHalves(needs[i]) != _paintedNeeds[i]) return true;
+        return false;
+    }
+
     private void Paint(object? sender, SKPaintSurfaceEventArgs e)
     {
+        _paintedNeeds = [.. (_state?.Needs ?? []).Select(ParkCardPaint.NeedHalves)];
         var c = e.Surface.Canvas;
         // Designed for a 1240×1080 lower screen. A wider, shorter one (the RG DS above its hint
         // bar, 640×424) keeps the needs and the RIGHT NOW, LIKES and BONDS lines on it: they need
