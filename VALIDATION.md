@@ -44,6 +44,27 @@ automatic rounds; existing `userdata` matched its hashes after every round.
   keeping freed GPU buffers as textures come and go. The RG34XXSP (Mali's own
   driver) stayed at 300–345 MiB in its three rounds.
 
+### 0.2.9-dev release archive — 16 November 2026
+
+The published archive (commit `b729eca`, tag `linux-v0.2.9-dev`, verified
+against both; all seven assets re-downloaded anonymously and matched) was
+downloaded from the draft and run on both handhelds before publication,
+installed in isolation: a 45-second round with the Pokéwalker and a 400-second
+round zooming out and in twice. Every round exited cleanly and existing
+`userdata` matched its hashes.
+
+| | RGDS | RG34XXSP |
+| --- | --- | --- |
+| Park, warm minutes of the 400-second round | 59.9–60.0 FPS | 59.0–59.5 FPS |
+| Park, first minute | 44.4 FPS: dropped to 30 once, for 20 s, after the first zoom-out | 51.4 FPS, no drop |
+| Pokéwalker (45-second round) | 54.0 FPS, under the park | 57.9 FPS |
+| Memory, minutes 1–5 | 340–362 MiB | 304–325 MiB |
+| `pkforge-report.txt` | ROCKNIX 20261001 official; ended cleanly; no problems | knulli 20260511 (Batocera.linux 42); ended cleanly; no problems |
+
+The release build's first attempt failed in the launcher scenarios: one read
+its stub app's capture file before the stub had written it. A re-run of that
+job passed and created the draft; the test now waits for the whole file.
+
 ## 60 FPS park and other handhelds — 15–16 November 2026 (0.2.8-dev)
 
 Measured on the RGDS (ROCKNIX 20261001) and the RG34XXSP (KNULLI) with the
