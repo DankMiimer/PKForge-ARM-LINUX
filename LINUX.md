@@ -238,5 +238,11 @@ point it at your personal data directory. Timed input scripts exercise the real
 park router and menus, but do not represent physical button presses. Benchmarks
 write `performance.json`; `--screenshot` also writes diagnostic images.
 
+Measurement variables: `PKFORGE_PROFILE=1` adds where each frame's drawing time
+goes to `performance.json`, the park's steps included (simulation, ground,
+objects, residents, scale-up). `PKFORGE_PARK_DIRECT=0` draws the zoomed-out
+(scale 1) park through its world bitmap as before 0.2.9, for comparisons.
+`PKFORGE_GPU_CACHE_MB` sets the GPU texture budget (default 48).
+
 Validation measurements and remaining hardware limitations are recorded in
 `VALIDATION.md`. See `ATTRIBUTION.md` and the upstream source notices for credits.

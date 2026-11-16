@@ -1,5 +1,37 @@
 # ARM64 port validation
 
+## Zoomed-out park at 60 — 16 November 2026 (next revision)
+
+Measured on the RGDS (ROCKNIX 20261001) and the RG34XXSP (KNULLI) with the
+0.2.8-dev release archive and the changed assemblies placed over it, in
+automatic rounds; existing `userdata` matched its hashes after every round.
+
+- **Where the time went.** The new per-step profile (`PKFORGE_PROFILE=1`) of the
+  zoomed-out RGDS park at a fixed 60: 14.9 ms a frame on the CPU, of which the
+  ground 4.3 ms, the scale-up 3.0, residents 2.7 and objects 2.5. Zoomed out both
+  handhelds show the map at scale 1, where the park's world bitmap is as large as
+  the screen and saves nothing.
+- **The change.** At scale 1 the world is now drawn straight onto the screen
+  (pixel-equivalent; a desktop test compares both paths). The RGDS park's CPU time
+  zoomed out fell to 6.6 ms (ground 0.24, scale-up 0.13), the RG34XXSP's to 5.7;
+  the GPU's share rose from 1.1 to about 3 ms.
+- **Automatic rate, same build, old path (`PKFORGE_PARK_DIRECT=0`) against new**
+  (400-second round, zoomed out and in twice):
+
+| | RGDS | RG34XXSP |
+| --- | --- | --- |
+| Park, old path | 51.1 FPS on average; warm minutes 49–60 | 36.0 FPS; mostly 30 |
+| Park, new | 58.3 FPS on average; 60.0 in every warm minute | 55.9 FPS; 58.5–59.4 in every warm minute |
+| Memory, old path (minutes 1–5) | 325–344 MiB | 289–323 MiB |
+| Memory, new (minutes 1–5) | 333–356 MiB | 303–353 MiB |
+
+  The extra memory is the GPU's copy of the ground, objects and sprites in view
+  (the texture cache held up to 29 MiB, against 4–6 MiB on the old path). It is
+  capped at 48 MiB, and textures unused for 20 seconds are now released: zoomed in
+  again the cache fell to 4–9 MiB and the RG34XXSP to 320 MiB.
+- Both handhelds still drop to 30 for a few seconds in the park's first minute
+  while sprites load, then return to 60.
+
 ## 60 FPS park and other handhelds — 15–16 November 2026 (0.2.8-dev)
 
 Measured on the RGDS (ROCKNIX 20261001) and the RG34XXSP (KNULLI) with the

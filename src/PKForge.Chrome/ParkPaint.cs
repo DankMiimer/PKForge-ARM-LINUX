@@ -144,6 +144,26 @@ public readonly record struct ParkCamera(float Scale, float Left, float Top)
     public SKPoint ToMap(float screenX, float screenY) => new(Left + screenX / Scale, Top + screenY / Scale);
 }
 
+/// <summary>
+/// Where a park frame's drawing time goes, step by step (the simulation, the ground, objects and
+/// residents, the scale-up): a host's profiler sets <see cref="Report"/>. Unset, nothing is timed.
+/// </summary>
+public static class ParkDrawTiming
+{
+    public static Action<string, double>? Report { get; set; }
+
+    /// <summary>Times from the last mark (or the start) to now under <paramref name="name"/>; returns now.</summary>
+    public static long Mark(string name, long since)
+    {
+        if (Report is not { } report) return 0;
+        var now = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (since != 0) report(name, System.Diagnostics.Stopwatch.GetElapsedTime(since, now).TotalMilliseconds);
+        return now;
+    }
+
+    public static long Start() => Report is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
+}
+
 public static class ParkPaint
 {
     /// <summary>The lit ground, only the part in view.</summary>
@@ -171,7 +191,23 @@ public static class ParkPaint
         }
         foreach (var (feet, draw) in residents) layers.Add((feet, 1, draw));
         layers.Sort((a, b) => a.Depth != b.Depth ? a.Depth.CompareTo(b.Depth) : a.Order.CompareTo(b.Order));
-        foreach (var layer in layers) layer.Draw();
+        if (ParkDrawTiming.Report is not { } report)
+        {
+            foreach (var layer in layers) layer.Draw();
+            return;
+        }
+        // Profiling: objects and residents apart, with how many of each were drawn.
+        double objects = 0, others = 0; int objectCount = 0;
+        foreach (var layer in layers)
+        {
+            var start = System.Diagnostics.Stopwatch.GetTimestamp();
+            layer.Draw();
+            var spent = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+            if (layer.Order == 0) { objects += spent; objectCount++; } else others += spent;
+        }
+        report("park: objects", objects);
+        report("park: residents and props", others);
+        report("park: objects drawn (count)", objectCount);
     }
 }
 
@@ -182,18 +218,42 @@ public static class ParkPaint
 /// draw, nearest-neighbour. The bitmap is one art pixel bigger all round and shifted by the
 /// camera's fraction of an art pixel, so scrolling stays as smooth as before. Reused frame to
 /// frame; one per view (the park, the lower screen).
+/// At scale 1 an art pixel is a screen pixel, so that bitmap would be the size of the screen and
+/// only cost a clear, a copy of the ground and a full-screen scale-up every frame (15 ms of a
+/// zoomed-out RG DS frame). There the world is drawn straight onto the screen instead, which
+/// gives the same pixels; on the GPU the ground and objects are then cached textures.
 /// </summary>
 public sealed class ParkLowRes : IDisposable
 {
+    /// <summary>Draws straight onto the screen at scale 1 (a host may turn it off to compare).</summary>
+    public static bool DirectAtScaleOne { get; set; } = true;
+
     private SKBitmap? _bitmap;
     private SKCanvas? _canvas;
     private float _left, _top;
     private SKRectI _used;
+    private SKCanvas? _direct;
+    private int _directSave;
     private readonly SKPaint _blit = new() { IsAntialias = false };
 
-    /// <summary>A canvas in art pixels for this frame, cleared, clipped to the map.</summary>
-    public SKCanvas Begin(ParkCamera camera, int mapWidth, int mapHeight, int width, int height, SKColor background)
+    /// <summary>Whether a camera draws straight onto the screen: at scale 1, on whole pixels.</summary>
+    public static bool Direct(ParkCamera camera) =>
+        DirectAtScaleOne && camera.Scale == 1 && camera.Left == MathF.Floor(camera.Left) && camera.Top == MathF.Floor(camera.Top);
+
+    /// <summary>A canvas in art pixels for this frame, cleared, clipped to the map. With
+    /// <paramref name="screen"/> (already cleared to the background) a frame at scale 1 is drawn on it.</summary>
+    public SKCanvas Begin(ParkCamera camera, int mapWidth, int mapHeight, int width, int height, SKColor background, SKCanvas? screen = null)
     {
+        if (screen is not null && Direct(camera))
+        {
+            _direct = screen;
+            _directSave = screen.Save();
+            screen.ClipRect(SKRect.Create(0, 0, width, height));
+            screen.Translate(-camera.Left, -camera.Top);
+            screen.ClipRect(SKRect.Create(0, 0, mapWidth, mapHeight));
+            return screen;
+        }
+        _direct = null;
         int w = (int)MathF.Ceiling(width / camera.Scale) + 2, h = (int)MathF.Ceiling(height / camera.Scale) + 2;
         // Kept while big enough (a zoom glides through many sizes): only grown, in steps of 64.
         if (_bitmap is null || _bitmap.Width < w || _bitmap.Height < h || _bitmap.Width > w * 3)
@@ -215,6 +275,12 @@ public sealed class ParkLowRes : IDisposable
     /// <summary>The frame onto the screen, scaled up.</summary>
     public void End(SKCanvas screen, ParkCamera camera)
     {
+        if (_direct is { } direct)
+        {
+            direct.RestoreToCount(_directSave);
+            _direct = null;
+            return;
+        }
         if (_bitmap is null || _canvas is null) return;
         _canvas.Restore();
         var dest = SKRect.Create((_left - camera.Left) * camera.Scale, (_top - camera.Top) * camera.Scale,

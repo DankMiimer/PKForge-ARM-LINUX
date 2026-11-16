@@ -112,6 +112,23 @@ public sealed class GraphicsDevice : IDisposable
             return bytes;
         }
     }
+    /// <summary>Textures not drawn for this long are freed (checked every <see cref="TrimEvery"/>).</summary>
+    public static readonly TimeSpan TrimUnused = TimeSpan.FromSeconds(20), TrimEvery = TimeSpan.FromSeconds(10);
+    private long _nextTrim;
+
+    /// <summary>
+    /// Since 0.2.9 the zoomed-out park draws its ground, objects and sprites from GPU textures
+    /// (about 35 MiB on the RG DS, ordinary memory on these handhelds). Skia keeps textures until
+    /// its budget is full, so once the park is zoomed in again, or closed, the unused ones are
+    /// released here rather than held for the rest of the session.
+    /// </summary>
+    private void TrimGpuCache(long now)
+    {
+        if (_context is null || now < _nextTrim) return;
+        _nextTrim = now + (long)TrimEvery.TotalMilliseconds;
+        _context.PurgeUnusedResources((long)TrimUnused.TotalMilliseconds);
+    }
+
     internal static (int Width, int Height)? WindowSize(string? value)
     {
         var parts = (value ?? "").Split('x');
@@ -164,7 +181,11 @@ public sealed class GraphicsDevice : IDisposable
     {
         Flush();
         if (Window == IntPtr.Zero) return;
-        if (_context is not null) { Sdl.SDL_GL_SwapWindow(Window); }
+        if (_context is not null)
+        {
+            Sdl.SDL_GL_SwapWindow(Window);
+            TrimGpuCache(Environment.TickCount64);
+        }
         else
         {
             Sdl.SDL_UpdateTexture(_texture, IntPtr.Zero, _pixels!.GetPixels(), _pixels.RowBytes);
