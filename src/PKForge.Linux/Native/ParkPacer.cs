@@ -40,6 +40,17 @@ internal sealed class ParkPacer(double fastInterval, Action<string>? log = null)
     public int Recoveries { get; private set; }
     public double Interval => Fast ? FastInterval : SlowInterval;
 
+    /// <summary>
+    /// The park is still settling (sprites loading just after it opened): frames are counted but
+    /// not judged, so one-time loading hitches cannot send it to 30 for the next 20 seconds, as
+    /// they did in the first seconds of every park on both reference handhelds. A trial at 60
+    /// is still judged.
+    /// </summary>
+    public bool Settling { get; set; }
+    /// <summary>The longest a park counts as settling after it appears (sprites downloaded on a
+    /// first run can take longer; frames are judged from then on).</summary>
+    public const double SettleLimit = 30_000;
+
     /// <summary>A park frame was presented at <paramref name="now"/> milliseconds.</summary>
     public void Presented(double now)
     {
@@ -57,6 +68,7 @@ internal sealed class ParkPacer(double fastInterval, Action<string>? log = null)
         }
         _last = now;
         if (_frames < Window) return;
+        if (Settling && !_trial) { _frames = _late = 0; _counted = 0; return; }
         var ratio = (double)_late / _frames;
         var slowness = _counted / _frames / FastInterval;
         if (ratio > (_trial ? KeepRatio : DropRatio) || slowness > (_trial ? KeepSlowness : DropSlowness))

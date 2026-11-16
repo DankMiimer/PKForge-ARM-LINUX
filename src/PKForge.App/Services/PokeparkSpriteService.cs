@@ -188,6 +188,13 @@ public sealed partial class PokeparkSpriteService
         }
     }
 
+    private int _loads;
+
+    /// <summary>Whether sprite sheets or animations are being read or decoded now. A park that
+    /// has just opened is busy with them for a few seconds; its frame times then say little
+    /// about the frame rate it can hold.</summary>
+    public bool IsLoading => Volatile.Read(ref _loads) > 0;
+
     /// <summary>Loads the species' animation list, Walk and Idle. Callback may run off the UI thread.</summary>
     public void Warm(int species, int form, bool shiny, Action onLoaded)
     {
@@ -212,6 +219,7 @@ public sealed partial class PokeparkSpriteService
     private async Task LoadSheetAsync(string key)
     {
         Sheet? sheet = null;
+        Interlocked.Increment(ref _loads);
         await _network.WaitAsync().ConfigureAwait(false);
         try
         {
@@ -268,12 +276,14 @@ public sealed partial class PokeparkSpriteService
             }
             foreach (var listener in listeners)
                 try { listener(); } catch (Exception) { /* A closed view must not crash a background load. */ }
+            Interlocked.Decrement(ref _loads);
         }
     }
 
     private async Task LoadAnimationAsync(Sheet sheet, string name)
     {
         Animation? animation = null;
+        Interlocked.Increment(ref _loads);
         await _network.WaitAsync().ConfigureAwait(false);
         try { animation = await DecodeAnimationAsync(sheet, name).ConfigureAwait(false); }
         catch (Exception ex) when (IsDownloadFailure(ex)) { }
@@ -282,6 +292,7 @@ public sealed partial class PokeparkSpriteService
             _network.Release();
             // A failed animation stays null: poses use their next choice from now on.
             lock (_gate) sheet.Animations[name] = animation;
+            Interlocked.Decrement(ref _loads);
         }
     }
 

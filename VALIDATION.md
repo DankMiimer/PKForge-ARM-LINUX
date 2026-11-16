@@ -29,8 +29,20 @@ automatic rounds; existing `userdata` matched its hashes after every round.
   (the texture cache held up to 29 MiB, against 4–6 MiB on the old path). It is
   capped at 48 MiB, and textures unused for 20 seconds are now released: zoomed in
   again the cache fell to 4–9 MiB and the RG34XXSP to 320 MiB.
-- Both handhelds still drop to 30 for a few seconds in the park's first minute
-  while sprites load, then return to 60.
+- **The park's first minute.** Both handhelds dropped to 30 within seconds of
+  the park opening (one-time hitches while 26 residents' sprites load) and stayed
+  there 20 seconds. The pacer now leaves frames unjudged while sprites load, once
+  per opening and at most 30 seconds. In the same round minute 0 rose from 46.2
+  to 55.1 FPS on the RGDS and from 35.8 to 55.0 on the RG34XXSP, with no early
+  drop; whole-round averages 58.0 and 58.5. Animations keep loading as residents
+  change poses, so the 30-second limit is what ends it. The RGDS once dropped to
+  30 for 20 seconds after the third zoom-out (44 FPS).
+- **Open: RGDS memory varies.** Three rounds of the new drawing gave 352–360,
+  361–377 and 395–414 MiB in minutes 1–6, against 325–344 for the old path. The
+  measured parts (sprites 39–48 MiB, managed 11–25, GPU cache 22–33) are the same
+  in each; the rest is native memory outside them, probably the Panfrost driver
+  keeping freed GPU buffers as textures come and go. The RG34XXSP (Mali's own
+  driver) stayed at 300–345 MiB in its three rounds.
 
 ## 60 FPS park and other handhelds — 15–16 November 2026 (0.2.8-dev)
 

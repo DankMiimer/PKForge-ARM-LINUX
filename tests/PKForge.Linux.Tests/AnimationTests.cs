@@ -92,6 +92,28 @@ public sealed class AnimationTests
     }
 
     [Fact]
+    public void Hitches_while_the_park_settles_do_not_drop_it_to_30()
+    {
+        var log = new List<string>();
+        var pacer = new PKForge.Linux.Native.ParkPacer(1000.0 / 60, log.Add) { Settling = true };
+        // Sprites loading: every third frame takes two refreshes, which would drop a settled park.
+        var now = Run(pacer, 0, 5, i => i % 3 == 0 ? 33.4 : 10);
+        Assert.True(pacer.Fast);
+        Assert.Empty(log);
+        // Settled and still slow: judged as usual.
+        pacer.Settling = false;
+        Run(pacer, now, 3, i => i % 3 == 0 ? 33.4 : 10);
+        Assert.False(pacer.Fast);
+        // A trial at 60 is judged even while settling.
+        var trial = new PKForge.Linux.Native.ParkPacer(1000.0 / 60);
+        now = Run(trial, 0, 3, i => i % 3 == 0 ? 33.4 : 10);
+        Assert.False(trial.Fast);
+        trial.Settling = true;
+        Run(trial, now, 25, i => i % 3 == 0 ? 33.4 : 10);
+        Assert.False(trial.Fast);
+    }
+
+    [Fact]
     public void Waits_between_trials_grow_to_a_minute_and_no_longer()
     {
         var log = new List<string>();
