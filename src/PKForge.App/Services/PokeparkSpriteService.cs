@@ -73,7 +73,7 @@ public sealed class PokeparkSpriteService
         lock (_gate)
         {
             if (key is null || !_sheets.TryGetValue(key, out var sheet) || sheet is null) return null;
-            foreach (var candidate in ParkPoses.Animations(pose))
+            foreach (var candidate in ParkPoses.Animations(pose, species))
             {
                 if (!sheet.Definitions.ContainsKey(candidate)) continue;
                 if (sheet.Animations.TryGetValue(candidate, out var loaded))

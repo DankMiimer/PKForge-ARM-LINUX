@@ -4,7 +4,7 @@ namespace PKForge.Domain;
 public enum ParkPose
 {
     Idle, Walk, Sleep, Wake, Eat, Sit, Lie, Nod, Hop, Pose, LookUp, Charge, Attack, Hurt,
-    Tumble, Trip, DeepBreath, Float, Dance, Spin, Cringe, Sing, Pain, Pull, Fly
+    Tumble, Trip, DeepBreath, Float, Dance, Spin, Cringe, Sing, Pain, Pull, Fly, Roll
 }
 
 public static class ParkPoses
@@ -12,7 +12,7 @@ public static class ParkPoses
     /// <summary>The PMD animations to try for a pose, best first. Almost every species has Idle,
     /// Walk, Sleep, Hurt, Attack, Hop, Charge and Rotate; the richer set (Eat, Sit, Laying, Nod,
     /// Pose, LookUp, Trip…) exists for a few hundred, so every pose ends on a common one.</summary>
-    public static IReadOnlyList<string> Animations(ParkPose pose) => pose switch
+    public static IReadOnlyList<string> Animations(ParkPose pose, int species = 0) => pose switch
     {
         ParkPose.Walk => ["Walk"],
         ParkPose.Sleep => ["Sleep", "EventSleep", "Laying", "Idle"],
@@ -33,18 +33,22 @@ public static class ParkPoses
         ParkPose.Float => ["Float", "Idle"],
         ParkPose.Dance => ["Dance", "Rotate", "Hop", "Idle"],
         ParkPose.Spin => ["Rotate", "Spin", "Hop", "Idle"],
+        // Donphan's extra animation curls into a wheel. Rotate turns an upright body
+        // through every compass direction, so it belongs to Spin rather than Rollout.
+        ParkPose.Roll when species == 232 => ["Special0", "Tumble", "Walk", "Idle"],
+        ParkPose.Roll => ["Tumble", "Walk", "Idle"],
         ParkPose.Cringe => ["Cringe", "Hurt", "Idle"],
         ParkPose.Sing => ["Sing", "Sound", "Charge", "Idle"],
         ParkPose.Pain => ["Pain", "Hurt", "Idle"],
         ParkPose.Pull => ["Pull", "Eat", "Idle"],
-        // A flyer's own flight when its sprite has one; otherwise its resting pose (Articuno's wings
-        // spread wide), never a walk, which looks like walking on air.
-        ParkPose.Fly => ["FlapAround", "Hover", "Idle"],
+        // FlapAround is a turning attack, not directional flight (e.g. Swellow spins
+        // through all eight directions). Hover/Float keep the chosen facing; Idle glides.
+        ParkPose.Fly => ["Hover", "Float", "Idle"],
         _ => ["Idle"]
     };
 
     /// <summary>Loop the animation while the pose lasts, or play it once and hold its last frame.</summary>
     public static bool Loops(ParkPose pose) => pose is ParkPose.Idle or ParkPose.Walk or ParkPose.Sleep
         or ParkPose.Eat or ParkPose.Sit or ParkPose.Lie or ParkPose.Nod or ParkPose.Hop or ParkPose.Charge
-        or ParkPose.Float or ParkPose.Dance or ParkPose.Spin or ParkPose.Sing or ParkPose.Pain or ParkPose.Fly;
+        or ParkPose.Float or ParkPose.Dance or ParkPose.Spin or ParkPose.Sing or ParkPose.Pain or ParkPose.Fly or ParkPose.Roll;
 }
