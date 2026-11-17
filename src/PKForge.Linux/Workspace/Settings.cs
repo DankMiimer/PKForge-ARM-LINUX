@@ -86,7 +86,7 @@ public sealed partial class WorkspaceHost
                     var paths = new[] { Path.Combine(AppContext.BaseDirectory, "..", "ATTRIBUTION.md"), Path.Combine(AppContext.BaseDirectory, "LICENSE") }
                         .Concat(Directory.Exists(notices) ? Directory.EnumerateFiles(notices).Where(p => Path.GetExtension(p) is ".txt" or ".md") : []).Where(File.Exists).ToArray();
                     var texts = await Task.WhenAll(paths.Select(async p => Path.GetFileName(p) + "\n" + await File.ReadAllTextAsync(p)));
-                    await InspectAsync("About / credits", "PKForge by sofianeelhor · upstream 3.2.0 · Linux " + Arguments.PortRevision + "\nManual ZIP / PortMaster updates.\n\n" + string.Join("\n\n", texts)); break;
+                    await InspectAsync("About / credits", "PKForge by sofianeelhor · Design by @spritedmistery\nUpstream 3.2.0 · unofficial Linux port " + Arguments.PortRevision + " by DankMiimer\nManual ZIP / PortMaster updates.\n\n" + string.Join("\n\n", texts)); break;
             }
         }
     }

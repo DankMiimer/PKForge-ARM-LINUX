@@ -1,18 +1,30 @@
 # Attribution
 
-This is a Linux adaptation of PKForge v3.2.0 by sofianeelhor, based on commit
-c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a. The park's simulation, interactions,
-rendering, art and save engine are reused from that release.
+This is an unofficial Linux adaptation of PKForge v3.2.0 by sofianeelhor, based on
+commit c1d12b6d1b0239e57ead0c1e1add1432d24f7e3a, maintained by DankMiimer. It is not
+an official PKForge release. The park's simulation, interactions, rendering, art and
+save engine are reused from that release.
 
 - PKForge, PKHeX.Core, PKHeX-Plugins and the PKSM-derived chrome: GPLv3 or later;
   see LICENSE and the source repository's notices.
-- spritedmistery: Poképark map, logo, statue and visual design.
-- AlchemyBats: the park's tileset.
+- Design by spritedmistery (https://www.instagram.com/spritedmistery/): the PKForge
+  logo, the app's look, its color schemes and logos, its buttons, and the Poképark's
+  map and statue.
+- AlchemyBats: the tileset the Poképark's map is built on.
+- PKHeX (PKHeX.Drawing, GPL-3.0): the bundled species sprites and artwork, balls,
+  ribbons and marks, and box wallpapers.
+- Other UI art (PKSM chrome, Phosphor Icons, game-icons.net, PokeAPI item art,
+  Bulbagarden Pokérus sprites, Luminescent Platinum form icons): see
+  `app/assets/notices/upstream-ui-attribution.md`.
+- SteamGridDB community artists: the bundled cartridge icons, second-screen logos
+  and hero banners; see `app/assets/notices/upstream-gameart-attribution.md`.
 - PMDCollab / SpriteCollab contributors: animated sprites and portraits;
   per-sprite credits are downloaded alongside the artwork and shown in the park's Credits.
   Community artwork is attributed under its upstream CC BY-NC 4.0 terms; original
   Mystery Dungeon sprites are by CHUNSOFT. These downloads remain separate from the GPL code.
-- Smogon / Pokémon Showdown sprite project artists: event and fallback sprites.
+- Pokémon Showdown by Smogon and the artists of its sprite projects: the bundled
+  front sprites and box icons; see `app/assets/notices/upstream-showdown-attribution.md`
+  and https://pokemonshowdown.com/credits.
 - PokeAPI: species facts, sprite references and evolution lines.
 - SkiaSharp / Skia, SDL2 / SDL2_mixer, .NET, Microsoft ICU and CommunityToolkit.Mvvm:
   their respective upstream licenses apply. These components are not relicensed as PKForge code.
