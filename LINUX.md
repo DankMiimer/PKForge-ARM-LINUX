@@ -107,6 +107,7 @@ set `PKFORGE_CONTROLLER_LAYOUT=sdl` to retain SDL's original face-button semanti
 | D-pad up / down | Zoom |
 | Left stick | Pan the camera, when available |
 | R2 | Pan mode on or off: while on, the D-pad moves the camera (no holding a trigger down) |
+| L2 | One screen only: swap to the park's journal, as the RGDS shows it below the park; L2 again to return |
 | Right stick | Zoom, when available |
 | Start | Options |
 | Select | Spectate |
@@ -126,14 +127,19 @@ Use `--swap-screens` only if another firmware assigns those connectors different
 ROCKNIX's EmulationStation can leave the bottom panel disabled in sway, so SDL would
 see one display. On dual-screen ROCKNIX devices, `PKForge.sh` turns on any disabled or
 powered-off internal panel before starting and restores each panel's state on exit.
-Single-screen handhelds use overlay menus. Automatic detection uses SDL's usable
+Single-screen handhelds use overlay menus. On one screen, L2 swaps to what the
+RGDS's lower screen shows for the current view: the selected game on Home, the
+Pokémon inspector in a box, the box overview behind a summary, and the journal in
+the park. The other buttons keep working while swapped (moving through a box
+updates the inspector); L2 again, or opening another screen, swaps back. Touch is
+ignored while swapped. With two screens L2 does nothing. Automatic detection uses SDL's usable
 outputs on every backend; a failed secondary window falls back to one screen.
 Display changes and resume trigger a recheck. The saved second-screen toggle
 and `--display-mode auto|single|dual` / `--swap-screens` overrides remain.
 Where SDL has no mapping, the port imports the existing EmulationStation input
 configuration, then tries identified NextUI device profiles. A user
-`userdata/gamecontrollerdb.txt` takes precedence. R2 button and analog-trigger
-bindings both work; the desktop keyboard uses E. Camera input clears when menus
+`userdata/gamecontrollerdb.txt` takes precedence. L2 and R2 button and
+analog-trigger bindings both work; the desktop keyboard uses R for L2 and E for R2. Camera input clears when menus
 open, focus is lost, controllers disconnect or the app suspends.
 
 PKForge follows the firmware's configured lid and power behavior. Its lid monitor
