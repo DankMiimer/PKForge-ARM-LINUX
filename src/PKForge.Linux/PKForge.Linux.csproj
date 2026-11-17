@@ -47,6 +47,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="PKForge.Linux.Tests" />
     <InternalsVisibleTo Include="UiPreview" />
+    <InternalsVisibleTo Include="ActionAudit" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../PKForge.App/Views/PokeparkPage.cs;../PKForge.App/Views/PokeparkCardOverlay.cs;../PKForge.App/Views/PokeparkEventOverlay.cs;../PKForge.App/Views/PokeparkCreditsOverlay.cs;../PKForge.App/Views/PokeparkAlbumOverlay.cs;../PKForge.App/Views/PokeparkJournalView.cs;../PKForge.App/Views/MusicMenu.cs" Link="Upstream/%(Filename)%(Extension)" />

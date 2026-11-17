@@ -92,7 +92,8 @@ var sources = sourceRoots.SelectMany(root => Directory.EnumerateFiles(Path.Combi
     .Where(path => !path.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar) && !path.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar))
     .Select(path => (Path: Path.GetRelativePath(repository, path).Replace('\\', '/'), Text: File.ReadAllText(path))).ToArray();
 var contracts = new[] { typeof(ISaveEngineSession), typeof(ILegalityService), typeof(ILegalizerService), typeof(IEventDatabaseService), typeof(IMonInfoService), typeof(ILegalityAssistService), typeof(IStatPreviewService), typeof(IEvolutionService), typeof(IEncounterLookup), typeof(IMonSummaryService), typeof(IBankService) };
-var world = new[] { typeof(ClockRepairService), typeof(RoamerService), typeof(EventResetService), typeof(EntralinkService), typeof(ApricornService), typeof(PokewalkerService), typeof(HoneyTreeService), typeof(KeyItemEventService) };
+// The tools Save data actually offers, so this audit cannot drift from the app's list.
+var world = WorkspaceHost.WorldToolTypes;
 var services = world.Concat([typeof(MonFieldService), typeof(EventFlagService), typeof(SaveBlockEditorService), typeof(BoxLayoutService), typeof(BulkBoxActions),
     typeof(RaidService), typeof(TreatCaseService), typeof(SinnohUndergroundService), typeof(LegendsResearchService), typeof(TrainerCardService), typeof(HallOfFameService)]).ToArray();
 var reviewedHelpers = new Dictionary<string, string>
@@ -113,7 +114,7 @@ var reviewedHelpers = new Dictionary<string, string>
 };
 var audit = new StringBuilder("# v3.2.0 portable action inventory\n\nGenerated from the pinned engine contracts and the portable advanced services. Each overload has a row. This is a source-reference audit, not proof of UI reachability, capability correctness or device acceptance. `Review` rows require a human decision; a reference can be indirect infrastructure or a helper rather than a menu action. Page-level workflows and hardware gates are tracked in FEATURE_COVERAGE.md.\n\n| Contract / service action | Linux / shared source references | Status |\n|---|---|---|\n");
 var missing = new List<string>(); var count = 0;
-foreach (var type in contracts.Concat(services))
+foreach (var type in contracts.Concat(services).Distinct())
 foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).OrderBy(m => m.Name))
 {
     count++;

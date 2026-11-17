@@ -23,9 +23,9 @@ The port was developed with AI assistance (Claude Code). Every release is tested
 | Handheld | Firmware tested | Layout |
 | --- | --- | --- |
 | Anbernic RGDS | ROCKNIX 20261001 | Main view above; inspector, menus and park journal below; touch and gamepad |
-| Anbernic RG34XXSP | KNULLI Scarab | Single-screen tabs and overlays; gamepad operated |
+| Anbernic RG34XXSP | KNULLI Scarab | Single-screen tabs and overlays; L2 swaps to the second-screen view; gamepad operated |
 
-Other ARM64 ROCKNIX/KNULLI handhelds are experimental. The packages bundle .NET 10 and app-local ICU; ARM64 glibc 2.29+ and firmware SDL2 are required. Missing audio is nonfatal; GLES falls back to raster where the SDL backend supports it. KNULLI's Mali backend still needs working firmware EGL. Experimental packages also target muOS, dArkOS and NextUI; see LINUX.md for installation and validation status.
+Other ARM64 ROCKNIX/KNULLI handhelds are experimental. The packages bundle .NET 10 and app-local ICU; ARM64 glibc 2.29+ and firmware SDL2 are required. Missing audio is nonfatal; GLES falls back to raster where the SDL backend supports it. KNULLI's Mali backend still needs working firmware EGL. A tester runs the same package on an RG35XXH with muOS; ArkOS, dArkOS and BananaOS are experimental, and NextUI has its own ZIPs. See [Handheld compatibility](HANDHELD_COMPATIBILITY.md) for what has run where, and LINUX.md for installation.
 
 ## Screenshots
 
@@ -47,7 +47,7 @@ release archive, with demonstration data.
 ## Install and update
 
 1. Download `PKForge-v3.2.0-linux-0.2.10-dev-arm64.zip` from this fork's Releases page.
-2. Extract it into `/storage/roms/ports/` on ROCKNIX or `/userdata/roms/ports/` on KNULLI. Keep both launchers beside the `pkforge` folder.
+2. Extract it into `/storage/roms/ports/` on ROCKNIX or `/userdata/roms/ports/` on KNULLI. Keep both launchers beside the `pkforge` folder. For muOS, ArkOS, dArkOS and BananaOS, see the folders in [LINUX.md](LINUX.md#install).
 3. Refresh the Ports list. **PKForge** opens Home; **PKForge Pokepark** opens the park directly.
 
 When updating, close PKForge and preserve the complete **`pkforge/userdata`** folder. It contains the Bank, park residents, settings, restore points, sprite cache and photos. Release ZIPs do not contain personal userdata. Save in game and close the emulator before editing; keep your own copy of important saves.

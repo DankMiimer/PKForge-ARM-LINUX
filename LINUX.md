@@ -28,7 +28,7 @@ one ZIP is for every firmware except NextUI, whatever the handheld's chip: the
 | --- | --- |
 | ROCKNIX | `/roms/ports/` (normally `/storage/roms/ports/`) |
 | KNULLI | `/userdata/roms/ports/` |
-| dArkOS (ARM64, including compatible R36S community images) | `/roms/ports/` or `/roms2/ports/` |
+| ArkOS, dArkOS (ARM64, including compatible R36S community images) | `/roms/ports/` or `/roms2/ports/` |
 | BananaOS (RG DS, RG DS Plus; experimental, hardware unverified) | `roms/ports/` on the card (`\\<address>\banana\roms\ports` over its file sharing) |
 | muOS | Data: `ports/pkforge/` at the card's top level (`/mnt/mmc/ports/`, or `/mnt/sdcard/ports/` on a second card); launchers: `ROMS/Ports/` on the same card |
 
