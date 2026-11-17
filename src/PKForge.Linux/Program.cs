@@ -392,6 +392,9 @@ try
         var lastMotion = timer.Elapsed.TotalSeconds;
         workspace.Screens.Changed = () => { primaryClock.Reset(); secondaryClock.Reset(); if (workspace.Screens.Active) { page.Disappear(); services.GetRequiredService<IMusicPlayer>().EnterPlace(MusicPlace.Menus); } };
         var mouseHeld = false;
+        // Where the park's status and "right now" pills are: over the park on the upper screen
+        // with two screens, and also while L2 shows the journal, which they would cover.
+        var pillsAbove = dual;
         var refreshDisplays = false;
         var wasSuspended = App.IsSuspended;
         while (!library.QuitRequested && (arguments.Seconds <= 0 || timer.Elapsed.TotalSeconds < arguments.Seconds))
@@ -442,7 +445,7 @@ try
             wasSuspended = App.IsSuspended;
             if (refreshDisplays && !App.IsSuspended)
             {
-                RefreshDisplays(); refreshDisplays = false; mouseHeld = false;
+                RefreshDisplays(); refreshDisplays = false; mouseHeld = false; pillsAbove = dual;
                 primaryClock.Reset(); secondaryClock.Reset();
             }
             input.Update();
@@ -468,6 +471,7 @@ try
             var activeControls = workspace.Screens.Active || page.MenuOpen || library.IsShowing || !gamepadRouter.IsTop(page) || page.ControlRoot.HasActiveAnimations;
             var swapped = Swapped();
             var swappedPark = swapped && !workspace.Screens.Active;
+            if (pillsAbove != (dual || swappedPark)) { pillsAbove = dual || swappedPark; page.UseUpperScreenForPills(pillsAbove); }
             var singleParkUi = !workspace.Screens.Active && !dual && activeControls;
             // A park overlay follows UI cadence while the expensive scene is cached at 30 FPS.
             // On one screen the Pokéwalker's opaque backdrop hides the whole park: repainting the

@@ -6,8 +6,13 @@ using Xunit;
 
 namespace PKForge.Linux.Tests;
 
-public sealed class ScreenSwapTests
+public sealed class ScreenSwapTests : IDisposable
 {
+    // Drawing reads the interface-scale setting: give it its own settings, whatever ran before.
+    private readonly string _settings = Path.Combine(Path.GetTempPath(), "pkforge-swap-" + Guid.NewGuid().ToString("N"));
+    public ScreenSwapTests() => PKForge.Park.ParkPlatform.Configure(_settings, Path.Combine(AppContext.BaseDirectory, "assets"));
+    public void Dispose() { if (Directory.Exists(_settings)) Directory.Delete(_settings, true); }
+
     [Fact]
     public void L2_swaps_the_current_view_and_L2_again_swaps_it_back()
     {
