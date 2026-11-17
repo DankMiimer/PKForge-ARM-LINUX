@@ -4,7 +4,7 @@ A native ARM64 Linux port of [PKForge](https://github.com/sofianeelhor/PKForge) 
 
 **[Download the Linux preview](https://github.com/DankMiimer/PKForge-ARM-LINUX/releases)** · [Installation and controls](LINUX.md) · [Test it on your handheld](TESTING.md) · [Feature coverage](FEATURE_COVERAGE.md) · [Validation](VALIDATION.md) · [Original project](https://github.com/sofianeelhor/PKForge)
 
-The current preview is Linux revision **0.2.9-dev**, based on upstream **v3.2.0**. See [3.2.0 support](UPSTREAM_3_2_0_SUPPORT.md) for integration and acceptance limits. It follows **0.2.8-dev**; **0.2.4-dev** was the first v3.2.0 preview, and the earlier **0.2.3-dev** packages use upstream **v3.1.1**. Full visual parity and every game/format path remain acceptance work; shared source and passing tests do not establish hardware acceptance.
+The current preview is Linux revision **0.2.10-dev**, based on upstream **v3.2.0**. See [3.2.0 support](UPSTREAM_3_2_0_SUPPORT.md) for integration and acceptance limits. It follows **0.2.9-dev**; **0.2.4-dev** was the first v3.2.0 preview, and the earlier **0.2.3-dev** packages use upstream **v3.1.1**. Full visual parity and every game/format path remain acceptance work; shared source and passing tests do not establish hardware acceptance.
 
 ## Unofficial port
 
@@ -46,7 +46,7 @@ release archive, with demonstration data.
 
 ## Install and update
 
-1. Download `PKForge-v3.2.0-linux-0.2.9-dev-arm64.zip` from this fork's Releases page.
+1. Download `PKForge-v3.2.0-linux-0.2.10-dev-arm64.zip` from this fork's Releases page.
 2. Extract it into `/storage/roms/ports/` on ROCKNIX or `/userdata/roms/ports/` on KNULLI. Keep both launchers beside the `pkforge` folder.
 3. Refresh the Ports list. **PKForge** opens Home; **PKForge Pokepark** opens the park directly.
 
@@ -66,7 +66,7 @@ Revision 0.2.2 corrects Swellow's spinning flight and Donphan's upright Rollout 
 
 ## Verification and current limits
 
-The desktop suites pass **3,454 tests** (1,437 Domain, 1,741 Engine, 77 Park, 199 Linux UI) and 20 launcher scenarios. In November 2026, frame timing on both reference handhelds was measured in automatic rounds with scripted input. The park runs at 60 FPS where a handheld can hold it and at a steady 30 where it cannot. Since 0.2.9 both reference handhelds hold about 60 zoomed in and zoomed out (58.5–60 in every warm minute of a round zooming out and in twice); the minute after the park opens runs at about 55. The Pokéwalker under the park on the RGDS runs at 60. Memory in the first six minutes of park was about 350–415 MiB on the RGDS and 300–345 MiB on the RG34XXSP. Long-session memory stability across Home and the editors, broader advanced-editor/format coverage and the remaining acceptance items are still open. These are measurements of particular builds and scenes, not guarantees for every device.
+The desktop suites pass **3,474 tests** (1,437 Domain, 1,746 Engine, 77 Park, 214 Linux UI) and 21 launcher scenarios. In November 2026, frame timing on both reference handhelds was measured in automatic rounds with scripted input. The park runs at 60 FPS where a handheld can hold it and at a steady 30 where it cannot. Since 0.2.9 both reference handhelds hold about 60 zoomed in and zoomed out (58.5–60 in every warm minute of a round zooming out and in twice); the minute after the park opens runs at about 55. The Pokéwalker under the park on the RGDS runs at 60. With the allocator setting added in 0.2.10, memory in the first six minutes of a round zooming out and in was about 329–342 MiB on the RGDS and 257–274 MiB on the RG34XXSP. Long-session memory stability across Home and the editors, broader advanced-editor/format coverage and the remaining acceptance items are still open. These are measurements of particular builds and scenes, not guarantees for every device.
 
 See [VALIDATION.md](VALIDATION.md) and [FEATURE_COVERAGE.md](FEATURE_COVERAGE.md) before relying on a particular editor or format. RGDS lid resume was owner-confirmed. The reference RG34XXSP uses shutdown on lid close, so its physical suspend/resume path was not exercised under that setting.
 
