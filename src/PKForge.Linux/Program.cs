@@ -180,9 +180,11 @@ try
             using var captureDevice = GraphicsDevice.CreateHeadless(arguments.CaptureWidth, arguments.CaptureHeight);
             var home = captureDevice.CurrentSurface;
             var captureBounds = new SKRect(0, 0, arguments.CaptureWidth, arguments.CaptureHeight);
+            var captureSwap = new ScreenSwap();
             void DrawCapture()
             {
                 if (arguments.HeadlessScreen == "home-preview") workspace.Screens.DrawScreen(home.Canvas, captureBounds, true, captureDevice);
+                else if (captureSwap.Swapped(workspace.Screens.Current)) workspace.Screens.DrawSwapped(home.Canvas, captureBounds, captureDevice);
                 else workspace.Screens.DrawControls(home.Canvas, captureBounds, captureDevice);
             }
             if (arguments.HeadlessInput.Count > 0)
@@ -203,6 +205,8 @@ try
                 Frames(6);
                 foreach (var (button, press, release) in arguments.HeadlessInput)
                 {
+                    // L2 swaps the screen, as InputRouter does on a single-screen handheld.
+                    if (button == PadButton.L2) { if (press) captureSwap.Toggle(workspace.Screens.Current); Frames(6); continue; }
                     if (press) router.Dispatch(button);
                     if (release) router.DispatchRelease(button);
                     Frames(6);
@@ -301,6 +305,36 @@ try
             SecondScreenMode.SetUserOff(!enabled); RefreshDisplays();
         };
         workspace.ParkRequested = () => { workspace.Screens.Deactivate(); page.RefreshRoster(); page.Appear(); };
+        // L2 on one screen shows what the second screen would; with two screens it does nothing.
+        var swap = new ScreenSwap();
+        object? SwappableView() => workspace.Screens.Active ? workspace.Screens.Current : page;
+        bool Swapped() => !dual && swap.Swapped(SwappableView());
+        // The park's screen, or the only screen: the view on top, or (swapped) the lower screen's.
+        void DrawPrimaryDisplay(SKCanvas canvas, GraphicsDevice display, bool swapped)
+        {
+            var bounds = new SKRect(0, 0, display.Width, display.Height);
+            if (workspace.Screens.Active)
+            {
+                if (dual) workspace.Screens.DrawPrimary(canvas, bounds, display);
+                else if (swapped) workspace.Screens.DrawSwapped(canvas, bounds, display);
+                else workspace.Screens.DrawControls(canvas, bounds, display);
+            }
+            else if (dual)
+            {
+                page.ParkView.Draw(canvas, bounds, display);
+                page.UpperOverlay?.Draw(canvas, bounds, display);
+            }
+            else if (swapped)
+            {
+                // The park still draws (and so steps) at the hidden interval, under the journal
+                // and the park's controls as the lower screen shows them.
+                page.ParkView.Draw(canvas, bounds, display);
+                canvas.Clear(new SKColor(15, 25, 38));
+                journal.Draw(canvas, new(0, 0, display.Width, display.Height - JournalSurface.HintBarReserve), display);
+                page.ControlRoot.Draw(canvas, bounds, display, page.ParkView);
+            }
+            else page.ControlRoot.Draw(canvas, bounds, display);
+        }
         page.PrepareBenchmark(arguments.Phase, arguments.Weather, arguments.Seconds > 0);
         if (arguments.StartPage == "park" || arguments.Demo) page.Appear(); else workspace.OpenHome(welcome: true);
         Console.WriteLine($"WORKSPACE active={workspace.Screens.Active}, screen={workspace.Screens.Current?.GetType().Name}");
@@ -348,9 +382,19 @@ try
         var primaryClock = new PresentationClock();
         var secondaryClock = new PresentationClock();
         var controlsPending = false;
+        input.SwapScreens = () =>
+        {
+            if (dual) return;
+            Console.WriteLine("SCREEN swap " + (swap.Toggle(SwappableView()) ? "on: second-screen view" : "off"));
+            primaryClock.Reset();
+        };
+        library.SwapScreens = input.SwapScreens;
         var lastMotion = timer.Elapsed.TotalSeconds;
         workspace.Screens.Changed = () => { primaryClock.Reset(); secondaryClock.Reset(); if (workspace.Screens.Active) { page.Disappear(); services.GetRequiredService<IMusicPlayer>().EnterPlace(MusicPlace.Menus); } };
         var mouseHeld = false;
+        // Where the park's status and "right now" pills are: over the park on the upper screen
+        // with two screens, and also while L2 shows the journal, which they would cover.
+        var pillsAbove = dual;
         var refreshDisplays = false;
         var wasSuspended = App.IsSuspended;
         while (!library.QuitRequested && (arguments.Seconds <= 0 || timer.Elapsed.TotalSeconds < arguments.Seconds))
@@ -381,7 +425,8 @@ try
                         touch = new(-1, e.Type == Sdl.MouseDown ? SKTouchAction.Pressed : e.Type == Sdl.MouseUp ? SKTouchAction.Released : SKTouchAction.Moved, new(e.MouseX, e.MouseY));
                     if (e.Type == Sdl.MouseUp) mouseHeld = false;
                 }
-                if (touch is not null)
+                // A swapped screen shows a view its touches were not made for.
+                if (touch is not null && !Swapped())
                 {
                     if (workspace.Screens.Active)
                     {
@@ -400,13 +445,13 @@ try
             wasSuspended = App.IsSuspended;
             if (refreshDisplays && !App.IsSuspended)
             {
-                RefreshDisplays(); refreshDisplays = false; mouseHeld = false;
+                RefreshDisplays(); refreshDisplays = false; mouseHeld = false; pillsAbove = dual;
                 primaryClock.Reset(); secondaryClock.Reset();
             }
             input.Update();
             touchPanels?.Pump(controls.Width, controls.Height, (top, touch) =>
             {
-                if (!dual && !top) return;
+                if (!dual && !top || Swapped()) return;
                 if (workspace.Screens.Active)
                 {
                     if (dual && top) workspace.Screens.HandleTouch(touch, true); else workspace.Screens.HandleTouch(touch, false);
@@ -424,16 +469,20 @@ try
             workspace.Screens.Tick((float)Math.Clamp(motionNow - lastMotion, 0, .05));
             lastMotion = motionNow;
             var activeControls = workspace.Screens.Active || page.MenuOpen || library.IsShowing || !gamepadRouter.IsTop(page) || page.ControlRoot.HasActiveAnimations;
+            var swapped = Swapped();
+            var swappedPark = swapped && !workspace.Screens.Active;
+            if (pillsAbove != (dual || swappedPark)) { pillsAbove = dual || swappedPark; page.UseUpperScreenForPills(pillsAbove); }
             var singleParkUi = !workspace.Screens.Active && !dual && activeControls;
             // A park overlay follows UI cadence while the expensive scene is cached at 30 FPS.
             // On one screen the Pokéwalker's opaque backdrop hides the whole park: repainting the
             // scene under it at 30 FPS cost every other UI frame its deadline (about 48 FPS on the
             // RG34XXSP). Twice a second keeps the simulation stepping until the park shows again.
-            var parkHidden = singleParkUi && PKForge.App.Views.WalkerScreen.IsOpen;
+            // The journal L2 swaps in hides it the same way.
+            var parkHidden = singleParkUi && PKForge.App.Views.WalkerScreen.IsOpen || swappedPark;
             page.ParkPaintInterval = parkHidden ? TimeSpan.FromSeconds(0.5) : singleParkUi ? TimeSpan.FromSeconds(1.0 / 30) : TimeSpan.Zero;
             var panelInterval = PresentationClock.UiInterval((parkDisplay ?? controls).RefreshRate);
             parkPacer.FastInterval = panelInterval;
-            var primaryInterval = workspace.Screens.Active || singleParkUi ? panelInterval : PresentationClock.ParkMode switch
+            var primaryInterval = workspace.Screens.Active || singleParkUi || swappedPark ? panelInterval : PresentationClock.ParkMode switch
             {
                 ParkRate.Fixed30 => ParkPacer.SlowInterval, ParkRate.Fixed60 => panelInterval, _ => parkPacer.Interval
             };
@@ -441,21 +490,12 @@ try
             {
                 var start = Stopwatch.GetTimestamp();
                 var display = parkDisplay ?? controls;
-                var view = workspace.Screens.Active ? workspace.Screens.Current?.GetType().Name ?? "Native" : singleParkUi ? PKForge.App.Views.WalkerScreen.IsOpen ? "Pokewalker" : "Park UI" : "Park";
+                var view = workspace.Screens.Active ? (swapped ? "swapped: " : "") + (workspace.Screens.Current?.GetType().Name ?? "Native")
+                    : swappedPark ? "Park journal" : singleParkUi ? PKForge.App.Views.WalkerScreen.IsOpen ? "Pokewalker" : "Park UI" : "Park";
                 DrawProfile.BeginFrame((dual ? "top: " : "") + view);
                 UiScaleSetting.ApplyToPainters(display.Width, display.Height);
                 var surface = display.BeginFrame(); surface.Canvas.Clear(SKColors.Black);
-                if (workspace.Screens.Active)
-                {
-                    if (dual) workspace.Screens.DrawPrimary(surface.Canvas, new(0, 0, display.Width, display.Height), display);
-                    else workspace.Screens.DrawControls(surface.Canvas, new(0, 0, display.Width, display.Height), display);
-                }
-                else if (dual)
-                {
-                    page.ParkView.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
-                    page.UpperOverlay?.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
-                }
-                else page.ControlRoot.Draw(surface.Canvas, new(0, 0, display.Width, display.Height), display);
+                DrawPrimaryDisplay(surface.Canvas, display, swapped);
                 var built = Stopwatch.GetTimestamp();
                 display.Flush(); var drawn = Stopwatch.GetTimestamp();
                 display.Present();
@@ -484,8 +524,8 @@ try
                 else
                 {
                     parkPacer.Paused();
-                    // Its menus and the Pokéwalker leave the park open; Home and the editors close it.
-                    if (view is not ("Park UI" or "Pokewalker")) { parkShownAt = -1; parkSettled = false; }
+                    // Its menus, the Pokéwalker and the swapped-in journal leave the park open; Home and the editors close it.
+                    if (view is not ("Park UI" or "Pokewalker" or "Park journal")) { parkShownAt = -1; parkSettled = false; }
                 }
                 DrawProfile.Add("(build)", Stopwatch.GetElapsedTime(start, built).TotalMilliseconds);
                 DrawProfile.Add("(flush)", Stopwatch.GetElapsedTime(built, drawn).TotalMilliseconds); DrawProfile.EndFrame();
@@ -524,17 +564,7 @@ try
             var display = parkDisplay ?? controls;
             UiScaleSetting.ApplyToPainters(display.Width, display.Height);
             var frame = display.BeginFrame(); frame.Canvas.Clear(SKColors.Black);
-            if (workspace.Screens.Active)
-            {
-                if (dual) workspace.Screens.DrawPrimary(frame.Canvas, new(0, 0, display.Width, display.Height), display);
-                else workspace.Screens.DrawControls(frame.Canvas, new(0, 0, display.Width, display.Height), display);
-            }
-            else if (dual)
-            {
-                page.ParkView.Draw(frame.Canvas, new(0, 0, display.Width, display.Height), display);
-                page.UpperOverlay?.Draw(frame.Canvas, new(0, 0, display.Width, display.Height), display);
-            }
-            else page.ControlRoot.Draw(frame.Canvas, new(0, 0, display.Width, display.Height), display);
+            DrawPrimaryDisplay(frame.Canvas, display, Swapped());
             display.SaveScreenshot(Path.Combine(ParkPlatform.DataDirectory, "park.png"));
             display.Present();
         }

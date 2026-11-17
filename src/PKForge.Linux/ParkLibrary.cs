@@ -269,6 +269,8 @@ public sealed class ParkLibrary : IDocumentPicker, INavigation
     {
         public bool OnPadButton(PadButton button) { if (button == PadButton.B) cancel.Cancel(); return true; }
     }
+    /// <summary>What a scripted L2 does: the trigger never reaches a screen (see InputRouter.SwapScreens).</summary>
+    public Action? SwapScreens { get; set; }
     public void RunScript(string path, double seconds)
     {
         if (_scriptPath != path) { _scriptPath = path; _scriptLines = File.ReadAllLines(path); _scriptDone.Clear(); }
@@ -280,7 +282,8 @@ public sealed class ParkLibrary : IDocumentPicker, INavigation
             if (tokens.Length != 2 || double.Parse(tokens[0], CultureInfo.InvariantCulture) > seconds) continue;
             _scriptDone.Add(i);
             Console.WriteLine("SCRIPT " + lines[i]);
-            Get<GamepadRouter>().Dispatch(Enum.Parse<PadButton>(tokens[1], true));
+            var button = Enum.Parse<PadButton>(tokens[1], true);
+            if (button == PadButton.L2) SwapScreens?.Invoke(); else Get<GamepadRouter>().Dispatch(button);
         }
     }
 }

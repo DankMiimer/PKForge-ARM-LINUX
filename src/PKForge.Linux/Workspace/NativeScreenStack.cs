@@ -59,6 +59,12 @@ public sealed class NativeScreenStack : IPadPagingHandler, IPadReleaseHandler
         DrawScreen(canvas, bounds, Dual, device);
         ControlRoot.Draw(canvas, bounds, device, _secondary);
     }
+    /// <summary>One screen swapped by L2: the current screen's second-screen view, with dialogs over it.</summary>
+    public void DrawSwapped(SKCanvas canvas, SKRect bounds, GraphicsDevice device)
+    {
+        DrawScreen(canvas, bounds, true, device);
+        ControlRoot.Draw(canvas, bounds, device, _secondary);
+    }
     public void HandleTouch(SKTouchEventArgs touch, bool primary)
     {
         if (!_router.IsTop(this))

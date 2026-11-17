@@ -15,6 +15,8 @@ internal sealed class InputRouter : IDisposable
     private readonly HashSet<PadButton> _repeatBlocked = [];
     private readonly FirmwareExitChord _firmwareExit = new(string.Equals(Firmware(), "knulli", StringComparison.OrdinalIgnoreCase));
     private bool _needsNeutral;
+    /// <summary>L2 pressed: swap the single screen's view (see <see cref="ScreenSwap"/>). L2 never reaches a screen.</summary>
+    public Action? SwapScreens { get; set; }
     public InputRouter(GamepadRouter router, Action quit)
     {
         _router = router;
@@ -175,9 +177,10 @@ internal sealed class InputRouter : IDisposable
         if (e.Type == Sdl.WindowEvent && e.WindowKind == 13) { ClearHeld(); return false; }
         if (PKForge.App.App.IsSuspended) { ClearHeld(); return false; }
         if (_firmwareExit.Handle(e)) { ClearHeld(); _quit(); return true; }
-        if (e.Type == Sdl.ControllerAxis && e.Axis == 5)
+        if (e.Type == Sdl.ControllerAxis && e.Axis is 4 or 5)
         {
-            if (!_needsNeutral) SetButton(PadButton.R2, TriggerPressed(e.AxisValue, _held.ContainsKey(PadButton.R2)));
+            var trigger = e.Axis == 4 ? PadButton.L2 : PadButton.R2;
+            if (!_needsNeutral) SetButton(trigger, TriggerPressed(e.AxisValue, _held.ContainsKey(trigger)));
             return true;
         }
         PadButton? button = null;
@@ -199,7 +202,7 @@ internal sealed class InputRouter : IDisposable
             button = e.Key switch
             {
                 13 or 122 => PadButton.A, 27 or 120 => PadButton.B, 115 or 99 => PadButton.X, 97 or 118 => PadButton.Y,
-                113 => PadButton.L, 119 => PadButton.R, 101 => PadButton.R2, 9 => PadButton.Start, 8 or 1073742053 => PadButton.Select,
+                113 => PadButton.L, 119 => PadButton.R, 114 => PadButton.L2, 101 => PadButton.R2, 9 => PadButton.Start, 8 or 1073742053 => PadButton.Select,
                 1073741906 => PadButton.Up, 1073741905 => PadButton.Down,
                 1073741904 => PadButton.Left, 1073741903 => PadButton.Right, _ => null
             };
@@ -219,9 +222,10 @@ internal sealed class InputRouter : IDisposable
                 button is PadButton.L or PadButton.R && _router.TopPagesWithShoulders;
             _held[button] = (Stopwatch.GetTimestamp(), 0);
             Console.WriteLine("INPUT " + button);
+            if (button == PadButton.L2) { _repeatBlocked.Add(button); SwapScreens?.Invoke(); return; }
             if (!_router.Dispatch(button) || !repeats) _repeatBlocked.Add(button);
         }
-        else if (_held.Remove(button)) { _repeatBlocked.Remove(button); _router.DispatchRelease(button); }
+        else if (_held.Remove(button)) { _repeatBlocked.Remove(button); if (button != PadButton.L2) _router.DispatchRelease(button); }
     }
     public void Update()
     {
@@ -232,7 +236,8 @@ internal sealed class InputRouter : IDisposable
         var y = controller == IntPtr.Zero ? 0 : Axis(Sdl.SDL_GameControllerGetAxis(controller, 1));
         var rx = controller == IntPtr.Zero ? 0 : Axis(Sdl.SDL_GameControllerGetAxis(controller, 2));
         var ry = controller == IntPtr.Zero ? 0 : Axis(Sdl.SDL_GameControllerGetAxis(controller, 3));
-        var trigger = controller != IntPtr.Zero && TriggerPressed(Sdl.SDL_GameControllerGetAxis(controller, 5), _held.ContainsKey(PadButton.R2));
+        var trigger = controller != IntPtr.Zero && (TriggerPressed(Sdl.SDL_GameControllerGetAxis(controller, 5), _held.ContainsKey(PadButton.R2))
+            || TriggerPressed(Sdl.SDL_GameControllerGetAxis(controller, 4), _held.ContainsKey(PadButton.L2)));
         if (_needsNeutral)
         {
             if (x == 0 && y == 0 && rx == 0 && ry == 0 && !trigger) _needsNeutral = false;
