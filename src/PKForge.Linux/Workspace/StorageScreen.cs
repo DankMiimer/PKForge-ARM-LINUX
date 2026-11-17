@@ -231,6 +231,7 @@ public sealed class StorageScreen(WorkspaceHost workspace, bool bank) : INativeS
         // BankPage pads its body 20 (BoxBrowserPage 34) and stacks its LCD status line over the footer.
         var well = new SKRect(left, bar.Bottom + 28 * unit, bounds.Right - right,
             bank ? bounds.Bottom - 42 - 6 - StatusHeight - 20 * unit : bounds.Bottom - 42 - 34 * unit);
+        if (Box >= 0) well = TallScreenLayout.BoxWell(well);
         WellBounds = well;
         var wallpaper = _wallpaperFor;
         if (wallpaper != _wallpaperPath)

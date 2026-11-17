@@ -30,6 +30,11 @@ Shell tests are separate from installed, frontend-launched, rendered and physica
 verified behavior. Package filenames do not claim every device using a firmware
 has been tested.
 
+Square screens such as the 720×720 RGCubeXX use the single-screen layout across
+the whole panel. Box wells, the box overview and Home keep the proportions they
+have on the reference handhelds, and the extra height goes around them. This was
+checked in 720×720 headless captures only; no square handheld has run it yet.
+
 Testers with other handhelds: [`TESTING.md`](TESTING.md) has three quick steps
 and the log to send, and the **Device report** issue form collects it. A device
 reported working is added to the table above as tester-confirmed, with its
