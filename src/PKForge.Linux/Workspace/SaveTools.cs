@@ -184,7 +184,8 @@ public sealed partial class WorkspaceHost
             await CommitAsync(s => { var result = s.WithdrawDaycareToFirstEmptyBox(fi, slotIndex); return new(true, $"{result.SpeciesName} moved to Box {result.Box + 1}, Slot {result.Slot + 1}."); }, "Withdraw from daycare", SaveAction.Move, WriteScope.Only(new SlotRef(landing.Box, landing.Slot)));
         }
     }
-    private static readonly Type[] WorldToolTypes = [typeof(ClockRepairService), typeof(RoamerService), typeof(EventResetService), typeof(EntralinkService), typeof(ApricornService), typeof(PokewalkerService), typeof(HoneyTreeService), typeof(KeyItemEventService), typeof(TrainerCardService), typeof(HallOfFameService)];
+    /// <summary>The world and trainer tools Save data offers; tools/linux/ActionAudit audits the same list.</summary>
+    internal static readonly Type[] WorldToolTypes = [typeof(ClockRepairService), typeof(RoamerService), typeof(EventResetService), typeof(EntralinkService), typeof(ApricornService), typeof(PokewalkerService), typeof(HoneyTreeService), typeof(KeyItemEventService), typeof(TrainerCardService), typeof(HallOfFameService)];
     private Type[] SupportedWorldTools() => WorldToolTypes.Where(t => (bool)(t.GetMethod("IsSupported")!.Invoke(null, [Session]) ?? false)).ToArray();
     private async Task WorldToolsAsync()
     {

@@ -1,6 +1,24 @@
 # ARM64 port validation
 
-## Native memory after zooming — 16 November 2026 (after 0.2.9-dev)
+## L2 screen swap — 17 November 2026 (0.2.10-dev)
+
+Automatic rounds on the RG34XXSP (KNULLI, one 720×480 screen) with an isolated
+QA install of commit `975565d`, then `5c56c28`, started through the frontend and
+driven by scripted presses, with screenshots. Existing `userdata` unchanged after
+each round (1,234 entries, none changed). The RGDS was not used: L2 does nothing
+with two screens.
+
+| View | Swapped to | Frames | FPS |
+| --- | --- | --- | --- |
+| Home | Library status (no game selected yet) | 292 | 59.8 |
+| Save box | Pokémon inspector; Right moved it from Pikachu to Mewtwo | 513 | 59.1 |
+| Park | Journal | 577 | 59.4 |
+
+The first round showed the park's "right now" pill over the bottom of the
+journal; with `5c56c28` the pills move off it while swapped, as on the RGDS, and
+come back over the park after L2 again (second round, screenshots).
+
+## Native memory after zooming — 16 November 2026 (0.2.10-dev)
 
 The RGDS memory that varied between runs with 0.2.9's zoomed-out drawing (below)
 was native memory glibc kept after the app had freed it. A sample of the RGDS

@@ -17,8 +17,8 @@ the userspace, SDL backend, graphics stack and frontend environment matter.
 
 | Target | Evidence | Release classification |
 | --- | --- | --- |
-| RGDS / ROCKNIX 20261001 | Previous ARM64 trials; current device identity rechecked on 12 November 2026 | Final 0.3.0 package acceptance pending |
-| RG34XXSP / KNULLI Scarab | Previous candidate ran on hardware | Previously tested; final 0.3.0 validation pending |
+| RGDS / ROCKNIX 20261001 | Reference handheld: automatic rounds with every release archive since 0.2.5-dev, latest 0.2.9-dev on 16 November 2026 (`VALIDATION.md`) | Tested with each release; final 0.3.0 package acceptance pending |
+| RG34XXSP / KNULLI Scarab | Reference handheld: automatic rounds with every release archive since 0.2.5-dev, then the local 0.2.10-dev build on 17 November 2026 (`VALIDATION.md`) | Tested with each release; final 0.3.0 validation pending |
 | Anbernic RG35XXH / muOS (version not reported) | First tester, 15–16 November 2026: 0.2.7-dev started from Ports and ran smoothly; the park was not tried. An earlier failure was the NextUI `h700` download | Tester-confirmed (Home); park untried |
 | NextUI `tg5040`, `tg5050`, `h700` | Package layout, ABI and simulated launcher checks | Experimental; hardware unverified |
 | muOS on other handhelds; dArkOS, ArkOS, AmberELEC, SpruceOS | Requirements and simulated launcher environments only | Experimental; hardware unverified |

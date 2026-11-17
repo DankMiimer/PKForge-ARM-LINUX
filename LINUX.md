@@ -10,7 +10,7 @@ each upstream change's Linux route. So were 0.2.4 to 0.2.7; the 0.2.3 Preview an
 [Handheld compatibility](HANDHELD_COMPATIBILITY.md) separates verified hardware,
 previous trials, simulated firmware checks and unsupported userspaces.
 
-Linux revision `0.2.9-dev` extends the park preview with a native Home library,
+Linux revision `0.2.10-dev` extends the park preview with a native Home library,
 Pokémon and save editors, Bank organization, durable transfers/recovery, generation,
 offline events, collection tools, Showdown/QR and game-specific tools. This is a
 development checkpoint towards full v3.2.0 parity. `FEATURE_COVERAGE.md` records
@@ -20,7 +20,7 @@ has passed acceptance.
 
 ## Install
 
-Extract `PKForge-v3.2.0-linux-0.2.9-dev-arm64.zip` into the Ports directory. This
+Extract `PKForge-v3.2.0-linux-0.2.10-dev-arm64.zip` into the Ports directory. This
 one ZIP is for every firmware except NextUI, whatever the handheld's chip: the
 `nextui-…` ZIPs (including `nextui-h700`) only work on the NextUI firmware.
 
@@ -28,7 +28,7 @@ one ZIP is for every firmware except NextUI, whatever the handheld's chip: the
 | --- | --- |
 | ROCKNIX | `/roms/ports/` (normally `/storage/roms/ports/`) |
 | KNULLI | `/userdata/roms/ports/` |
-| dArkOS (ARM64, including compatible R36S community images) | `/roms/ports/` or `/roms2/ports/` |
+| ArkOS, dArkOS (ARM64, including compatible R36S community images) | `/roms/ports/` or `/roms2/ports/` |
 | BananaOS (RG DS, RG DS Plus; experimental, hardware unverified) | `roms/ports/` on the card (`\\<address>\banana\roms\ports` over its file sharing) |
 | muOS | Data: `ports/pkforge/` at the card's top level (`/mnt/mmc/ports/`, or `/mnt/sdcard/ports/` on a second card); launchers: `ROMS/Ports/` on the same card |
 
